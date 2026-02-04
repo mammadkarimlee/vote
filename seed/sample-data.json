@@ -1,0 +1,47 @@
+﻿{
+  "branches": [
+    { "id": "branch-1", "name": "Bakı - Mərkəz", "address": "Nizami küç. 12" },
+    { "id": "branch-2", "name": "Sumqayıt", "address": "Sülh pr. 45" }
+  ],
+  "users": [
+    {
+      "id": "SUPERADMIN_UID",
+      "role": "superadmin",
+      "displayName": "Baş direktor",
+      "email": "director@example.com"
+    }
+  ],
+  "usernames": [
+    { "login": "aygunma", "uid": "TEACHER01", "role": "teacher", "branchId": "branch-1" },
+    { "login": "elvial", "uid": "STUDENT01", "role": "student", "branchId": "branch-1" }
+  ],
+  "subjects": [
+    { "id": "math", "name": "Riyaziyyat" },
+    { "id": "az", "name": "Azərbaycan dili" }
+  ],
+  "groups": [
+    { "id": "grp-9a", "name": "9A", "classLevel": "9", "branchId": "branch-1" }
+  ],
+  "teachers": [
+    { "id": "TEACHER01", "name": "Aygün Məmmədova", "branchId": "branch-1", "login": "aygunma" }
+  ],
+  "students": [
+    {
+      "id": "STUDENT01",
+      "name": "Elvin Əliyev",
+      "branchId": "branch-1",
+      "groupId": "grp-9a",
+      "classLevel": "9",
+      "login": "elvial"
+    }
+  ],
+  "teachingAssignments": [
+    {
+      "teacherId": "TEACHER01",
+      "groupId": "grp-9a",
+      "subjectId": "math",
+      "branchId": "branch-1",
+      "year": 2025
+    }
+  ]
+}
