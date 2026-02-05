@@ -337,14 +337,14 @@ export const AdminCycleDetailPage = () => {
             <p>Orta və səsvermə sayı.</p>
           </div>
         </div>
-        <div className="table">
-          <div className="table-row header">
+        <div className="data-table">
+          <div className="data-row header">
             <div>Müəllim</div>
             <div>Orta</div>
             <div>n</div>
           </div>
           {teacherRows.map((item) => (
-            <div className="table-row" key={item.teacherId}>
+            <div className="data-row" key={item.teacherId}>
               <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
               <div>{formatAvg(item.avg, item.submissions)}</div>
               <div>{item.submissions}</div>
@@ -361,15 +361,15 @@ export const AdminCycleDetailPage = () => {
             <p>Anonim nəticələr: yalnız səs verib-verməməsi göstərilir.</p>
           </div>
         </div>
-        <div className="table">
-          <div className="table-row header">
+        <div className="data-table">
+          <div className="data-row header">
             <div>Ad</div>
             <div>Rol</div>
             <div>Səs verib</div>
             <div>n</div>
           </div>
           {raterRows.map((item) => (
-            <div className="table-row" key={item.id}>
+            <div className="data-row" key={item.id}>
               <div>{item.name}</div>
               <div>{item.role}</div>
               <div>{item.done ? 'Bəli' : 'Xeyr'}</div>

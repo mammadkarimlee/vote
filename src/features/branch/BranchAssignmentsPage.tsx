@@ -90,7 +90,11 @@ export const BranchAssignmentsPage = () => {
   }, [preselectedTeacherId, teacherId])
 
   const handleCreate = async () => {
-    if (!teacherId || !groupId || !subjectId || !year || !branchId) {
+    if (!branchId) {
+      setStatus('Filial seçilməyib. Davam etmək üçün filial seçin.')
+      return
+    }
+    if (!teacherId || !groupId || !subjectId || !year) {
       setStatus('Bütün sahələri doldurun')
       return
     }
@@ -105,7 +109,7 @@ export const BranchAssignmentsPage = () => {
     })
 
     if (error) {
-      setStatus('Yaratma zamanı xəta oldu')
+      setStatus(error.message || 'Yaratma zamanı xəta oldu')
       return
     }
 
@@ -134,7 +138,10 @@ export const BranchAssignmentsPage = () => {
   }
 
   const handleImport = async (file: File) => {
-    if (!branchId) return
+    if (!branchId) {
+      setStatus('Filial seçilməyib. Import üçün filial seçin.')
+      return
+    }
     const rows = await parseSpreadsheet(file)
     const existingKeys = new Set(
       assignments.map(
@@ -183,7 +190,7 @@ export const BranchAssignmentsPage = () => {
     )
 
     if (error) {
-      setStatus('Bulk import zamanı xəta oldu')
+      setStatus(error.message || 'Bulk import zamanı xəta oldu')
       return
     }
 
@@ -203,18 +210,31 @@ export const BranchAssignmentsPage = () => {
   const canCreate = missingSetup.length === 0
 
   return (
-    <div className="panel">
-      {isSuperAdmin && (
-        <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
-      )}
-
-      <div className="panel-header">
-        <div>
-          <h2>Dərs təyinatları</h2>
-          <p>Müəllim-qrup-fənn mapping məlumatları.</p>
+    <div className="panel branch-page">
+      <div className="page-hero">
+        <div className="page-hero__content">
+          <div className="eyebrow">Təyinat idarəetməsi</div>
+          <h1>
+            Dərs təyinatları
+            <span
+              className="info-tip"
+              data-tip="Müəllim–qrup–fənn–il əlaqəsi BİQ nəticələri və sorğu tapşırıqlarını düzgün hesablamaq üçün lazımdır."
+            >
+              i
+            </span>
+          </h1>
+          <p>Müəllim, qrup, fənn və il üzrə əlaqə cədvəli.</p>
         </div>
-        <div className="stat-pill">Cəmi: {summary}</div>
+        <div className="page-hero__aside">
+          {isSuperAdmin && (
+            <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
+          )}
+          <div className="stat-pill">Cəmi: {summary}</div>
+        </div>
       </div>
+      {isSuperAdmin && !branchId && (
+        <div className="notice">Filial seçilməyib. Davam etmək üçün filial seçin.</div>
+      )}
 
       {missingSetup.length > 0 && (
         <div className="notice">
@@ -225,88 +245,98 @@ export const BranchAssignmentsPage = () => {
         </div>
       )}
 
-      <div className="card">
-        <h3>Yeni təyinat</h3>
-        <div className="form-grid">
-          <select className="input" value={teacherId} onChange={(event) => setTeacherId(event.target.value)}>
-            <option value="">Müəllim seçin</option>
-            {teachers.map((teacher) => (
-              <option key={teacher.id} value={teacher.id}>
-                {teacher.data.name}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-            <option value="">Qrup seçin</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.data.name}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
-            <option value="">Fənn seçin</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.data.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            placeholder="İl"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-          />
-          <button className="btn primary" type="button" onClick={handleCreate} disabled={!canCreate || !branchId}>
-            Yarat
-          </button>
+      <div className="page-grid">
+        <div className="card">
+          <h3>Yeni təyinat</h3>
+          <div className="form-grid">
+            <select className="input" value={teacherId} onChange={(event) => setTeacherId(event.target.value)}>
+              <option value="">Müəllim seçin</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.data.name}
+                </option>
+              ))}
+            </select>
+            <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+              <option value="">Qrup seçin</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.data.name}
+                </option>
+              ))}
+            </select>
+            <select className="input" value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+              <option value="">Fənn seçin</option>
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.data.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              placeholder="İl"
+              value={year}
+              onChange={(event) => setYear(event.target.value)}
+            />
+            <button className="btn primary" type="button" onClick={handleCreate} disabled={!canCreate || !branchId}>
+              Yarat
+            </button>
+          </div>
+          <div className="form-row">
+            <input
+              className="input"
+              type="file"
+              accept=".csv,.xlsx"
+              disabled={!canCreate || !branchId}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (file) void handleImport(file)
+              }}
+            />
+            <span className="hint">Şablon sütunları: teacherId, groupId, subjectId, year, branchId (optional)</span>
+          </div>
+          {status && <div className="notice">{status}</div>}
         </div>
-        <div className="form-row">
-          <input
-            className="input"
-            type="file"
-            accept=".csv,.xlsx"
-            disabled={!canCreate || !branchId}
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) void handleImport(file)
-            }}
-          />
-          <span className="hint">Şablon sütunları: teacherId, groupId, subjectId, year, branchId (optional)</span>
-        </div>
-        {status && <div className="notice">{status}</div>}
-      </div>
 
-      <div className="table">
-        <div className="table-row header">
-          <div>Müəllim</div>
-          <div>Qrup</div>
-          <div>Fənn</div>
-          <div>İl</div>
-          <div></div>
-        </div>
-        {assignments.map((assignment) => (
-          <div className="table-row" key={assignment.id}>
+        <div className="card">
+          <div className="section-header">
             <div>
-              {teachers.find((teacher) => teacher.id === assignment.data.teacherId)?.data.name ??
-                assignment.data.teacherId}
-            </div>
-            <div>
-              {groups.find((group) => group.id === assignment.data.groupId)?.data.name ?? assignment.data.groupId}
-            </div>
-            <div>
-              {subjects.find((subject) => subject.id === assignment.data.subjectId)?.data.name ??
-                assignment.data.subjectId}
-            </div>
-            <div>{assignment.data.year}</div>
-            <div>
-              <button className="btn ghost" type="button" onClick={() => void handleDelete(assignment.id)}>
-                Sil
-              </button>
+              <div className="section-kicker">Siyahı</div>
+              <div className="section-title">Dərs təyinatları</div>
             </div>
           </div>
-        ))}
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Müəllim</div>
+              <div>Qrup</div>
+              <div>Fənn</div>
+              <div>İl</div>
+              <div></div>
+            </div>
+            {assignments.map((assignment) => (
+              <div className="data-row" key={assignment.id}>
+                <div>
+                  {teachers.find((teacher) => teacher.id === assignment.data.teacherId)?.data.name ??
+                    assignment.data.teacherId}
+                </div>
+                <div>
+                  {groups.find((group) => group.id === assignment.data.groupId)?.data.name ?? assignment.data.groupId}
+                </div>
+                <div>
+                  {subjects.find((subject) => subject.id === assignment.data.subjectId)?.data.name ??
+                    assignment.data.subjectId}
+                </div>
+                <div>{assignment.data.year}</div>
+                <div>
+                  <button className="btn ghost" type="button" onClick={() => void handleDelete(assignment.id)}>
+                    Sil
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       {dialog}
     </div>

@@ -17,6 +17,7 @@ export const BranchDepartmentsPage = () => {
   const [departments, setDepartments] = useState<DepartmentEntry[]>([])
   const [name, setName] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
@@ -32,7 +33,11 @@ export const BranchDepartmentsPage = () => {
       .eq('org_id', ORG_ID)
       .eq('branch_id', branchId)
       .is('deleted_at', null)
-    if (error) return
+    if (error) {
+      setLoadError(error.message || 'Yükləmə zamanı xəta oldu')
+      return
+    }
+    setLoadError(null)
     const items = (data ?? []).map((row) => ({ id: row.id, data: mapDepartmentRow(row) }))
     setDepartments(items)
   }
@@ -43,7 +48,7 @@ export const BranchDepartmentsPage = () => {
 
   const handleCreate = async () => {
     if (!branchId) {
-      setStatus('Filial seçilməyib')
+      setStatus('Filial seçilməyib. Davam etmək üçün filial seçin.')
       return
     }
     if (!name.trim()) {
@@ -59,7 +64,7 @@ export const BranchDepartmentsPage = () => {
     })
 
     if (error) {
-      setStatus('Yaratma zamanı xəta oldu')
+      setStatus(error.message || 'Yaratma zamanı xəta oldu')
       return
     }
 
@@ -110,7 +115,7 @@ export const BranchDepartmentsPage = () => {
       .eq('id', editingId)
     setSavingEdit(false)
     if (error) {
-      setStatus('Yeniləmə zamanı xəta oldu')
+      setStatus(error.message || 'Yeniləmə zamanı xəta oldu')
       return
     }
     setStatus('Kafedra yeniləndi')
@@ -121,77 +126,93 @@ export const BranchDepartmentsPage = () => {
   const summary = useMemo(() => departments.length, [departments])
 
   return (
-    <div className="panel">
-      {isSuperAdmin && (
-        <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
+    <div className="panel branch-page">
+      <div className="page-hero">
+        <div className="page-hero__content">
+          <div className="eyebrow">Filial strukturu</div>
+          <h1>Kafedralar</h1>
+          <p>Filial üzrə kafedra siyahısı və idarəetmə paneli.</p>
+        </div>
+        <div className="page-hero__aside">
+          {isSuperAdmin && (
+            <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
+          )}
+          <div className="stat-pill">Cəmi: {summary}</div>
+        </div>
+      </div>
+      {isSuperAdmin && !branchId && (
+        <div className="notice">Filial seçilməyib. Davam etmək üçün filial seçin.</div>
       )}
 
-      <div className="panel-header">
-        <div>
-          <h2>Kafedralar</h2>
-          <p>Filial üzrə kafedra siyahısı.</p>
+      <div className="page-grid">
+        <div className="card">
+          <h3>Yeni kafedra</h3>
+          <div className="form-grid">
+            <input
+              className="input"
+              placeholder="Kafedra adı"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <button className="btn primary" type="button" onClick={handleCreate} disabled={!branchId}>
+              Yarat
+            </button>
+          </div>
+          {status && <div className="notice">{status}</div>}
         </div>
-        <div className="stat-pill">Cəmi: {summary}</div>
-      </div>
 
-      <div className="card">
-        <h3>Yeni kafedra</h3>
-        <div className="form-grid">
-          <input
-            className="input"
-            placeholder="Kafedra adı"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <button className="btn primary" type="button" onClick={handleCreate} disabled={!branchId}>
-            Yarat
-          </button>
-        </div>
-        {status && <div className="notice">{status}</div>}
-      </div>
-
-      <div className="table">
-        <div className="table-row header">
-          <div>Kafedra</div>
-          <div></div>
-        </div>
-        {departments.map((department) => (
-          <div className="table-row" key={department.id}>
+        <div className="card">
+          <div className="section-header">
             <div>
-              {editingId === department.id ? (
-                <input
-                  className="input"
-                  value={editName}
-                  onChange={(event) => setEditName(event.target.value)}
-                />
-              ) : (
-                department.data.name
-              )}
-            </div>
-            <div className="actions">
-              {editingId === department.id ? (
-                <>
-                  <button className="btn primary" type="button" onClick={handleEditSave} disabled={savingEdit}>
-                    Yadda saxla
-                  </button>
-                  <button className="btn ghost" type="button" onClick={handleEditCancel} disabled={savingEdit}>
-                    Ləğv et
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="btn" type="button" onClick={() => handleEditStart(department)}>
-                    Redaktə
-                  </button>
-                  <button className="btn ghost" type="button" onClick={() => void handleDelete(department.id)}>
-                    Sil
-                  </button>
-                </>
-              )}
+              <div className="section-kicker">Siyahı</div>
+              <div className="section-title">Kafedralar</div>
             </div>
           </div>
-        ))}
-        {departments.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+          {loadError && <div className="notice">{loadError}</div>}
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Kafedra</div>
+              <div></div>
+            </div>
+            {departments.map((department) => (
+              <div className="data-row" key={department.id}>
+                <div>
+                  {editingId === department.id ? (
+                    <input
+                      className="input"
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                    />
+                  ) : (
+                    department.data.name
+                  )}
+                </div>
+                <div className="actions">
+                  {editingId === department.id ? (
+                    <>
+                      <button className="btn primary" type="button" onClick={handleEditSave} disabled={savingEdit}>
+                        Yadda saxla
+                      </button>
+                      <button className="btn ghost" type="button" onClick={handleEditCancel} disabled={savingEdit}>
+                        Ləğv et
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn" type="button" onClick={() => handleEditStart(department)}>
+                        Redaktə
+                      </button>
+                      <button className="btn ghost" type="button" onClick={() => void handleDelete(department.id)}>
+                        Sil
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+            {departments.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+          </div>
+        </div>
       </div>
       {dialog}
     </div>

@@ -154,15 +154,15 @@ export const BranchProfilesPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Ad</div>
           <div>Rol</div>
           <div>Login/Email</div>
           <div></div>
         </div>
         {users.map((userRow) => (
-          <div className="table-row" key={userRow.id}>
+          <div className="data-row" key={userRow.id}>
             <div>{userRow.data.displayName ?? '-'}</div>
             <div>{userRow.data.role}</div>
             <div>{userRow.data.login ?? userRow.data.email ?? '-'}</div>

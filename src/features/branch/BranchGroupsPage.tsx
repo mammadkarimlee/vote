@@ -229,15 +229,15 @@ export const BranchGroupsPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Qrup</div>
           <div>Sinif səviyyəsi</div>
           <div>Filial</div>
           <div></div>
         </div>
         {groups.map((group) => (
-          <div className="table-row" key={group.id}>
+          <div className="data-row" key={group.id}>
             <div>
               {editingId === group.id ? (
                 <input

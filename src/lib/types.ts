@@ -10,8 +10,12 @@ export type TargetFlow =
   | 'student_teacher'
   | 'teacher_management'
   | 'management_teacher'
+  | 'teacher_self'
 
 export type QuestionType = 'scale' | 'choice' | 'text'
+
+export type TeacherCategory = 'standard' | 'drama_gym' | 'chess'
+export type PkpdDecisionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export type UserDoc = {
   role: Role
@@ -39,6 +43,7 @@ export type TeacherDoc = {
   photoUrl?: string | null
   branchId?: string | null
   branchIds?: string[]
+  category?: TeacherCategory
   uid?: string | null
   login?: string | null
   createdAt?: unknown
@@ -151,4 +156,58 @@ export type AiInsightDoc = {
   targetId: string
   summary: string
   createdAt: unknown
+}
+
+export type BiqClassResultDoc = {
+  cycleId: string
+  branchId: string
+  groupId: string
+  subjectId: string
+  score: number
+  createdAt?: unknown
+}
+
+export type PkpdExamDoc = {
+  cycleId: string
+  branchId: string
+  teacherId: string
+  score: number
+  note?: string | null
+  createdAt?: unknown
+}
+
+export type PkpdPortfolioDoc = {
+  cycleId: string
+  branchId: string
+  teacherId: string
+  educationScore?: number | null
+  attendanceScore?: number | null
+  trainingScore?: number | null
+  olympiadScore?: number | null
+  eventsScore?: number | null
+  note?: string | null
+  createdAt?: unknown
+}
+
+export type PkpdAchievementDoc = {
+  cycleId: string
+  branchId: string
+  teacherId: string
+  type: string
+  points: number
+  note?: string | null
+  createdAt?: unknown
+}
+
+export type PkpdDecisionDoc = {
+  cycleId: string
+  branchId: string
+  teacherId: string
+  status: PkpdDecisionStatus
+  category?: string | null
+  totalScore?: number | null
+  note?: string | null
+  decidedBy?: string | null
+  decidedAt?: unknown
+  createdAt?: unknown
 }

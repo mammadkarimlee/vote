@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { NavLink, useNavigate, useParams } from 'react-router-dom'
 import { ORG_ID, supabase } from '../../lib/supabase'
 import {
   mapAnswerRow,
@@ -31,6 +32,12 @@ const formatAvg = (avg: number | null | undefined, count: number) => {
   return avg.toFixed(2)
 }
 
+const RESULTS_SECTIONS = [
+  { key: 'teachers', label: 'Müəllim nəticələri' },
+  { key: 'submissions', label: 'Səsvermə yazıları' },
+  { key: 'comments', label: 'Yazılı şərhlər' },
+] as const
+
 export const BranchResultsPage = () => {
   const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope()
   const [cycles, setCycles] = useState<Array<DocEntry<SurveyCycleDoc>>>([])
@@ -42,6 +49,15 @@ export const BranchResultsPage = () => {
   const [answers, setAnswers] = useState<Array<DocEntry<AnswerDoc>>>([])
   const [selectedCycleId, setSelectedCycleId] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState('')
+  const { section } = useParams()
+  const activeSection = RESULTS_SECTIONS.find((item) => item.key === section)?.key ?? 'teachers'
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!section || !RESULTS_SECTIONS.some((item) => item.key === section)) {
+      navigate('/branch/results/teachers', { replace: true })
+    }
+  }, [navigate, section])
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -356,6 +372,28 @@ export const BranchResultsPage = () => {
     downloadCsv(`branch-results-${year}.csv`, ['cycle_year', 'teacher_name', 'teacher_id', 'group', 'subject', 'score_avg', 'submitted_at', 'comment'], rows)
   }
 
+  const teacherSelector = (
+    <div className="form-row">
+      <label className="field">
+        <span className="label">Müəllim</span>
+        <select
+          className="input"
+          value={selectedTeacherId}
+          onChange={(event) => setSelectedTeacherId(event.target.value)}
+        >
+          <option value="">Müəllim seçin</option>
+          {teachers.map((teacher) => (
+            <option key={teacher.id} value={teacher.id}>
+              {teacher.data.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="stat-pill">Orta: {formatAvg(selectedTeacherSummary.avg, selectedTeacherSummary.submissions)}</div>
+      <div className="stat-pill">n={selectedTeacherSummary.submissions}</div>
+    </div>
+  )
+
   return (
     <div className="panel">
       {isSuperAdmin && (
@@ -416,113 +454,124 @@ export const BranchResultsPage = () => {
         </div>
       </div>
 
-      <div className="grid two">
-        <div className="card">
-          <h3>Müəllim siyahısı</h3>
-          <div className="table">
-            <div className="table-row header">
-              <div>Müəllim</div>
-              <div>Orta</div>
-              <div>n</div>
-              <div></div>
-            </div>
-            {teacherRows.map((item) => (
-              <div className="table-row" key={item.teacherId}>
-                <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
-                <div>{formatAvg(item.avg, item.submissions)}</div>
-                <div>{item.submissions}</div>
-                <div>
-                  <button className="btn ghost" type="button" onClick={() => setSelectedTeacherId(item.teacherId)}>
-                    Baxış
-                  </button>
-                </div>
+      <div className="segmented mt-6">
+        {RESULTS_SECTIONS.map((item) => (
+          <NavLink
+            key={item.key}
+            to={`/branch/results/${item.key}`}
+            className={`segmented__item${activeSection === item.key ? ' active' : ''}`}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+
+      {activeSection === 'teachers' && (
+        <div className="grid two">
+          <div className="card">
+            <h3>Müəllim siyahısı</h3>
+            <div className="data-table">
+              <div className="data-row header">
+                <div>Müəllim</div>
+                <div>Orta</div>
+                <div>n</div>
+                <div></div>
               </div>
-            ))}
-            {teacherRows.length === 0 && <div className="empty">Nəticə yoxdur.</div>}
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>Seçilmiş müəllim</h3>
-          <div className="form-row">
-            <label className="field">
-              <span className="label">Müəllim</span>
-              <select
-                className="input"
-                value={selectedTeacherId}
-                onChange={(event) => setSelectedTeacherId(event.target.value)}
-              >
-                <option value="">Müəllim seçin</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.data.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="stat-pill">Orta: {formatAvg(selectedTeacherSummary.avg, selectedTeacherSummary.submissions)}</div>
-            <div className="stat-pill">n={selectedTeacherSummary.submissions}</div>
-          </div>
-
-          <div className="table">
-            <div className="table-row header">
-              <div>Sual</div>
-              <div>Tip</div>
-              <div>Nəticə</div>
-              <div>n</div>
-            </div>
-            {selectedTeacherNonTextStats.map((stat) => {
-              const choiceSummary = stat.choices
-                ? Object.entries(stat.choices)
-                    .map(([value, count]) => `${value} (${count})`)
-                    .join(', ')
-                : '-'
-              const resultLabel = stat.type === 'choice' ? choiceSummary : stat.avg?.toFixed(2) ?? '-'
-              return (
-                <div className="table-row" key={stat.questionId}>
-                  <div>{stat.text}</div>
-                  <div>{stat.type}</div>
-                  <div>{resultLabel}</div>
-                  <div>{stat.count}</div>
+              {teacherRows.map((item) => (
+                <div className="data-row" key={item.teacherId}>
+                  <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
+                  <div>{formatAvg(item.avg, item.submissions)}</div>
+                  <div>{item.submissions}</div>
+                  <div>
+                    <button className="btn ghost" type="button" onClick={() => setSelectedTeacherId(item.teacherId)}>
+                      Baxış
+                    </button>
+                  </div>
                 </div>
-              )
-            })}
-            {selectedTeacherNonTextStats.length === 0 && <div className="empty">Nəticə yoxdur.</div>}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Səsvermə yazıları</h3>
-        <div className="table">
-          <div className="table-row header">
-            <div>Qrup</div>
-            <div>Fənn</div>
-            <div>Tarix</div>
-          </div>
-          {selectedTeacherSubmissions.map((submission) => (
-            <div className="table-row" key={submission.id}>
-              <div>{submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? '-' : '-'}</div>
-              <div>{submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? '-' : '-'}</div>
-              <div>{formatShortDate(submission.data.createdAt)}</div>
+              ))}
+              {teacherRows.length === 0 && <div className="empty">Nəticə yoxdur.</div>}
             </div>
-          ))}
-          {selectedTeacherSubmissions.length === 0 && <div className="empty">Səsvermə yoxdur.</div>}
-        </div>
-      </div>
+          </div>
 
-      {selectedTeacherTexts.length > 0 && (
+          <div className="card">
+            <h3>Müəllim nəticələri</h3>
+            {teacherSelector}
+            <div className="data-table">
+              <div className="data-row header">
+                <div>Sual</div>
+                <div>Tip</div>
+                <div>Nəticə</div>
+                <div>n</div>
+              </div>
+              {selectedTeacherNonTextStats.map((stat) => {
+                const choiceSummary = stat.choices
+                  ? Object.entries(stat.choices)
+                      .map(([value, count]) => `${value} (${count})`)
+                      .join(', ')
+                  : '-'
+                const resultLabel = stat.type === 'choice' ? choiceSummary : stat.avg?.toFixed(2) ?? '-'
+                return (
+                  <div className="data-row" key={stat.questionId}>
+                    <div>{stat.text}</div>
+                    <div>{stat.type}</div>
+                    <div>{resultLabel}</div>
+                    <div>{stat.count}</div>
+                  </div>
+                )
+              })}
+              {selectedTeacherNonTextStats.length === 0 && <div className="empty">Nəticə yoxdur.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'submissions' && (
+        <div className="card">
+          <h3>Səsvermə yazıları</h3>
+          {teacherSelector}
+          {!selectedTeacherId ? (
+            <div className="empty">Müəllim seçin.</div>
+          ) : (
+            <div className="data-table">
+              <div className="data-row header">
+                <div>Qrup</div>
+                <div>Fənn</div>
+                <div>Tarix</div>
+              </div>
+              {selectedTeacherSubmissions.map((submission) => (
+                <div className="data-row" key={submission.id}>
+                  <div>{submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? '-' : '-'}</div>
+                  <div>{submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? '-' : '-'}</div>
+                  <div>{formatShortDate(submission.data.createdAt)}</div>
+                </div>
+              ))}
+              {selectedTeacherSubmissions.length === 0 && <div className="empty">Səsvermə yoxdur.</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeSection === 'comments' && (
         <div className="card">
           <h3>Yazılı şərhlər</h3>
-          <div className="comment-feed">
-            {selectedTeacherTexts.map((text, index) => (
-              <div className="comment" key={`${selectedTeacherId}_${index}`}>
-                <div className="comment-text">{text}</div>
-              </div>
-            ))}
-          </div>
+          {teacherSelector}
+          {!selectedTeacherId ? (
+            <div className="empty">Müəllim seçin.</div>
+          ) : selectedTeacherTexts.length > 0 ? (
+            <div className="comment-feed">
+              {selectedTeacherTexts.map((text, index) => (
+                <div className="comment" key={`${selectedTeacherId}_${index}`}>
+                  <div className="comment-text">{text}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty">Şərh yoxdur.</div>
+          )}
         </div>
       )}
     </div>
   )
 }
+
+

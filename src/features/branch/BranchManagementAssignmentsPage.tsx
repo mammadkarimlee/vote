@@ -138,15 +138,15 @@ export const BranchManagementAssignmentsPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Rəhbərlik</div>
           <div>Filial</div>
           <div>İl</div>
           <div></div>
         </div>
         {assignments.map((assignment) => (
-          <div className="table-row" key={assignment.id}>
+          <div className="data-row" key={assignment.id}>
             <div>
               {managers.find((manager) => manager.id === assignment.data.managerUid)?.data.displayName ??
                 assignment.data.managerUid}

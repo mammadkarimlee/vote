@@ -6,6 +6,10 @@ import type {
   DepartmentDoc,
   GroupDoc,
   ManagementAssignmentDoc,
+  PkpdAchievementDoc,
+  PkpdDecisionDoc,
+  PkpdExamDoc,
+  PkpdPortfolioDoc,
   QuestionDoc,
   QuestionSetDoc,
   StudentDoc,
@@ -16,6 +20,7 @@ import type {
   TeachingAssignmentDoc,
   SubmissionDoc,
   UserDoc,
+  BiqClassResultDoc,
 } from './types'
 
 type Row = Record<string, any>
@@ -46,6 +51,7 @@ export const mapTeacherRow = (row: Row): TeacherDoc => ({
   photoUrl: row.photo_url ?? null,
   branchId: row.branch_id ?? null,
   branchIds: row.branch_ids ?? undefined,
+  category: row.teacher_category ?? 'standard',
   uid: row.user_id ?? null,
   login: row.login ?? null,
   createdAt: row.created_at ?? null,
@@ -157,5 +163,59 @@ export const mapAiInsightRow = (row: Row): AiInsightDoc => ({
   cycleId: row.cycle_id,
   targetId: row.target_id,
   summary: row.summary,
+  createdAt: row.created_at ?? null,
+})
+
+export const mapBiqClassResultRow = (row: Row): BiqClassResultDoc => ({
+  cycleId: row.cycle_id,
+  branchId: row.branch_id,
+  groupId: row.group_id,
+  subjectId: row.subject_id,
+  score: Number(row.score ?? 0),
+  createdAt: row.created_at ?? null,
+})
+
+export const mapPkpdExamRow = (row: Row): PkpdExamDoc => ({
+  cycleId: row.cycle_id,
+  branchId: row.branch_id,
+  teacherId: row.teacher_id,
+  score: Number(row.score ?? 0),
+  note: row.note ?? null,
+  createdAt: row.created_at ?? null,
+})
+
+export const mapPkpdPortfolioRow = (row: Row): PkpdPortfolioDoc => ({
+  cycleId: row.cycle_id,
+  branchId: row.branch_id,
+  teacherId: row.teacher_id,
+  educationScore: row.education_score ?? null,
+  attendanceScore: row.attendance_score ?? null,
+  trainingScore: row.training_score ?? null,
+  olympiadScore: row.olympiad_score ?? null,
+  eventsScore: row.events_score ?? null,
+  note: row.note ?? null,
+  createdAt: row.created_at ?? null,
+})
+
+export const mapPkpdAchievementRow = (row: Row): PkpdAchievementDoc => ({
+  cycleId: row.cycle_id,
+  branchId: row.branch_id,
+  teacherId: row.teacher_id,
+  type: row.type,
+  points: Number(row.points ?? 0),
+  note: row.note ?? null,
+  createdAt: row.created_at ?? null,
+})
+
+export const mapPkpdDecisionRow = (row: Row): PkpdDecisionDoc => ({
+  cycleId: row.cycle_id,
+  branchId: row.branch_id,
+  teacherId: row.teacher_id,
+  status: row.status,
+  category: row.category ?? null,
+  totalScore: row.total_score ?? null,
+  note: row.note ?? null,
+  decidedBy: row.decided_by ?? null,
+  decidedAt: row.decided_at ?? null,
   createdAt: row.created_at ?? null,
 })

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/AuthProvider'
+import { ThemeProvider } from './components/theme/ThemeProvider'
 
 const basePath = import.meta.env.VITE_BASE_PATH || '/'
 const normalizedBase = basePath === '/' ? '/' : basePath.replace(/\/$/, '')
@@ -11,9 +12,11 @@ const normalizedBase = basePath === '/' ? '/' : basePath.replace(/\/$/, '')
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={normalizedBase}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )

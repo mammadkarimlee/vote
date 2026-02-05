@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { NavLink, useNavigate, useParams } from 'react-router-dom'
 import { ORG_ID, supabase } from '../../lib/supabase'
 import {
   mapAnswerRow,
@@ -41,6 +42,14 @@ type AggregationResult = {
     subjectId?: string | null
   }>
 }
+
+const DASHBOARD_SECTIONS = [
+  { key: 'overview', label: 'Ümumi baxış' },
+  { key: 'teachers', label: 'Müəllim nəticələri' },
+  { key: 'branches', label: 'Filial müqayisəsi' },
+  { key: 'heatmap', label: 'İstilik xəritəsi' },
+  { key: 'comments', label: 'Şərhlər' },
+] as const
 
 const aggregateCycle = (
   submissions: Array<DocEntry<SubmissionDoc>>,
@@ -172,6 +181,15 @@ export const AdminDashboardPage = () => {
     classLevel: '',
     search: '',
   })
+  const { section } = useParams()
+  const activeSection = DASHBOARD_SECTIONS.find((item) => item.key === section)?.key ?? 'overview'
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!section || !DASHBOARD_SECTIONS.some((item) => item.key === section)) {
+      navigate('/admin/dashboard/overview', { replace: true })
+    }
+  }, [navigate, section])
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -636,6 +654,18 @@ export const AdminDashboardPage = () => {
           </button>
         </div>
       </div>
+
+      <div className="segmented mt-4">
+        {DASHBOARD_SECTIONS.map((item) => (
+          <NavLink
+            key={item.key}
+            to={`/admin/dashboard/${item.key}`}
+            className={`segmented__item${activeSection === item.key ? ' active' : ''}`}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
       <div className="card">
         <div className="section-header">
           <div>
@@ -744,237 +774,250 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
 
-      <div className="card">
-        <div className="grid three">
-          <div className="stat-card">
-            <div className="stat-label">
-              Cari il ortalaması
-              <InfoTip text="Seçilmiş sorğu dövrü üzrə bütün scale cavablarının ortalaması." />
-            </div>
-            <div className="stat-value">{formatAvg(overallCurrent.avg, overallCurrent.submissions)}</div>
-            <div className="stat-meta">n={overallCurrent.submissions}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">
-              Keçən il ortalaması
-              <InfoTip text="Əvvəlki sorğu dövrü üzrə scale cavablarının ortalaması." />
-            </div>
-            <div className="stat-value">{formatAvg(overallPrev.avg, overallPrev.submissions)}</div>
-            <div className="stat-meta">n={overallPrev.submissions}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">
-              Risk qaydası
-              <InfoTip text="Ortalama bu həddən aşağıdırsa risk statusu tətbiq olunur." />
-            </div>
-            <div className="stat-value">orta &lt; {riskThreshold}</div>
-            <div className="stat-meta">Tədbir: {observeMonths} ay müşahidə</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <h3>Müəllimlər</h3>
-            <p>Ən yaxşı və risk müəllim siyahıları.</p>
-          </div>
-        </div>
-        <div className="grid two">
+      {activeSection === 'overview' && (
+        <>
           <div className="card">
-            <h4>Ən yaxşı müəllimlər</h4>
-            <div className="table">
-              <div className="table-row header">
-                <div>Müəllim</div>
-                <div>Orta</div>
-                <div>n</div>
-              </div>
-              {topTeachers.map((item) => (
-                <div className="table-row" key={item.teacherId}>
-                  <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
-                  <div>{formatAvg(item.avg, item.submissions)}</div>
-                  <div>{item.submissions}</div>
+            <div className="grid three">
+              <div className="stat-card">
+                <div className="stat-label">
+                  Cari il ortalaması
+                  <InfoTip text="Seçilmiş sorğu dövrü üzrə bütün scale cavablarının ortalaması." />
                 </div>
-              ))}
-              {topTeachers.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+                <div className="stat-value">{formatAvg(overallCurrent.avg, overallCurrent.submissions)}</div>
+                <div className="stat-meta">n={overallCurrent.submissions}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">
+                  Keçən il ortalaması
+                  <InfoTip text="Əvvəlki sorğu dövrü üzrə scale cavablarının ortalaması." />
+                </div>
+                <div className="stat-value">{formatAvg(overallPrev.avg, overallPrev.submissions)}</div>
+                <div className="stat-meta">n={overallPrev.submissions}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">
+                  Risk qaydası
+                  <InfoTip text="Ortalama bu həddən aşağıdırsa risk statusu tətbiq olunur." />
+                </div>
+                <div className="stat-value">orta &lt; {riskThreshold}</div>
+                <div className="stat-meta">Tədbir: {observeMonths} ay müşahidə</div>
+              </div>
             </div>
           </div>
 
           <div className="card">
-            <h4>Risk müəllimlər</h4>
-            <div className="table">
-              <div className="table-row header">
-                <div>Müəllim</div>
-                <div>Orta</div>
-                <div>n</div>
-                <div>Plan</div>
+            <div className="section-header">
+              <div>
+                <h3>Müəllimlər</h3>
+                <p>Ən yaxşı və risk müəllim siyahıları.</p>
               </div>
-              {riskTeachers.map((item) => (
-                <div className="table-row" key={item.teacherId}>
-                  <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
-                  <div>{formatAvg(item.avg, item.submissions)}</div>
-                  <div>{item.submissions}</div>
-                  <div className="badge warn">
-                    Səbəb: orta &lt; {riskThreshold}. Plan: {observeMonths} ay müşahidə
+            </div>
+            <div className="grid two">
+              <div className="card">
+                <h4>Ən yaxşı müəllimlər</h4>
+                <div className="data-table">
+                  <div className="data-row header">
+                    <div>Müəllim</div>
+                    <div>Orta</div>
+                    <div>n</div>
                   </div>
+                  {topTeachers.map((item) => (
+                    <div className="data-row" key={item.teacherId}>
+                      <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
+                      <div>{formatAvg(item.avg, item.submissions)}</div>
+                      <div>{item.submissions}</div>
+                    </div>
+                  ))}
+                  {topTeachers.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
                 </div>
-              ))}
-              {riskTeachers.length === 0 && <div className="empty">Risk yoxdur.</div>}
+              </div>
+
+              <div className="card">
+                <h4>Risk müəllimlər</h4>
+                <div className="data-table">
+                  <div className="data-row header">
+                    <div>Müəllim</div>
+                    <div>Orta</div>
+                    <div>n</div>
+                    <div>Plan</div>
+                  </div>
+                  {riskTeachers.map((item) => (
+                    <div className="data-row" key={item.teacherId}>
+                      <div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
+                      <div>{formatAvg(item.avg, item.submissions)}</div>
+                      <div>{item.submissions}</div>
+                      <div className="badge warn">
+                        Səbəb: orta &lt; {riskThreshold}. Plan: {observeMonths} ay müşahidə
+                      </div>
+                    </div>
+                  ))}
+                  {riskTeachers.length === 0 && <div className="empty">Risk yoxdur.</div>}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <h3>Müəllim nəticələri</h3>
-            <p>Seçilmiş müəllim üzrə sual nəticələri və səsvermə yazıları.</p>
+      {activeSection === 'teachers' && (
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <h3>Müəllim nəticələri</h3>
+              <p>Seçilmiş müəllim üzrə sual nəticələri və səsvermə yazıları.</p>
+            </div>
           </div>
-        </div>
-        <div className="form-row">
-          <select
-            className="input"
-            value={selectedTeacherId}
-            onChange={(event) => setSelectedTeacherId(event.target.value)}
-          >
-            <option value="">Müəllim seçin</option>
-            {teachers.map((teacher) => (
-              <option key={teacher.id} value={teacher.id}>
-                {teacher.data.name}
-              </option>
+          <div className="form-row">
+            <select
+              className="input"
+              value={selectedTeacherId}
+              onChange={(event) => setSelectedTeacherId(event.target.value)}
+            >
+              <option value="">Müəllim seçin</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.data.name}
+                </option>
+              ))}
+            </select>
+            <div className="stat-pill">Orta: {formatAvg(selectedTeacherSummary.avg, selectedTeacherSummary.submissions)}</div>
+            <div className="stat-pill">n={selectedTeacherSummary.submissions}</div>
+          </div>
+
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Sual</div>
+              <div>Tip</div>
+              <div>Ortalama</div>
+              <div>n</div>
+              <div>Paylanma</div>
+            </div>
+            {selectedTeacherNonTextStats.map((stat) => (
+              <div className="data-row" key={stat.questionId}>
+                <div>{stat.text}</div>
+                <div>{stat.type}</div>
+                <div>{stat.type === 'scale' ? stat.avg?.toFixed(2) ?? '-' : '-'}</div>
+                <div>{stat.count}</div>
+                <div>{stat.distributionLabel}</div>
+              </div>
             ))}
-          </select>
-          <div className="stat-pill">Orta: {formatAvg(selectedTeacherSummary.avg, selectedTeacherSummary.submissions)}</div>
-          <div className="stat-pill">n={selectedTeacherSummary.submissions}</div>
-        </div>
-
-        <div className="table">
-          <div className="table-row header">
-            <div>Sual</div>
-            <div>Tip</div>
-            <div>Ortalama</div>
-            <div>n</div>
-            <div>Paylanma</div>
+            {selectedTeacherNonTextStats.length === 0 && (
+              <div className="empty">Bu müəllim üçün nəticə yoxdur.</div>
+            )}
           </div>
-          {selectedTeacherNonTextStats.map((stat) => (
-            <div className="table-row" key={stat.questionId}>
-              <div>{stat.text}</div>
-              <div>{stat.type}</div>
-              <div>{stat.type === 'scale' ? stat.avg?.toFixed(2) ?? '-' : '-'}</div>
-              <div>{stat.count}</div>
-              <div>{stat.distributionLabel}</div>
+
+          <div className="divider" />
+
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Qrup</div>
+              <div>Fənn</div>
+              <div>Tarix</div>
             </div>
-          ))}
-          {selectedTeacherNonTextStats.length === 0 && (
-            <div className="empty">Bu müəllim üçün nəticə yoxdur.</div>
-          )}
-        </div>
-
-        <div className="divider" />
-
-        <div className="table">
-          <div className="table-row header">
-            <div>Qrup</div>
-            <div>Fənn</div>
-            <div>Tarix</div>
-          </div>
-          {selectedTeacherSubmissions.map((submission) => (
-            <div className="table-row" key={submission.id}>
-              <div>{submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? '-' : '-'}</div>
-              <div>{submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? '-' : '-'}</div>
-              <div>{formatShortDate(submission.data.createdAt)}</div>
-            </div>
-          ))}
-          {selectedTeacherSubmissions.length === 0 && (
-            <div className="empty">Bu müəllim üçün səsvermə yoxdur.</div>
-          )}
-        </div>
-
-        {selectedTeacherTexts.length > 0 && (
-          <>
-            <div className="divider" />
-            <h4>Yazılı şərhlər</h4>
-            <div className="comment-feed">
-              {selectedTeacherTexts.map((text, index) => (
-                <div className="comment" key={`${selectedTeacherId}_${index}`}>
-                  <div className="comment-text">{text}</div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <h3>Nəticələr</h3>
-            <p>Filial müqayisəsi və istilik xəritəsi nəticələri.</p>
-          </div>
-        </div>
-        <div className="grid two">
-          <div className="card">
-            <h4>Filial müqayisəsi</h4>
-            <div className="table">
-              <div className="table-row header">
-                <div>Filial</div>
-                <div>Orta</div>
-                <div>n</div>
+            {selectedTeacherSubmissions.map((submission) => (
+              <div className="data-row" key={submission.id}>
+                <div>{submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? '-' : '-'}</div>
+                <div>{submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? '-' : '-'}</div>
+                <div>{formatShortDate(submission.data.createdAt)}</div>
               </div>
-              {branchCompare.map((item) => (
-                <div className="table-row" key={item.branchId}>
-                  <div>{branchMap[item.branchId]?.name ?? item.branchId}</div>
-                  <div>{formatAvg(item.avg, item.submissions)}</div>
-                  <div>{item.submissions}</div>
-                </div>
-              ))}
-              {branchCompare.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
-            </div>
+            ))}
+            {selectedTeacherSubmissions.length === 0 && (
+              <div className="empty">Bu müəllim üçün səsvermə yoxdur.</div>
+            )}
           </div>
-          <div className="card">
-            <h4>İstilik xəritəsi (Fənn × Sinif)</h4>
-            <div className="heatmap">
-              {heatmapCells.map((cell) => (
-                <div className="heatmap-cell" key={`${cell.subjectId}_${cell.classLevel}`}>
-                  <div className="heatmap-title">
-                    {subjectMap[cell.subjectId]?.name ?? cell.subjectId} • {cell.classLevel}
+
+          {selectedTeacherTexts.length > 0 && (
+            <>
+              <div className="divider" />
+              <h4>Yazılı şərhlər</h4>
+              <div className="comment-feed">
+                {selectedTeacherTexts.map((text, index) => (
+                  <div className="comment" key={`${selectedTeacherId}_${index}`}>
+                    <div className="comment-text">{text}</div>
                   </div>
-                  <div className="heatmap-value">{formatAvg(cell.avg, cell.submissions)}</div>
-                  <div className="heatmap-meta">n={cell.submissions}</div>
-                </div>
-              ))}
-              {heatmapCells.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <h3>Şərhlər</h3>
-            <p>Son yazılı rəylər və müəllim üzrə filtr.</p>
-          </div>
-        </div>
-        <div className="comment-feed">
-          {commentFeed.map((comment) => (
-            <div className="comment" key={`${comment.submissionId}_${comment.questionId}`}>
-              <div className="comment-title">{teacherMap[comment.targetId]?.name ?? comment.targetId}</div>
-              {questions[comment.questionId]?.text && (
-                <div className="comment-meta">{questions[comment.questionId]?.text}</div>
-              )}
-              <div className="comment-text">{comment.value}</div>
-              <div className="comment-meta">
-                {branchMap[comment.branchId]?.name ?? comment.branchId}
-                {comment.groupId && ` • ${groupMap[comment.groupId]?.name ?? comment.groupId}`}
-                {comment.subjectId && ` • ${subjectMap[comment.subjectId]?.name ?? comment.subjectId}`}
+                ))}
               </div>
-            </div>
-          ))}
-          {commentFeed.length === 0 && <div className="empty">Şərh yoxdur.</div>}
+            </>
+          )}
         </div>
-      </div>
+      )}
+
+      {activeSection === 'branches' && (
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <h3>Filial müqayisəsi</h3>
+              <p>Seçilmiş sorğu dövrü üzrə filialların müqayisəsi.</p>
+            </div>
+          </div>
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Filial</div>
+              <div>Orta</div>
+              <div>n</div>
+            </div>
+            {branchCompare.map((item) => (
+              <div className="data-row" key={item.branchId}>
+                <div>{branchMap[item.branchId]?.name ?? item.branchId}</div>
+                <div>{formatAvg(item.avg, item.submissions)}</div>
+                <div>{item.submissions}</div>
+              </div>
+            ))}
+            {branchCompare.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'heatmap' && (
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <h3>İstilik xəritəsi</h3>
+              <p>Fənn və sinif səviyyəsi üzrə orta nəticələr.</p>
+            </div>
+          </div>
+          <div className="heatmap">
+            {heatmapCells.map((cell) => (
+              <div className="heatmap-cell" key={`${cell.subjectId}_${cell.classLevel}`}>
+                <div className="heatmap-title">
+                  {subjectMap[cell.subjectId]?.name ?? cell.subjectId} • {cell.classLevel}
+                </div>
+                <div className="heatmap-value">{formatAvg(cell.avg, cell.submissions)}</div>
+                <div className="heatmap-meta">n={cell.submissions}</div>
+              </div>
+            ))}
+            {heatmapCells.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'comments' && (
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <h3>Şərhlər</h3>
+              <p>Son yazılı rəylər və müəllim üzrə filtr.</p>
+            </div>
+          </div>
+          <div className="comment-feed">
+            {commentFeed.map((comment) => (
+              <div className="comment" key={`${comment.submissionId}_${comment.questionId}`}>
+                <div className="comment-title">{teacherMap[comment.targetId]?.name ?? comment.targetId}</div>
+                {questions[comment.questionId]?.text && (
+                  <div className="comment-meta">{questions[comment.questionId]?.text}</div>
+                )}
+                <div className="comment-text">{comment.value}</div>
+                <div className="comment-meta">
+                  {branchMap[comment.branchId]?.name ?? comment.branchId}
+                  {comment.groupId && ` • ${groupMap[comment.groupId]?.name ?? comment.groupId}`}
+                  {comment.subjectId && ` • ${subjectMap[comment.subjectId]?.name ?? comment.subjectId}`}
+                </div>
+              </div>
+            ))}
+            {commentFeed.length === 0 && <div className="empty">Şərh yoxdur.</div>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

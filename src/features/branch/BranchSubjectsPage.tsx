@@ -201,14 +201,14 @@ export const BranchSubjectsPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Fənn</div>
           <div>Kod</div>
           <div></div>
         </div>
         {subjects.map((subject) => (
-          <div className="table-row" key={subject.id}>
+          <div className="data-row" key={subject.id}>
             <div>
               {editingId === subject.id ? (
                 <input

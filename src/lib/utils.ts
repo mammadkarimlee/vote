@@ -1,3 +1,6 @@
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
 export const chunkArray = <T,>(items: T[], size: number): T[][] => {
   const chunks: T[][] = []
   for (let i = 0; i < items.length; i += size) {
@@ -56,5 +59,9 @@ export const toJsDate = (value: unknown) => {
     return Number.isNaN(date.getTime()) ? null : date
   }
   return null
+}
+
+export const cn = (...inputs: ClassValue[]) => {
+  return twMerge(clsx(inputs))
 }
 

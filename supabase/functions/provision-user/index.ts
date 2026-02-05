@@ -16,6 +16,7 @@ type ProvisionRequest = {
     lastName?: string
     departmentId?: string
     photoUrl?: string
+    teacherCategory?: string
   }
 }
 
@@ -265,6 +266,7 @@ Deno.serve(async (req) => {
         last_name: payload.docData?.lastName ?? null,
         department_id: payload.docData?.departmentId ?? null,
         photo_url: payload.docData?.photoUrl ?? null,
+        teacher_category: payload.docData?.teacherCategory ?? 'standard',
       })
       if (teacherError) {
         await supabase.auth.admin.deleteUser(uid)

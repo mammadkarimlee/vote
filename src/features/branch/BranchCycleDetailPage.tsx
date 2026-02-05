@@ -165,14 +165,14 @@ export const BranchCycleDetailPage = () => {
             <p>Anonimdir: yalnız “DONE” statusu görünür.</p>
           </div>
         </div>
-        <div className="table">
-          <div className="table-row header">
+        <div className="data-table">
+          <div className="data-row header">
             <div>Ad</div>
             <div>DONE</div>
             <div>Tapşırıq</div>
           </div>
           {studentRows.map((student) => (
-            <div className="table-row" key={student.id}>
+            <div className="data-row" key={student.id}>
               <div>{student.name}</div>
               <div>{student.done ? 'Bəli' : 'Xeyr'}</div>
               <div>

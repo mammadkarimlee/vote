@@ -239,6 +239,11 @@ app.post('/provision-user', async (req, res) => {
         branch_id: branchId,
         user_id: uid,
         login,
+        first_name: payload.docData?.firstName ?? null,
+        last_name: payload.docData?.lastName ?? null,
+        department_id: payload.docData?.departmentId ?? null,
+        photo_url: payload.docData?.photoUrl ?? null,
+        teacher_category: payload.docData?.teacherCategory ?? 'standard',
       })
       if (teacherError) {
         if (mode === 'login') {

@@ -193,8 +193,8 @@ export const AdminUsersPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Ad</div>
           <div>Email</div>
           <div>Filial</div>
@@ -202,7 +202,7 @@ export const AdminUsersPage = () => {
           <div></div>
         </div>
         {admins.map((admin) => (
-          <div className="table-row" key={admin.id}>
+          <div className="data-row" key={admin.id}>
             <div>
               {editingId === admin.id ? (
                 <input

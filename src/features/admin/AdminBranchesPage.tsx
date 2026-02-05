@@ -187,8 +187,8 @@ export const AdminBranchesPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Ad</div>
           <div>Ünvan</div>
           <div>Şagird sayı</div>
@@ -197,7 +197,7 @@ export const AdminBranchesPage = () => {
           <div></div>
         </div>
         {branches.map((branch) => (
-          <div className="table-row" key={branch.id}>
+          <div className="data-row" key={branch.id}>
             <div>
               {editingId === branch.id ? (
                 <input

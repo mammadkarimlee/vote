@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { ORG_ID, supabase } from '../../lib/supabase'
 import { mapQuestionRow } from '../../lib/supabaseMappers'
-import type { QuestionDoc, QuestionType } from '../../lib/types'
+import type { QuestionDoc } from '../../lib/types'
 import { createId } from '../../lib/utils'
 import { useConfirmDialog } from '../../components/ConfirmDialog'
 
@@ -9,11 +9,7 @@ export const AdminQuestionsPage = () => {
   const { confirm, dialog } = useConfirmDialog()
   const [questions, setQuestions] = useState<Array<{ id: string; data: QuestionDoc }>>([])
   const [text, setText] = useState('')
-  const [type, setType] = useState<QuestionType>('scale')
   const [required, setRequired] = useState(true)
-  const [options, setOptions] = useState('')
-  const [scaleMin, setScaleMin] = useState('1')
-  const [scaleMax, setScaleMax] = useState('10')
   const [category, setCategory] = useState('')
   const [status, setStatus] = useState<string | null>(null)
 
@@ -36,21 +32,13 @@ export const AdminQuestionsPage = () => {
 
     const docData: QuestionDoc = {
       text: text.trim(),
-      type,
+      type: 'scale',
       required,
       category: category.trim() || null,
     }
 
-    if (type === 'scale') {
-      docData.scaleMin = Number(scaleMin || 1)
-      docData.scaleMax = Number(scaleMax || 10)
-    }
-    if (type === 'choice') {
-      docData.options = options
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    }
+    docData.scaleMin = 1
+    docData.scaleMax = 10
 
     const { error } = await supabase.from('questions').insert({
       id: createId(),
@@ -58,9 +46,9 @@ export const AdminQuestionsPage = () => {
       text: docData.text,
       type: docData.type,
       required: docData.required,
-      options: docData.options ?? null,
-      scale_min: docData.scaleMin ?? null,
-      scale_max: docData.scaleMax ?? null,
+      options: null,
+      scale_min: 1,
+      scale_max: 10,
       category: docData.category ?? null,
     })
 
@@ -70,7 +58,6 @@ export const AdminQuestionsPage = () => {
     }
 
     setText('')
-    setOptions('')
     setCategory('')
     setStatus('Sual yaradıldı')
     await loadQuestions()
@@ -110,11 +97,7 @@ export const AdminQuestionsPage = () => {
             value={text}
             onChange={(event) => setText(event.target.value)}
           />
-          <select className="input" value={type} onChange={(event) => setType(event.target.value as QuestionType)}>
-            <option value="scale">1–10 (scale)</option>
-            <option value="choice">Multiple choice</option>
-            <option value="text">Açıq mətn</option>
-          </select>
+          <input className="input" value="1–10 (scale)" disabled />
           <select
             className="input"
             value={required ? 'yes' : 'no'}
@@ -130,33 +113,9 @@ export const AdminQuestionsPage = () => {
             onChange={(event) => setCategory(event.target.value)}
           />
         </div>
-        {type === 'scale' && (
-          <div className="form-row">
-            <input
-              className="input"
-              placeholder="Min"
-              value={scaleMin}
-              onChange={(event) => setScaleMin(event.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Max"
-              value={scaleMax}
-              onChange={(event) => setScaleMax(event.target.value)}
-            />
-            <span className="hint">Default 1–10</span>
-          </div>
-        )}
-        {type === 'choice' && (
-          <div className="form-row">
-            <input
-              className="input"
-              placeholder="Seçimlər (vergül ilə)"
-              value={options}
-              onChange={(event) => setOptions(event.target.value)}
-            />
-          </div>
-        )}
+        <div className="form-row">
+          <span className="hint">Sual tipi yalnız 1–10 scale olaraq sabitdir.</span>
+        </div>
         <div className="actions">
           <button className="btn primary" type="button" onClick={handleCreate}>
             Yarat
@@ -165,15 +124,15 @@ export const AdminQuestionsPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>Mətni</div>
           <div>Tip</div>
           <div>Kateqoriya</div>
           <div></div>
         </div>
         {questions.map((question) => (
-          <div className="table-row" key={question.id}>
+          <div className="data-row" key={question.id}>
             <div>{question.data.text}</div>
             <div>{question.data.type}</div>
             <div>{question.data.category ?? '-'}</div>

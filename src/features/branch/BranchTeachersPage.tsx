@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom'
 import { ORG_ID, supabase } from '../../lib/supabase'
 import { mapDepartmentRow, mapGroupRow, mapSubjectRow, mapTeacherRow, mapTeachingAssignmentRow } from '../../lib/supabaseMappers'
-import type { DepartmentDoc, GroupDoc, SubjectDoc, TeacherDoc, TeachingAssignmentDoc } from '../../lib/types'
+import type { DepartmentDoc, GroupDoc, SubjectDoc, TeacherCategory, TeacherDoc, TeachingAssignmentDoc } from '../../lib/types'
 import { createId } from '../../lib/utils'
 import { useConfirmDialog } from '../../components/ConfirmDialog'
 import { useAuth } from '../auth/AuthProvider'
@@ -43,6 +43,23 @@ type AssignmentDraft = {
   year: number
 }
 
+const teacherCategories: Array<{ value: TeacherCategory; label: string }> = [
+  { value: 'standard', label: 'Əsas (BİQ + imtahan)' },
+  { value: 'drama_gym', label: 'Dram/Gimnastika' },
+  { value: 'chess', label: 'Şahmat' },
+]
+
+const parseTeacherCategory = (raw?: string | null): TeacherCategory => {
+  const value = (raw ?? '').trim().toLowerCase()
+  if (!value) return 'standard'
+  if (value.includes('dram') || value.includes('gim')) return 'drama_gym'
+  if (value.includes('şah') || value.includes('sah') || value.includes('chess')) return 'chess'
+  if (value.includes('standart') || value.includes('əsas') || value.includes('esas')) return 'standard'
+  return 'standard'
+}
+
+const DEFAULT_DEPARTMENT_NAME = 'Ümumi'
+
 export const BranchTeachersPage = () => {
   const { user } = useAuth()
   const { confirm, dialog } = useConfirmDialog()
@@ -56,6 +73,7 @@ export const BranchTeachersPage = () => {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [departmentId, setDepartmentId] = useState('')
+  const [category, setCategory] = useState<TeacherCategory>('standard')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
@@ -73,6 +91,7 @@ export const BranchTeachersPage = () => {
   const [editFirstName, setEditFirstName] = useState('')
   const [editLastName, setEditLastName] = useState('')
   const [editDepartmentId, setEditDepartmentId] = useState('')
+  const [editCategory, setEditCategory] = useState<TeacherCategory>('standard')
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null)
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null)
   const [savingEdit, setSavingEdit] = useState(false)
@@ -149,11 +168,16 @@ export const BranchTeachersPage = () => {
   }, [editPhotoFile])
 
   useEffect(() => {
-    if (!departmentId && departments.length > 0) {
-      setDepartmentId(departments[0].id)
+    if (departments.length === 0) return
+    const normalizedDefault = DEFAULT_DEPARTMENT_NAME.toLowerCase()
+    const defaultDepartment =
+      departments.find((department) => department.data.name.trim().toLowerCase() === normalizedDefault) ??
+      departments[0]
+    if (!departmentId) {
+      setDepartmentId(defaultDepartment.id)
     }
-    if (!importDepartmentId && departments.length > 0) {
-      setImportDepartmentId(departments[0].id)
+    if (!importDepartmentId) {
+      setImportDepartmentId(defaultDepartment.id)
     }
   }, [departments, departmentId, importDepartmentId])
 
@@ -195,6 +219,68 @@ export const BranchTeachersPage = () => {
   const summary = useMemo(() => filteredTeachers.length, [filteredTeachers])
   const displayBranchName = branchName || 'Filial'
 
+  const ensureDefaultDepartmentId = async () => {
+    if (!branchId) {
+      throw new Error('Filial seçilməyib')
+    }
+
+    const normalizedDefault = DEFAULT_DEPARTMENT_NAME.toLowerCase()
+    const localMatch = departments.find(
+      (department) => department.data.name.trim().toLowerCase() === normalizedDefault,
+    )
+    if (localMatch) return localMatch.id
+
+    const { data: existing, error: loadError } = await supabase
+      .from('departments')
+      .select('*')
+      .eq('org_id', ORG_ID)
+      .eq('branch_id', branchId)
+      .is('deleted_at', null)
+      .ilike('name', DEFAULT_DEPARTMENT_NAME)
+      .limit(1)
+      .maybeSingle()
+
+    if (loadError) {
+      throw loadError
+    }
+
+    if (existing?.id) {
+      setDepartments((prev) => {
+        if (prev.some((department) => department.id === existing.id)) return prev
+        return [...prev, { id: existing.id, data: mapDepartmentRow(existing) }]
+      })
+      return existing.id
+    }
+
+    const newId = createId()
+    const { error: insertError } = await supabase.from('departments').insert({
+      id: newId,
+      org_id: ORG_ID,
+      branch_id: branchId,
+      name: DEFAULT_DEPARTMENT_NAME,
+    })
+
+    if (insertError) {
+      if (insertError.code === '23505') {
+        const { data: fallback, error: fallbackError } = await supabase
+          .from('departments')
+          .select('*')
+          .eq('org_id', ORG_ID)
+          .eq('branch_id', branchId)
+          .is('deleted_at', null)
+          .ilike('name', DEFAULT_DEPARTMENT_NAME)
+          .limit(1)
+          .maybeSingle()
+        if (fallbackError) throw fallbackError
+        if (fallback?.id) return fallback.id
+      }
+      throw insertError
+    }
+
+    setDepartments((prev) => [...prev, { id: newId, data: { name: DEFAULT_DEPARTMENT_NAME, branchId } }])
+    return newId
+  }
+
   const handleAddAssignment = () => {
     const year = Number(assignmentYear)
     if (!assignmentSubjectId || !assignmentGroupId || Number.isNaN(year)) {
@@ -214,15 +300,11 @@ export const BranchTeachersPage = () => {
 
   const handleCreate = async () => {
     if (!branchId) {
-      setStatus('Filial seçilməyib')
+      setStatus('Filial seçilməyib. Davam etmək üçün filial seçin.')
       return
     }
     if (!firstName.trim() || !lastName.trim()) {
       setStatus('Ad və soyad tələb olunur')
-      return
-    }
-    if (!departmentId) {
-      setStatus('Kafedra seçilməlidir')
       return
     }
     if (draftAssignments.length === 0) {
@@ -233,6 +315,11 @@ export const BranchTeachersPage = () => {
     const fullName = buildFullName(firstName, lastName)
 
     try {
+      const resolvedDepartmentId = departmentId || (await ensureDefaultDepartmentId())
+      if (!departmentId) {
+        setDepartmentId(resolvedDepartmentId)
+      }
+
       const result = await provisionLoginUser({
         name: fullName,
         branchId,
@@ -241,21 +328,23 @@ export const BranchTeachersPage = () => {
         docData: {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          departmentId,
+          departmentId: resolvedDepartmentId,
+          teacherCategory: category,
         },
       })
 
       let photoUrl: string | null = null
       if (photoFile) {
         photoUrl = await uploadTeacherPhoto(result.uid, photoFile)
-        await supabase
+        const { error: photoError } = await supabase
           .from('teachers')
           .update({ photo_url: photoUrl })
           .eq('org_id', ORG_ID)
           .eq('id', result.uid)
+        if (photoError) throw photoError
       }
 
-      await supabase.from('teaching_assignments').insert(
+      const { error: assignmentError } = await supabase.from('teaching_assignments').insert(
         draftAssignments.map((item) => ({
           id: createId(),
           org_id: ORG_ID,
@@ -266,9 +355,11 @@ export const BranchTeachersPage = () => {
           year: item.year,
         })),
       )
+      if (assignmentError) throw assignmentError
 
       setFirstName('')
       setLastName('')
+      setCategory('standard')
       setPhotoFile(null)
       setPhotoPreview(null)
       setDraftAssignments([])
@@ -301,6 +392,7 @@ export const BranchTeachersPage = () => {
     setEditFirstName(teacher.data.firstName ?? '')
     setEditLastName(teacher.data.lastName ?? '')
     setEditDepartmentId(teacher.data.departmentId ?? '')
+    setEditCategory(teacher.data.category ?? 'standard')
     setEditPhotoFile(null)
     setEditPhotoPreview(teacher.data.photoUrl ?? null)
     setStatus(null)
@@ -311,6 +403,7 @@ export const BranchTeachersPage = () => {
     setEditFirstName('')
     setEditLastName('')
     setEditDepartmentId('')
+    setEditCategory('standard')
     setEditPhotoFile(null)
     setEditPhotoPreview(null)
   }
@@ -341,14 +434,14 @@ export const BranchTeachersPage = () => {
           first_name: editFirstName.trim(),
           last_name: editLastName.trim(),
           department_id: editDepartmentId,
+          teacher_category: editCategory,
           photo_url: photoUrl ?? null,
         })
         .eq('org_id', ORG_ID)
         .eq('id', editingId)
 
       if (error) {
-        setStatus('Yeniləmə zamanı xəta oldu')
-        return
+        throw error
       }
 
       setStatus('Müəllim yeniləndi')
@@ -356,18 +449,31 @@ export const BranchTeachersPage = () => {
       setEditFirstName('')
       setEditLastName('')
       setEditDepartmentId('')
+      setEditCategory('standard')
       setEditPhotoFile(null)
       setEditPhotoPreview(null)
       await loadLookups()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Yeniləmə zamanı xəta oldu')
     } finally {
       setSavingEdit(false)
     }
   }
 
   const handleImport = async (file: File) => {
-    if (!branchId) return
-    if (!importDepartmentId) {
-      setStatus('Import üçün kafedra seçilməlidir')
+    if (!branchId) {
+      setStatus('Filial seçilməyib. Import üçün filial seçin.')
+      return
+    }
+
+    let resolvedDepartmentId = importDepartmentId
+    try {
+      if (!resolvedDepartmentId) {
+        resolvedDepartmentId = await ensureDefaultDepartmentId()
+        setImportDepartmentId(resolvedDepartmentId)
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Kafedra seçilməsi alınmadı')
       return
     }
 
@@ -380,6 +486,7 @@ export const BranchTeachersPage = () => {
     let mismatch = 0
     let created = 0
     let failed = 0
+    let lastErrorMessage: string | null = null
 
     const cleaned = rows.filter((row) => {
       if (!row.name) {
@@ -407,6 +514,7 @@ export const BranchTeachersPage = () => {
     for (const row of cleaned) {
       try {
         const parsed = splitName(row.name)
+        const categoryValue = parseTeacherCategory(row.category || row.kateqoriya || row.teacher_category)
         await provisionLoginUser({
           name: buildFullName(parsed.first, parsed.last),
           branchId,
@@ -415,237 +523,263 @@ export const BranchTeachersPage = () => {
           docData: {
             firstName: parsed.first,
             lastName: parsed.last,
-            departmentId: importDepartmentId,
+            departmentId: resolvedDepartmentId,
+            teacherCategory: categoryValue,
           },
         })
         created += 1
       } catch (error) {
         failed += 1
-        setStatus(error instanceof Error ? error.message : 'Yaratma zamanı xəta oldu')
+        lastErrorMessage = error instanceof Error ? error.message : 'Yaratma zamanı xəta oldu'
       }
     }
 
+    const errorSuffix = lastErrorMessage ? ` Son xəta: ${lastErrorMessage}` : ''
     setStatus(
-      `Bulk import tamamlandı. Created: ${created}, Failed: ${failed}, Missing: ${missing}, Duplicate: ${duplicates}, Branch mismatch: ${mismatch}`,
+      `Bulk import tamamlandı. Created: ${created}, Failed: ${failed}, Missing: ${missing}, Duplicate: ${duplicates}, Branch mismatch: ${mismatch}.${errorSuffix}`,
     )
     await loadLookups()
   }
 
   return (
-    <div className="panel">
-      {isSuperAdmin && (
-        <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
-      )}
-
-      <div className="panel-header">
-        <div>
-          <h2>Müəllimlər</h2>
-          <p>Filiala aid müəllim siyahısı və dərs təyinatları.</p>
+    <div className="panel branch-page">
+      <div className="page-hero">
+        <div className="page-hero__content">
+          <div className="eyebrow">Filial heyəti</div>
+          <h1>Müəllimlər</h1>
+          <p>Filiala aid müəllim siyahısı, kafedra bölgüsü və dərs təyinatları.</p>
         </div>
-        <div className="stat-pill">Cəmi: {summary}</div>
+        <div className="page-hero__aside">
+          {isSuperAdmin && (
+            <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
+          )}
+          <div className="stat-pill">Cəmi: {summary}</div>
+        </div>
       </div>
+      {isSuperAdmin && !branchId && (
+        <div className="notice">Filial seçilməyib. Davam etmək üçün filial seçin.</div>
+      )}
+      {status && <div className="notice">{status}</div>}
 
-      <div className="card">
-        <h3>Yeni müəllim</h3>
-        <div className="form-grid">
-          <input
-            className="input"
-            placeholder="Ad"
-            value={firstName}
-            onChange={(event) => setFirstName(event.target.value)}
-          />
-          <input
-            className="input"
-            placeholder="Soyad"
-            value={lastName}
-            onChange={(event) => setLastName(event.target.value)}
-          />
-          <select className="input" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
-            <option value="">Kafedra seçin</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.data.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            type="file"
-            accept="image/*"
-            onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
-          />
-        </div>
-        {photoPreview && (
-          <div className="form-row">
-            <img src={photoPreview} alt="Müəllim şəkli" style={{ width: 72, height: 72, borderRadius: 16 }} />
-          </div>
-        )}
-        <div className="divider" />
-        <h4>Dərs təyinatı</h4>
-        <div className="filters">
-          <select className="input" value={filterSubjectId} onChange={(event) => setFilterSubjectId(event.target.value)}>
-            <option value="">Fənn filtri</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.data.name}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={filterGroupId} onChange={(event) => setFilterGroupId(event.target.value)}>
-            <option value="">Qrup filtri</option>
-            {availableGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.data.name}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={filterClassLevel} onChange={(event) => setFilterClassLevel(event.target.value)}>
-            <option value="">Sinif səviyyəsi</option>
-            {[...new Set(groups.map((group) => group.data.classLevel))].map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <select
-            className="input"
-            value={assignmentSubjectId}
-            onChange={(event) => setAssignmentSubjectId(event.target.value)}
-          >
-            <option value="">Fənn seçin</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.data.name}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={assignmentGroupId} onChange={(event) => setAssignmentGroupId(event.target.value)}>
-            <option value="">Qrup seçin</option>
-            {availableGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.data.name} ({group.data.classLevel})
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            type="number"
-            placeholder="İl"
-            value={assignmentYear}
-            onChange={(event) => setAssignmentYear(event.target.value)}
-          />
-          <button className="btn" type="button" onClick={handleAddAssignment}>
-            Əlavə et
-          </button>
-        </div>
-        {draftAssignments.length > 0 && (
-          <div className="list">
-            {draftAssignments.map((item, index) => (
-              <div className="list-item" key={`${item.subjectId}_${item.groupId}_${item.year}_${index}`}>
-                <div>
-                  <div className="list-title">
-                    {subjectMap[item.subjectId]?.name ?? item.subjectId} • {groupMap[item.groupId]?.name ?? item.groupId}
+      <div className="page-grid">
+        <div className="stack">
+          <div className="card">
+            <h3>Yeni müəllim</h3>
+            <div className="form-grid">
+              <input
+                className="input"
+                placeholder="Ad"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Soyad"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+              />
+              <select className="input" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
+                <option value="">Kafedra seçin</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.data.name}
+                  </option>
+                ))}
+              </select>
+              <select className="input" value={category} onChange={(event) => setCategory(event.target.value as TeacherCategory)}>
+                {teacherCategories.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+              />
+            </div>
+            {photoPreview && (
+              <div className="form-row">
+                <img src={photoPreview} alt="Müəllim şəkli" style={{ width: 72, height: 72, borderRadius: 16 }} />
+              </div>
+            )}
+            <div className="divider" />
+            <h4>Dərs təyinatı</h4>
+            <div className="filters">
+              <select className="input" value={filterSubjectId} onChange={(event) => setFilterSubjectId(event.target.value)}>
+                <option value="">Fənn filtri</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.data.name}
+                  </option>
+                ))}
+              </select>
+              <select className="input" value={filterGroupId} onChange={(event) => setFilterGroupId(event.target.value)}>
+                <option value="">Qrup filtri</option>
+                {availableGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.data.name}
+                  </option>
+                ))}
+              </select>
+              <select className="input" value={filterClassLevel} onChange={(event) => setFilterClassLevel(event.target.value)}>
+                <option value="">Sinif səviyyəsi</option>
+                {[...new Set(groups.map((group) => group.data.classLevel))].map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-row">
+              <select
+                className="input"
+                value={assignmentSubjectId}
+                onChange={(event) => setAssignmentSubjectId(event.target.value)}
+              >
+                <option value="">Fənn seçin</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.data.name}
+                  </option>
+                ))}
+              </select>
+              <select className="input" value={assignmentGroupId} onChange={(event) => setAssignmentGroupId(event.target.value)}>
+                <option value="">Qrup seçin</option>
+                {availableGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.data.name} ({group.data.classLevel})
+                  </option>
+                ))}
+              </select>
+              <input
+                className="input"
+                type="number"
+                placeholder="İl"
+                value={assignmentYear}
+                onChange={(event) => setAssignmentYear(event.target.value)}
+              />
+              <button className="btn" type="button" onClick={handleAddAssignment}>
+                Əlavə et
+              </button>
+            </div>
+            {draftAssignments.length > 0 && (
+              <div className="list">
+                {draftAssignments.map((item, index) => (
+                  <div className="list-item" key={`${item.subjectId}_${item.groupId}_${item.year}_${index}`}>
+                    <div>
+                      <div className="list-title">
+                        {subjectMap[item.subjectId]?.name ?? item.subjectId} • {groupMap[item.groupId]?.name ?? item.groupId}
+                      </div>
+                      <div className="list-meta">{item.year}</div>
+                    </div>
+                    <button className="btn ghost" type="button" onClick={() => handleRemoveDraft(index)}>
+                      Sil
+                    </button>
                   </div>
-                  <div className="list-meta">{item.year}</div>
+                ))}
+              </div>
+            )}
+            <div className="form-row">
+              <button className="btn primary" type="button" onClick={handleCreate} disabled={!branchId}>
+                Yarat
+              </button>
+              <span className="hint">Şifrə default olaraq login ilə eynidir.</span>
+            </div>
+          </div>
+
+          {editingId && (
+            <div className="card">
+              <h3>Müəllimi redaktə et</h3>
+              <div className="form-grid">
+                <input
+                  className="input"
+                  placeholder="Ad"
+                  value={editFirstName}
+                  onChange={(event) => setEditFirstName(event.target.value)}
+                />
+                <input
+                  className="input"
+                  placeholder="Soyad"
+                  value={editLastName}
+                  onChange={(event) => setEditLastName(event.target.value)}
+                />
+                <select className="input" value={editDepartmentId} onChange={(event) => setEditDepartmentId(event.target.value)}>
+                  <option value="">Kafedra seçin</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.data.name}
+                    </option>
+                  ))}
+                </select>
+                <select className="input" value={editCategory} onChange={(event) => setEditCategory(event.target.value as TeacherCategory)}>
+                  {teacherCategories.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setEditPhotoFile(event.target.files?.[0] ?? null)}
+                />
+              </div>
+              {editPhotoPreview && (
+                <div className="form-row">
+                  <img src={editPhotoPreview} alt="Müəllim şəkli" style={{ width: 72, height: 72, borderRadius: 16 }} />
                 </div>
-                <button className="btn ghost" type="button" onClick={() => handleRemoveDraft(index)}>
-                  Sil
+              )}
+              <div className="form-row">
+                <button className="btn primary" type="button" onClick={handleEditSave} disabled={savingEdit}>
+                  Yadda saxla
+                </button>
+                <button className="btn ghost" type="button" onClick={handleEditCancel} disabled={savingEdit}>
+                  Ləğv et
                 </button>
               </div>
-            ))}
-          </div>
-        )}
-        <div className="form-row">
-          <button className="btn primary" type="button" onClick={handleCreate} disabled={!branchId}>
-            Yarat
-          </button>
-          <span className="hint">Şifrə default olaraq login ilə eynidir.</span>
-        </div>
-        {status && <div className="notice">{status}</div>}
-      </div>
-
-      {editingId && (
-        <div className="card">
-          <h3>Müəllimi redaktə et</h3>
-          <div className="form-grid">
-            <input
-              className="input"
-              placeholder="Ad"
-              value={editFirstName}
-              onChange={(event) => setEditFirstName(event.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Soyad"
-              value={editLastName}
-              onChange={(event) => setEditLastName(event.target.value)}
-            />
-            <select className="input" value={editDepartmentId} onChange={(event) => setEditDepartmentId(event.target.value)}>
-              <option value="">Kafedra seçin</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>
-                  {department.data.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="input"
-              type="file"
-              accept="image/*"
-              onChange={(event) => setEditPhotoFile(event.target.files?.[0] ?? null)}
-            />
-          </div>
-          {editPhotoPreview && (
-            <div className="form-row">
-              <img src={editPhotoPreview} alt="Müəllim şəkli" style={{ width: 72, height: 72, borderRadius: 16 }} />
             </div>
           )}
-          <div className="form-row">
-            <button className="btn primary" type="button" onClick={handleEditSave} disabled={savingEdit}>
-              Yadda saxla
-            </button>
-            <button className="btn ghost" type="button" onClick={handleEditCancel} disabled={savingEdit}>
-              Ləğv et
-            </button>
+
+          <div className="card">
+            <h3>Bulk import</h3>
+            <div className="form-row">
+              <select
+                className="input"
+                value={importDepartmentId}
+                onChange={(event) => setImportDepartmentId(event.target.value)}
+              >
+                <option value="">Kafedra seçin</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.data.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="input"
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) void handleImport(file)
+                }}
+              />
+              <span className="hint">Şablon sütunları: name, category (optional), branchId (optional)</span>
+            </div>
           </div>
         </div>
-      )}
 
-      <div className="card">
-        <h3>Bulk import</h3>
-        <div className="form-row">
-          <select
-            className="input"
-            value={importDepartmentId}
-            onChange={(event) => setImportDepartmentId(event.target.value)}
-          >
-            <option value="">Kafedra seçin</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.data.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            type="file"
-            accept=".csv,.xlsx"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) void handleImport(file)
-            }}
-          />
-          <span className="hint">Şablon sütunları: name, branchId (optional)</span>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <h3>Müəllim siyahısı</h3>
-            <p>Filial: {displayBranchName}</p>
+        <div className="card">
+          <div className="section-header">
+            <div>
+              <div className="section-kicker">Siyahı</div>
+              <div className="section-title">Müəllimlər</div>
+              <p>Filial: {displayBranchName}</p>
+            </div>
           </div>
           <div className="filters">
             <select className="input" value={filterDepartmentId} onChange={(event) => setFilterDepartmentId(event.target.value)}>
@@ -681,44 +815,46 @@ export const BranchTeachersPage = () => {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="table">
-          <div className="table-row header">
-            <div>Müəllim</div>
-            <div>Kafedra</div>
-            <div>Login</div>
-            <div>Dərslər</div>
-            <div></div>
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Müəllim</div>
+              <div>Kafedra</div>
+              <div>Kateqoriya</div>
+              <div>Login</div>
+              <div>Dərslər</div>
+              <div></div>
+            </div>
+            {filteredTeachers.map((teacher) => {
+              const teacherAssignments = assignmentMap[teacher.id] ?? []
+              return (
+                <div className="data-row" key={teacher.id}>
+                  <div className="stack">
+                    <div className="list-title">{teacher.data.name}</div>
+                    {teacher.data.photoUrl && (
+                      <img src={teacher.data.photoUrl} alt="Şəkil" style={{ width: 48, height: 48, borderRadius: 12 }} />
+                    )}
+                  </div>
+                  <div>{departmentMap[teacher.data.departmentId ?? '']?.name ?? '-'}</div>
+                  <div>{teacherCategories.find((item) => item.value === (teacher.data.category ?? 'standard'))?.label ?? '-'}</div>
+                  <div>{teacher.data.login ?? '-'}</div>
+                  <div>{teacherAssignments.length} təyinat</div>
+                  <div className="actions">
+                    <button className="btn" type="button" onClick={() => handleEditStart(teacher)}>
+                      Redaktə
+                    </button>
+                    <Link className="btn ghost" to={`/branch/assignments?teacherId=${teacher.id}`}>
+                      Təyinat yarat
+                    </Link>
+                    <button className="btn ghost" type="button" onClick={() => void handleDelete(teacher.id)}>
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+            {filteredTeachers.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
           </div>
-          {filteredTeachers.map((teacher) => {
-            const teacherAssignments = assignmentMap[teacher.id] ?? []
-            return (
-              <div className="table-row" key={teacher.id}>
-                <div className="stack">
-                  <div className="list-title">{teacher.data.name}</div>
-                  {teacher.data.photoUrl && (
-                    <img src={teacher.data.photoUrl} alt="Şəkil" style={{ width: 48, height: 48, borderRadius: 12 }} />
-                  )}
-                </div>
-                <div>{departmentMap[teacher.data.departmentId ?? '']?.name ?? '-'}</div>
-                <div>{teacher.data.login ?? '-'}</div>
-                <div>{teacherAssignments.length} təyinat</div>
-                <div className="actions">
-                  <button className="btn" type="button" onClick={() => handleEditStart(teacher)}>
-                    Redaktə
-                  </button>
-                  <Link className="btn ghost" to={`/branch/assignments?teacherId=${teacher.id}`}>
-                    Təyinat yarat
-                  </Link>
-                  <button className="btn ghost" type="button" onClick={() => void handleDelete(teacher.id)}>
-                    Sil
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-          {filteredTeachers.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
         </div>
       </div>
       {dialog}

@@ -45,14 +45,14 @@ export const BranchCyclesPage = () => {
         </div>
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>İl</div>
           <div>Vəziyyət</div>
           <div></div>
         </div>
         {cycles.map((cycle) => (
-          <div className="table-row" key={cycle.id}>
+          <div className="data-row" key={cycle.id}>
             <div>{cycle.data.year}</div>
             <div>{cycle.data.status}</div>
             <div>

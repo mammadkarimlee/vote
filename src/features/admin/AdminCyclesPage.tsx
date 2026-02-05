@@ -23,11 +23,12 @@ import type {
 } from '../../lib/types'
 import { chunkArray, toJsDate } from '../../lib/utils'
 
-const flows: TargetFlow[] = ['student_teacher', 'teacher_management', 'management_teacher']
+const flows: TargetFlow[] = ['student_teacher', 'teacher_management', 'management_teacher', 'teacher_self']
 const flowLabels: Record<TargetFlow, string> = {
   student_teacher: 'Şagird → Müəllim',
   teacher_management: 'Müəllim → Rəhbərlik',
   management_teacher: 'Rəhbərlik → Müəllim',
+  teacher_self: 'Müəllim → Özünü',
 }
 
 const buildTaskId = (task: {
@@ -162,6 +163,10 @@ export const AdminCyclesPage = () => {
 
   const handleSaveQuestionSet = async () => {
     if (!selectedCycleId) return
+    if (selectedFlow === 'teacher_self' && selectedQuestionIds.length !== 1) {
+      setStatus('Özünü qiymətləndirmə üçün yalnız 1 sual seçilməlidir')
+      return
+    }
 
     const { error } = await supabase.from('question_sets').upsert(
       {
@@ -416,6 +421,31 @@ export const AdminCyclesPage = () => {
       })
     })
 
+    teacherUsers.forEach((user) => {
+      const teacher = teacherMap[user.id]
+      const branch = teacher?.branchId ?? user.data.branchId
+      if (!branch) return
+      const task: TaskDoc = {
+        cycleId,
+        raterUid: user.id,
+        raterRole: 'teacher',
+        targetType: 'teacher',
+        targetId: user.id,
+        targetName: teacher?.name ?? user.data.displayName ?? user.data.login ?? null,
+        branchId: branch,
+        status: 'OPEN',
+      }
+      const taskId = buildTaskId({
+        cycleId,
+        raterUid: user.id,
+        targetType: 'teacher',
+        targetId: user.id,
+      })
+      if (!existingTaskIds.has(taskId)) {
+        tasksToCreate.push({ id: taskId, data: task })
+      }
+    })
+
     const managerUsers = usersScoped.filter((user) => user.data.role === 'manager')
     managerUsers.forEach((user) => {
       if (!user.data.branchId) return
@@ -574,8 +604,8 @@ export const AdminCyclesPage = () => {
         {status && <div className="notice">{status}</div>}
       </div>
 
-      <div className="table">
-        <div className="table-row header">
+      <div className="data-table">
+        <div className="data-row header">
           <div>İl</div>
           <div>Başlanğıc</div>
           <div>Bitmə</div>
@@ -591,7 +621,7 @@ export const AdminCyclesPage = () => {
               ? cycle.data.branchIds.map((id) => branchMap[id]?.name ?? id).join(', ')
               : 'Bütün filiallar'
           return (
-            <div className="table-row" key={cycle.id}>
+            <div className="data-row" key={cycle.id}>
               <div>{cycle.data.year}</div>
               <div>{startDate ? startDate.toLocaleDateString('az-AZ') : '-'}</div>
               <div>{endDate ? endDate.toLocaleDateString('az-AZ') : '-'}</div>
@@ -642,6 +672,14 @@ export const AdminCyclesPage = () => {
                   type="checkbox"
                   checked={selectedQuestionIds.includes(question.id)}
                   onChange={(event) => {
+                    if (selectedFlow === 'teacher_self') {
+                      if (event.target.checked) {
+                        setSelectedQuestionIds([question.id])
+                      } else {
+                        setSelectedQuestionIds([])
+                      }
+                      return
+                    }
                     if (event.target.checked) {
                       setSelectedQuestionIds((prev) => [...prev, question.id])
                     } else {

@@ -12,7 +12,7 @@ export const LastRouteRedirect = ({ storageKey, fallbackPath, prefix }: LastRout
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey)
-    const target = stored && stored.startsWith(prefix) ? stored : fallbackPath
+    const target = stored && stored.startsWith(prefix) && stored !== prefix ? stored : fallbackPath
     navigate(target, { replace: true })
   }, [storageKey, fallbackPath, prefix, navigate])
 

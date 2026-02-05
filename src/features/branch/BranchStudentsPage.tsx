@@ -46,7 +46,11 @@ export const BranchStudentsPage = () => {
   }, [branchId])
 
   const handleCreate = async () => {
-    if (!name.trim() || !groupId || !classLevel || !branchId) {
+    if (!branchId) {
+      setStatus('Filial seçilməyib. Davam etmək üçün filial seçin.')
+      return
+    }
+    if (!name.trim() || !groupId || !classLevel) {
       setStatus('Ad, qrup və sinif səviyyəsi tələb olunur')
       return
     }
@@ -86,7 +90,10 @@ export const BranchStudentsPage = () => {
   }
 
   const handleImport = async (file: File) => {
-    if (!branchId) return
+    if (!branchId) {
+      setStatus('Filial seçilməyib. Import üçün filial seçin.')
+      return
+    }
     const rows = await parseSpreadsheet(file)
     const existingKeys = new Set(
       students.map((student) => `${student.data.name.toLowerCase()}|${student.data.groupId}`),
@@ -148,88 +155,103 @@ export const BranchStudentsPage = () => {
   const hasGroups = groups.length > 0
 
   return (
-    <div className="panel">
-      {isSuperAdmin && (
-        <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
-      )}
-
-      <div className="panel-header">
-        <div>
-          <h2>Şagirdlər</h2>
+    <div className="panel branch-page">
+      <div className="page-hero">
+        <div className="page-hero__content">
+          <div className="eyebrow">Filial bazası</div>
+          <h1>Şagirdlər</h1>
           <p>Şagird siyahısı, qrup və sinif səviyyəsi məlumatı.</p>
         </div>
-        <div className="stat-pill">Cəmi: {summary}</div>
+        <div className="page-hero__aside">
+          {isSuperAdmin && (
+            <BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
+          )}
+          <div className="stat-pill">Cəmi: {summary}</div>
+        </div>
       </div>
+      {isSuperAdmin && !branchId && (
+        <div className="notice">Filial seçilməyib. Davam etmək üçün filial seçin.</div>
+      )}
 
       {!hasGroups && (
         <div className="notice">Əvvəlcə qrup yaradın. Qrup olmadan şagird əlavə etmək mümkün deyil.</div>
       )}
 
-      <div className="card">
-        <h3>Yeni şagird</h3>
-        <div className="form-grid">
-          <input
-            className="input"
-            placeholder="Ad Soyad"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-            <option value="">Qrup seçin</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.data.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            placeholder="Sinif səviyyəsi (məs: 9)"
-            value={classLevel}
-            onChange={(event) => setClassLevel(event.target.value)}
-          />
-          <button className="btn primary" type="button" onClick={handleCreate} disabled={!hasGroups || !branchId}>
-            Yarat
-          </button>
+      <div className="page-grid">
+        <div className="card">
+          <h3>Yeni şagird</h3>
+          <div className="form-grid">
+            <input
+              className="input"
+              placeholder="Ad Soyad"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+              <option value="">Qrup seçin</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.data.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              placeholder="Sinif səviyyəsi (məs: 9)"
+              value={classLevel}
+              onChange={(event) => setClassLevel(event.target.value)}
+            />
+            <button className="btn primary" type="button" onClick={handleCreate} disabled={!hasGroups || !branchId}>
+              Yarat
+            </button>
+          </div>
+          <div className="form-row">
+            <input
+              className="input"
+              type="file"
+              accept=".csv,.xlsx"
+              disabled={!hasGroups || !branchId}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (file) void handleImport(file)
+              }}
+            />
+            <span className="hint">Şablon sütunları: name, groupId, classLevel, branchId (optional)</span>
+          </div>
+          <div className="hint">Şifrə default olaraq login ilə eynidir.</div>
+          {status && <div className="notice">{status}</div>}
         </div>
-        <div className="form-row">
-          <input
-            className="input"
-            type="file"
-            accept=".csv,.xlsx"
-            disabled={!hasGroups || !branchId}
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) void handleImport(file)
-            }}
-          />
-          <span className="hint">Şablon sütunları: name, groupId, classLevel, branchId (optional)</span>
-        </div>
-        <div className="hint">Şifrə default olaraq login ilə eynidir.</div>
-        {status && <div className="notice">{status}</div>}
-      </div>
 
-      <div className="table">
-        <div className="table-row header">
-          <div>Ad</div>
-          <div>Qrup</div>
-          <div>Sinif səviyyəsi</div>
-          <div>Login</div>
-          <div></div>
-        </div>
-        {students.map((student) => (
-          <div className="table-row" key={student.id}>
-            <div>{student.data.name}</div>
-            <div>{groups.find((group) => group.id === student.data.groupId)?.data.name ?? student.data.groupId}</div>
-            <div>{student.data.classLevel}</div>
-            <div>{student.data.login ?? '-'}</div>
+        <div className="card">
+          <div className="section-header">
             <div>
-              <button className="btn ghost" type="button" onClick={() => void handleDelete(student.id)}>
-                Sil
-              </button>
+              <div className="section-kicker">Siyahı</div>
+              <div className="section-title">Şagirdlər</div>
             </div>
           </div>
-        ))}
+          <div className="data-table">
+            <div className="data-row header">
+              <div>Ad</div>
+              <div>Qrup</div>
+              <div>Sinif səviyyəsi</div>
+              <div>Login</div>
+              <div></div>
+            </div>
+            {students.map((student) => (
+              <div className="data-row" key={student.id}>
+                <div>{student.data.name}</div>
+                <div>{groups.find((group) => group.id === student.data.groupId)?.data.name ?? student.data.groupId}</div>
+                <div>{student.data.classLevel}</div>
+                <div>{student.data.login ?? '-'}</div>
+                <div>
+                  <button className="btn ghost" type="button" onClick={() => void handleDelete(student.id)}>
+                    Sil
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       {dialog}
     </div>

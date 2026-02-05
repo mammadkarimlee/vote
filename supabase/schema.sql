@@ -24,11 +24,25 @@ begin
   create type public.target_flow as enum (
     'student_teacher',
     'teacher_management',
-    'management_teacher'
+    'management_teacher',
+    'teacher_self'
   );
 exception
   when duplicate_object then null;
 end $$;
+
+do $$
+begin
+  create type public.teacher_category as enum (
+    'standard',
+    'drama_gym',
+    'chess'
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.target_flow add value if not exists 'teacher_self';
 
 do $$
 begin
@@ -40,6 +54,13 @@ end $$;
 do $$
 begin
   create type public.task_status as enum ('OPEN', 'DONE');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.pkpd_decision_status as enum ('PENDING', 'APPROVED', 'REJECTED');
 exception
   when duplicate_object then null;
 end $$;
@@ -167,6 +188,7 @@ create table if not exists public.teachers (
   photo_url text,
   branch_id text references public.branches (id) on delete set null,
   branch_ids text[],
+  teacher_category public.teacher_category not null default 'standard',
   user_id text references public.users (id) on delete set null,
   login text,
   created_at timestamptz not null default now()
@@ -177,7 +199,8 @@ alter table public.teachers
   add column if not exists first_name text,
   add column if not exists last_name text,
   add column if not exists department_id text references public.departments (id) on delete set null,
-  add column if not exists photo_url text;
+  add column if not exists photo_url text,
+  add column if not exists teacher_category public.teacher_category not null default 'standard';
 
 create index if not exists teachers_branch_idx on public.teachers (branch_id);
 create index if not exists teachers_department_idx on public.teachers (department_id);
@@ -389,6 +412,121 @@ create table if not exists public.ai_insights (
 alter table public.ai_insights
   add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
 
+create table if not exists public.biq_class_results (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  group_id text not null references public.groups (id) on delete cascade,
+  subject_id text not null references public.subjects (id) on delete cascade,
+  score numeric not null,
+  created_at timestamptz not null default now(),
+  check (score >= 0 and score <= 100),
+  unique (org_id, branch_id, cycle_id, group_id, subject_id)
+);
+
+alter table public.biq_class_results
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists biq_class_results_org_idx on public.biq_class_results (org_id);
+create index if not exists biq_class_results_branch_idx on public.biq_class_results (branch_id);
+create index if not exists biq_class_results_cycle_idx on public.biq_class_results (cycle_id);
+
+create table if not exists public.pkpd_exam_results (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  score numeric not null,
+  note text,
+  created_at timestamptz not null default now(),
+  check (score >= 0 and score <= 30),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+alter table public.pkpd_exam_results
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists pkpd_exam_org_idx on public.pkpd_exam_results (org_id);
+create index if not exists pkpd_exam_branch_idx on public.pkpd_exam_results (branch_id);
+create index if not exists pkpd_exam_cycle_idx on public.pkpd_exam_results (cycle_id);
+create index if not exists pkpd_exam_teacher_idx on public.pkpd_exam_results (teacher_id);
+
+create table if not exists public.pkpd_portfolios (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  education_score numeric,
+  attendance_score numeric,
+  training_score numeric,
+  olympiad_score numeric,
+  events_score numeric,
+  note text,
+  created_at timestamptz not null default now(),
+  check (education_score is null or (education_score >= 0 and education_score <= 3)),
+  check (attendance_score is null or (attendance_score >= 0 and attendance_score <= 3)),
+  check (training_score is null or (training_score >= 0 and training_score <= 9)),
+  check (olympiad_score is null or (olympiad_score >= 0 and olympiad_score <= 30)),
+  check (events_score is null or (events_score >= 0 and events_score <= 25)),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+alter table public.pkpd_portfolios
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists pkpd_portfolios_org_idx on public.pkpd_portfolios (org_id);
+create index if not exists pkpd_portfolios_branch_idx on public.pkpd_portfolios (branch_id);
+create index if not exists pkpd_portfolios_cycle_idx on public.pkpd_portfolios (cycle_id);
+create index if not exists pkpd_portfolios_teacher_idx on public.pkpd_portfolios (teacher_id);
+
+create table if not exists public.pkpd_achievements (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  type text not null,
+  points numeric not null,
+  note text,
+  created_at timestamptz not null default now(),
+  check (points >= 0 and points <= 10)
+);
+
+alter table public.pkpd_achievements
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists pkpd_achievements_org_idx on public.pkpd_achievements (org_id);
+create index if not exists pkpd_achievements_branch_idx on public.pkpd_achievements (branch_id);
+create index if not exists pkpd_achievements_cycle_idx on public.pkpd_achievements (cycle_id);
+create index if not exists pkpd_achievements_teacher_idx on public.pkpd_achievements (teacher_id);
+
+create table if not exists public.pkpd_decisions (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  status public.pkpd_decision_status not null default 'PENDING',
+  category text,
+  total_score numeric,
+  note text,
+  decided_by text references public.users (id) on delete set null,
+  decided_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+alter table public.pkpd_decisions
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists pkpd_decisions_org_idx on public.pkpd_decisions (org_id);
+create index if not exists pkpd_decisions_branch_idx on public.pkpd_decisions (branch_id);
+create index if not exists pkpd_decisions_cycle_idx on public.pkpd_decisions (cycle_id);
+create index if not exists pkpd_decisions_teacher_idx on public.pkpd_decisions (teacher_id);
+
 -- Scale defaults (1-10)
 alter table public.questions
   alter column scale_min set default 1;
@@ -481,10 +619,20 @@ set search_path = public, auth
 as $$
 declare
   v_actor text := auth.uid()::text;
-  v_org text := coalesce(new.org_id, old.org_id, public.current_org_id());
-  v_row text := coalesce(new.id::text, old.id::text, new.task_id::text, old.task_id::text);
+  v_new jsonb := to_jsonb(new);
+  v_old jsonb := to_jsonb(old);
+  v_org text := coalesce(v_new->>'org_id', v_old->>'org_id', public.current_org_id());
+  v_row text;
   v_action text := tg_op;
 begin
+  v_row := coalesce(
+    v_new->>'id',
+    v_old->>'id',
+    v_new->>'task_id',
+    v_old->>'task_id',
+    v_new->>'submission_id',
+    v_old->>'submission_id'
+  );
   insert into public.audit_logs (org_id, actor_id, action, table_name, row_id, before, after)
   values (
     v_org,
@@ -542,6 +690,31 @@ create trigger audit_teaching_assignments
 drop trigger if exists audit_management_assignments on public.management_assignments;
 create trigger audit_management_assignments
   after insert or update or delete on public.management_assignments
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_biq_class_results on public.biq_class_results;
+create trigger audit_biq_class_results
+  after insert or update or delete on public.biq_class_results
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_exam_results on public.pkpd_exam_results;
+create trigger audit_pkpd_exam_results
+  after insert or update or delete on public.pkpd_exam_results
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_portfolios on public.pkpd_portfolios;
+create trigger audit_pkpd_portfolios
+  after insert or update or delete on public.pkpd_portfolios
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_achievements on public.pkpd_achievements;
+create trigger audit_pkpd_achievements
+  after insert or update or delete on public.pkpd_achievements
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_decisions on public.pkpd_decisions;
+create trigger audit_pkpd_decisions
+  after insert or update or delete on public.pkpd_decisions
   for each row execute function public.log_audit();
 
 -- Uniqueness + integrity helpers
@@ -779,6 +952,8 @@ begin
     v_flow := 'student_teacher';
   elsif v_task.rater_role = 'teacher' and v_task.target_type = 'manager' then
     v_flow := 'teacher_management';
+  elsif v_task.rater_role = 'teacher' and v_task.target_type = 'teacher' then
+    v_flow := 'teacher_self';
   else
     v_flow := 'management_teacher';
   end if;
@@ -933,6 +1108,11 @@ alter table public.tasks enable row level security;
 alter table public.submissions enable row level security;
 alter table public.answers enable row level security;
 alter table public.ai_insights enable row level security;
+alter table public.biq_class_results enable row level security;
+alter table public.pkpd_exam_results enable row level security;
+alter table public.pkpd_portfolios enable row level security;
+alter table public.pkpd_achievements enable row level security;
+alter table public.pkpd_decisions enable row level security;
 alter table public.audit_logs enable row level security;
 
 -- Drop existing policies to keep this script idempotent
@@ -1023,6 +1203,31 @@ drop policy if exists ai_insights_select on public.ai_insights;
 drop policy if exists ai_insights_insert on public.ai_insights;
 drop policy if exists ai_insights_update on public.ai_insights;
 drop policy if exists ai_insights_delete on public.ai_insights;
+
+drop policy if exists biq_class_results_select on public.biq_class_results;
+drop policy if exists biq_class_results_insert on public.biq_class_results;
+drop policy if exists biq_class_results_update on public.biq_class_results;
+drop policy if exists biq_class_results_delete on public.biq_class_results;
+
+drop policy if exists pkpd_exam_results_select on public.pkpd_exam_results;
+drop policy if exists pkpd_exam_results_insert on public.pkpd_exam_results;
+drop policy if exists pkpd_exam_results_update on public.pkpd_exam_results;
+drop policy if exists pkpd_exam_results_delete on public.pkpd_exam_results;
+
+drop policy if exists pkpd_portfolios_select on public.pkpd_portfolios;
+drop policy if exists pkpd_portfolios_insert on public.pkpd_portfolios;
+drop policy if exists pkpd_portfolios_update on public.pkpd_portfolios;
+drop policy if exists pkpd_portfolios_delete on public.pkpd_portfolios;
+
+drop policy if exists pkpd_achievements_select on public.pkpd_achievements;
+drop policy if exists pkpd_achievements_insert on public.pkpd_achievements;
+drop policy if exists pkpd_achievements_update on public.pkpd_achievements;
+drop policy if exists pkpd_achievements_delete on public.pkpd_achievements;
+
+drop policy if exists pkpd_decisions_select on public.pkpd_decisions;
+drop policy if exists pkpd_decisions_insert on public.pkpd_decisions;
+drop policy if exists pkpd_decisions_update on public.pkpd_decisions;
+drop policy if exists pkpd_decisions_delete on public.pkpd_decisions;
 
 drop policy if exists audit_logs_select on public.audit_logs;
 drop policy if exists audit_logs_insert on public.audit_logs;
@@ -1528,9 +1733,10 @@ create policy questions_select on public.questions
          and questions.org_id = qs.org_id
          and questions.id = any(qs.question_ids)
          and (
-           (t.rater_role = 'student' and t.target_type = 'teacher' and qs.target_flow = 'student_teacher')
-           or (t.rater_role = 'teacher' and t.target_type = 'manager' and qs.target_flow = 'teacher_management')
-           or (t.rater_role = 'manager' and t.target_type = 'teacher' and qs.target_flow = 'management_teacher')
+          (t.rater_role = 'student' and t.target_type = 'teacher' and qs.target_flow = 'student_teacher')
+          or (t.rater_role = 'teacher' and t.target_type = 'manager' and qs.target_flow = 'teacher_management')
+          or (t.rater_role = 'teacher' and t.target_type = 'teacher' and qs.target_flow = 'teacher_self')
+          or (t.rater_role = 'manager' and t.target_type = 'teacher' and qs.target_flow = 'management_teacher')
          )
     )
   );
@@ -1584,9 +1790,10 @@ create policy question_sets_select on public.question_sets
          and t.cycle_id = question_sets.cycle_id
          and t.org_id = question_sets.org_id
          and (
-           (t.rater_role = 'student' and t.target_type = 'teacher' and question_sets.target_flow = 'student_teacher')
-           or (t.rater_role = 'teacher' and t.target_type = 'manager' and question_sets.target_flow = 'teacher_management')
-           or (t.rater_role = 'manager' and t.target_type = 'teacher' and question_sets.target_flow = 'management_teacher')
+          (t.rater_role = 'student' and t.target_type = 'teacher' and question_sets.target_flow = 'student_teacher')
+          or (t.rater_role = 'teacher' and t.target_type = 'manager' and question_sets.target_flow = 'teacher_management')
+          or (t.rater_role = 'teacher' and t.target_type = 'teacher' and question_sets.target_flow = 'teacher_self')
+          or (t.rater_role = 'manager' and t.target_type = 'teacher' and question_sets.target_flow = 'management_teacher')
          )
     )
   );
@@ -1612,7 +1819,6 @@ create policy tasks_select_branch on public.tasks
     public.is_branch_staff()
     and public.current_org_id() = org_id
     and public.current_branch_id() = branch_id
-    and rater_role = 'student'
   );
 
 create policy tasks_insert on public.tasks
@@ -1631,6 +1837,14 @@ create policy tasks_delete on public.tasks
 create policy submissions_select on public.submissions
   for select
   using (public.is_superadmin());
+
+create policy submissions_select_branch on public.submissions
+  for select
+  using (
+    public.is_branch_staff()
+    and public.current_org_id() = org_id
+    and public.current_branch_id() = branch_id
+  );
 
 create policy submissions_insert on public.submissions
   for insert
@@ -1651,6 +1865,20 @@ create policy submissions_delete on public.submissions
 create policy answers_select on public.answers
   for select
   using (public.is_superadmin());
+
+create policy answers_select_branch on public.answers
+  for select
+  using (
+    public.is_branch_staff()
+    and public.current_org_id() = answers.org_id
+    and exists (
+      select 1
+        from public.submissions s
+       where s.task_id = answers.submission_id
+         and s.org_id = answers.org_id
+         and s.branch_id = public.current_branch_id()
+    )
+  );
 
 create policy answers_insert on public.answers
   for insert
@@ -1684,6 +1912,266 @@ create policy ai_insights_delete on public.ai_insights
   for delete
   using (public.is_superadmin());
 
+create policy biq_class_results_select on public.biq_class_results
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy biq_class_results_insert on public.biq_class_results
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy biq_class_results_update on public.biq_class_results
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy biq_class_results_delete on public.biq_class_results
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_exam_results_select on public.pkpd_exam_results
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_exam_results_insert on public.pkpd_exam_results
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_exam_results_update on public.pkpd_exam_results
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_exam_results_delete on public.pkpd_exam_results
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_portfolios_select on public.pkpd_portfolios
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_portfolios_insert on public.pkpd_portfolios
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_portfolios_update on public.pkpd_portfolios
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_portfolios_delete on public.pkpd_portfolios
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_achievements_select on public.pkpd_achievements
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_achievements_insert on public.pkpd_achievements
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_achievements_update on public.pkpd_achievements
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_achievements_delete on public.pkpd_achievements
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_decisions_select on public.pkpd_decisions
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_decisions_insert on public.pkpd_decisions
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_decisions_update on public.pkpd_decisions
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_decisions_delete on public.pkpd_decisions
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
 create policy questions_select_branch on public.questions
   for select
   using (
@@ -1698,6 +2186,15 @@ create policy audit_logs_select on public.audit_logs
 create policy audit_logs_insert on public.audit_logs
   for insert
   with check (true);
+
+-- Grants for PostgREST (RLS still applies)
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public
+  grant usage, select on sequences to authenticated;
 
 insert into public.orgs (id, name)
 values ('default', 'Default Org')
