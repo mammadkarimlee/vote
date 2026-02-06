@@ -495,6 +495,23 @@
     @apply flex flex-wrap items-center gap-3;
   }
 
+  .check-grid {
+    @apply grid gap-2 md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))];
+  }
+
+  .check-item {
+    @apply flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm transition hover:bg-secondary;
+    cursor: pointer;
+  }
+
+  .check-item.active {
+    @apply border-accent/60 bg-secondary;
+  }
+
+  .check-item input {
+    accent-color: hsl(var(--accent));
+  }
+
   .empty {
     @apply rounded-2xl border border-dashed border-border bg-card/60 px-4 py-3 text-center text-sm text-muted-foreground;
   }
@@ -526,9 +543,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
   }
 }
 
