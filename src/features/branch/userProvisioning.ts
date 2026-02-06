@@ -2,7 +2,8 @@
 import type { Role } from "../../lib/types";
 
 const PROVISION_API_URL =
-	import.meta.env.VITE_PROVISION_API_URL || "http://localhost:8787";
+	import.meta.env.VITE_PROVISION_API_URL ||
+	(import.meta.env.PROD ? "/api" : "http://localhost:8787");
 
 const extractFunctionError = async (error: unknown, data: unknown) => {
 	if (data && typeof data === "object" && data !== null && "error" in data) {
