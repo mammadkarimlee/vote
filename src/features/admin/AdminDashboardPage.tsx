@@ -21,7 +21,7 @@ import type {
   SurveyCycleDoc,
   TeacherDoc,
 } from '../../lib/types'
-import { chunkArray, formatShortDate, toNumber } from '../../lib/utils'
+import { chunkArray, formatShortDate, toJsDate, toNumber } from '../../lib/utils'
 import { downloadCsv } from '../../lib/csv'
 import { InfoTip } from '../../components/InfoTip'
 
@@ -520,7 +520,7 @@ export const AdminDashboardPage = () => {
   }, [currentAggregation])
 
   const heatmapCells = useMemo(() => {
-    const rows: Array<{ subjectId: string; classLevel: string; avg: number; submissions: number }> = []
+    const rows: Array<{ subjectId: string; classLevel: string; avg: number | null; submissions: number }> = []
     Object.entries(currentAggregation.heatmap).forEach(([subjectId, levels]) => {
       Object.entries(levels).forEach(([classLevel, stat]) => {
         rows.push({
@@ -614,7 +614,7 @@ export const AdminDashboardPage = () => {
         submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? submission.data.groupId : '-',
         submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? submission.data.subjectId : '-',
         avg === '' ? '' : Number(avg).toFixed(2),
-        formatShortDate(submission.data.createdAt),
+        formatShortDate(toJsDate(submission.data.createdAt)),
         comments.join(' | '),
       ]
     })
@@ -918,7 +918,7 @@ export const AdminDashboardPage = () => {
               <div className="data-row" key={submission.id}>
                 <div>{submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? '-' : '-'}</div>
                 <div>{submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? '-' : '-'}</div>
-                <div>{formatShortDate(submission.data.createdAt)}</div>
+                <div>{formatShortDate(toJsDate(submission.data.createdAt))}</div>
               </div>
             ))}
             {selectedTeacherSubmissions.length === 0 && (

@@ -21,7 +21,7 @@ import type {
   TeacherDoc,
   UserDoc,
 } from '../../lib/types'
-import { chunkArray, formatShortDate, toNumber } from '../../lib/utils'
+import { chunkArray, formatShortDate, toJsDate, toNumber } from '../../lib/utils'
 import { downloadCsv } from '../../lib/csv'
 import { InfoTip } from '../../components/InfoTip'
 
@@ -250,7 +250,7 @@ export const AdminCycleDetailPage = () => {
         submission.data.groupId ? groupMap[submission.data.groupId]?.name ?? submission.data.groupId : '-',
         submission.data.subjectId ? subjectMap[submission.data.subjectId]?.name ?? submission.data.subjectId : '-',
         avg === '' ? '' : Number(avg).toFixed(2),
-        formatShortDate(submission.data.createdAt),
+        formatShortDate(toJsDate(submission.data.createdAt)),
         commentsText.join(' | '),
       ]
     })

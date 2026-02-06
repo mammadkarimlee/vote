@@ -252,7 +252,7 @@
   }
 
   .icon-menu-title {
-    @apply text-sm font-semibold uppercase tracking-[0.2em] text-center;
+    @apply text-sm font-semibold uppercase tracking-[0.18em] text-left;
   }
 
   .icon-menu-subtitle {
@@ -264,7 +264,7 @@
   }
 
   .icon-menu-group {
-    @apply grid gap-3 items-center text-center;
+    @apply grid gap-3 items-start text-left;
   }
 
   .icon-menu-grid {
@@ -291,8 +291,17 @@
   }
 
   .icon-tile__label {
-    @apply text-xs uppercase tracking-[0.2em] whitespace-nowrap;
-    word-break: keep-all;
+    @apply text-xs uppercase tracking-[0.18em];
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+    min-height: 2.4em;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: break-word;
   }
 
   .grid {
