@@ -13,7 +13,7 @@ export const ThemeToggle = () => {
 	const { theme, setTheme } = useTheme();
 
 	return (
-		<div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 text-xs">
+		<div className="theme-toggle inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 text-xs">
 			{options.map((option) => (
 				<button
 					key={option.value}
