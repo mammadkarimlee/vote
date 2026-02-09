@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapGroupRow, mapStudentRow } from "../../lib/supabaseMappers";
@@ -24,7 +24,7 @@ export const BranchStudentsPage = () => {
 	const [classLevel, setClassLevel] = useState("");
 	const [status, setStatus] = useState<string | null>(null);
 
-	const loadData = async () => {
+	const loadData = useCallback(async () => {
 		if (!branchId) {
 			setStudents([]);
 			setGroups([]);
@@ -62,11 +62,11 @@ export const BranchStudentsPage = () => {
 		setStudents(
 			studentDocs.filter((student) => student.data.branchId === branchId),
 		);
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadData();
-	}, [branchId]);
+	}, [loadData]);
 
 	const handleCreate = async () => {
 		if (!branchId) {
@@ -318,3 +318,4 @@ export const BranchStudentsPage = () => {
 		</div>
 	);
 };
+

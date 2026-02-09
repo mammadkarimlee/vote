@@ -399,6 +399,39 @@ alter table public.answers
 create index if not exists answers_org_idx on public.answers (org_id);
 create index if not exists answers_question_idx on public.answers (question_id);
 
+create table if not exists public.notifications (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  user_id text not null references public.users (id) on delete cascade,
+  cycle_id text references public.survey_cycles (id) on delete set null,
+  task_id text references public.tasks (id) on delete set null,
+  type text not null,
+  level text not null default 'info',
+  title text not null,
+  message text not null,
+  action_path text,
+  metadata jsonb not null default '{}'::jsonb,
+  is_read boolean not null default false,
+  read_at timestamptz,
+  created_at timestamptz not null default now(),
+  check (type in ('reminder', 'system', 'success')),
+  check (level in ('info', 'warning', 'success'))
+);
+
+alter table public.notifications
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists is_read boolean not null default false,
+  add column if not exists read_at timestamptz;
+
+create index if not exists notifications_org_idx on public.notifications (org_id);
+create index if not exists notifications_user_idx on public.notifications (user_id, is_read, created_at desc);
+create index if not exists notifications_cycle_idx on public.notifications (cycle_id);
+create index if not exists notifications_task_idx on public.notifications (task_id);
+create unique index if not exists notifications_open_reminder_uidx
+  on public.notifications (org_id, user_id, task_id, type)
+  where task_id is not null and type = 'reminder' and is_read = false;
+
 create table if not exists public.ai_insights (
   id text primary key default gen_random_uuid()::text,
   org_id text not null references public.orgs (id) on delete cascade,
@@ -717,6 +750,11 @@ create trigger audit_pkpd_decisions
   after insert or update or delete on public.pkpd_decisions
   for each row execute function public.log_audit();
 
+drop trigger if exists audit_notifications on public.notifications;
+create trigger audit_notifications
+  after insert or update or delete on public.notifications
+  for each row execute function public.log_audit();
+
 -- Uniqueness + integrity helpers
 create unique index if not exists users_org_login_uidx on public.users (org_id, login) where login is not null;
 create unique index if not exists users_org_email_uidx on public.users (org_id, email) where email is not null;
@@ -884,6 +922,141 @@ drop trigger if exists answers_validate_value on public.answers;
 create trigger answers_validate_value
   before insert or update on public.answers
   for each row execute function public.validate_answer();
+
+create or replace function public.mark_notification_read(
+  p_notification_id text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_updated integer := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  update public.notifications
+     set is_read = true,
+         read_at = now()
+   where id = p_notification_id
+     and org_id = public.current_org_id()
+     and user_id = auth.uid()::text
+     and is_read = false;
+
+  get diagnostics v_updated = row_count;
+  return v_updated > 0;
+end;
+$$;
+
+grant execute on function public.mark_notification_read(text) to authenticated;
+
+create or replace function public.create_cycle_reminders(
+  p_cycle_id text,
+  p_days_before integer default 3,
+  p_force boolean default false
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_cycle public.survey_cycles%rowtype;
+  v_now timestamptz := now();
+  v_days integer := greatest(coalesce(p_days_before, 0), 0);
+  v_inserted integer := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  if not (public.is_superadmin() or public.is_branch_staff()) then
+    raise exception 'not allowed';
+  end if;
+
+  select *
+    into v_cycle
+    from public.survey_cycles
+   where id = p_cycle_id
+     and org_id = public.current_org_id();
+
+  if not found then
+    raise exception 'cycle not found';
+  end if;
+
+  if v_cycle.status <> 'OPEN' and not p_force then
+    raise exception 'cycle not open';
+  end if;
+
+  insert into public.notifications (
+    org_id,
+    user_id,
+    cycle_id,
+    task_id,
+    type,
+    level,
+    title,
+    message,
+    action_path,
+    metadata
+  )
+  select
+    t.org_id,
+    t.rater_id,
+    t.cycle_id,
+    t.id,
+    'reminder',
+    case
+      when v_cycle.end_at <= v_now + interval '1 day' then 'warning'
+      else 'info'
+    end,
+    'Səsvermə xatırlatması',
+    case
+      when v_cycle.end_at <= v_now + interval '1 day' then
+        'Tapşırığın son tarixinin bitməsinə 24 saatdan az qalıb.'
+      else
+        'Açıq səsvermə tapşırığınız var. Son tarix bitməmiş tamamlayın.'
+    end,
+    '/vote/' || t.id,
+    jsonb_build_object(
+      'cycle_year', v_cycle.year,
+      'cycle_end_at', v_cycle.end_at,
+      'branch_id', t.branch_id
+    )
+    from public.tasks t
+   where t.org_id = v_cycle.org_id
+     and t.cycle_id = v_cycle.id
+     and t.status = 'OPEN'
+     and (
+       public.is_superadmin()
+       or (
+         public.is_branch_staff()
+         and t.branch_id = public.current_branch_id()
+       )
+     )
+     and (
+       p_force
+       or v_cycle.end_at <= v_now + make_interval(days => v_days)
+     )
+     and not exists (
+       select 1
+         from public.notifications n
+        where n.org_id = t.org_id
+          and n.user_id = t.rater_id
+          and n.task_id = t.id
+          and n.type = 'reminder'
+          and n.is_read = false
+     );
+
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
+end;
+$$;
+
+grant execute on function public.create_cycle_reminders(text, integer, boolean) to authenticated;
 
 -- Voting RPC with validation + transaction
 create or replace function public.submit_vote(
@@ -1084,6 +1257,34 @@ begin
      set status = 'DONE',
          submitted_at = v_now
    where id = v_task.id;
+
+  insert into public.notifications (
+    org_id,
+    user_id,
+    cycle_id,
+    task_id,
+    type,
+    level,
+    title,
+    message,
+    action_path,
+    metadata
+  ) values (
+    v_task.org_id,
+    v_task.rater_id,
+    v_task.cycle_id,
+    v_task.id,
+    'success',
+    'success',
+    'Səsvermə qəbul edildi',
+    'Cavablarınız uğurla qeydə alındı.',
+    '/vote',
+    jsonb_build_object(
+      'target_id', v_task.target_id,
+      'target_type', v_task.target_type,
+      'submitted_at', v_now
+    )
+  );
 end;
 $$;
 
@@ -1107,6 +1308,7 @@ alter table public.question_sets enable row level security;
 alter table public.tasks enable row level security;
 alter table public.submissions enable row level security;
 alter table public.answers enable row level security;
+alter table public.notifications enable row level security;
 alter table public.ai_insights enable row level security;
 alter table public.biq_class_results enable row level security;
 alter table public.pkpd_exam_results enable row level security;
@@ -1198,6 +1400,11 @@ drop policy if exists answers_select on public.answers;
 drop policy if exists answers_select_branch on public.answers;
 drop policy if exists answers_insert on public.answers;
 drop policy if exists answers_delete on public.answers;
+
+drop policy if exists notifications_select on public.notifications;
+drop policy if exists notifications_insert on public.notifications;
+drop policy if exists notifications_update on public.notifications;
+drop policy if exists notifications_delete on public.notifications;
 
 drop policy if exists ai_insights_select on public.ai_insights;
 drop policy if exists ai_insights_insert on public.ai_insights;
@@ -1892,6 +2099,51 @@ create policy answers_insert on public.answers
   );
 
 create policy answers_delete on public.answers
+  for delete
+  using (public.is_superadmin());
+
+create policy notifications_select on public.notifications
+  for select
+  using (
+    public.is_superadmin()
+    or user_id = auth.uid()::text
+  );
+
+create policy notifications_insert on public.notifications
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and exists (
+        select 1
+          from public.users u
+         where u.id = user_id
+           and u.org_id = org_id
+           and u.branch_id = public.current_branch_id()
+      )
+    )
+  );
+
+create policy notifications_update on public.notifications
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      user_id = auth.uid()::text
+      and org_id = public.current_org_id()
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      user_id = auth.uid()::text
+      and org_id = public.current_org_id()
+    )
+  );
+
+create policy notifications_delete on public.notifications
   for delete
   using (public.is_superadmin());
 

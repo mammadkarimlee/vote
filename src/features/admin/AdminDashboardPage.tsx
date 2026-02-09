@@ -8,9 +8,11 @@ import {
 	mapBranchRow,
 	mapGroupRow,
 	mapQuestionRow,
+	mapQuestionSetRow,
 	mapSubjectRow,
 	mapSubmissionRow,
 	mapSurveyCycleRow,
+	mapTaskRow,
 	mapTeacherRow,
 } from "../../lib/supabaseMappers";
 import type {
@@ -18,191 +20,59 @@ import type {
 	BranchDoc,
 	GroupDoc,
 	QuestionDoc,
-	SubjectDoc,
 	SubmissionDoc,
+	SubjectDoc,
 	SurveyCycleDoc,
+	TargetFlow,
+	TaskDoc,
 	TeacherDoc,
 } from "../../lib/types";
-import {
-	chunkArray,
-	formatShortDate,
-	toJsDate,
-	toNumber,
-} from "../../lib/utils";
+import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
 
 type DocEntry<T> = { id: string; data: T };
-
-type AggregationResult = {
-	teacherStats: Record<
-		string,
-		{ sum: number; count: number; submissions: number }
-	>;
-	branchStats: Record<
-		string,
-		{ sum: number; count: number; submissions: number }
-	>;
-	heatmap: Record<
-		string,
-		Record<string, { sum: number; count: number; submissions: number }>
-	>;
-	comments: Array<{
-		submissionId: string;
-		targetId: string;
-		questionId: string;
-		value: string;
-		createdAt?: unknown;
-		branchId: string;
-		groupId?: string | null;
-		subjectId?: string | null;
-	}>;
+type Section = "overview" | "teachers" | "branches" | "comments" | "quality";
+const SECTIONS: Array<{ key: Section; label: string }> = [
+	{ key: "overview", label: "Executive" },
+	{ key: "teachers", label: "Muellimler" },
+	{ key: "branches", label: "Filiallar" },
+	{ key: "comments", label: "Serhler" },
+	{ key: "quality", label: "Keyfiyyet" },
+];
+const formatAvg = (avg: number | null | undefined, count: number) =>
+	avg === null || avg === undefined || count === 0 ? "-" : avg.toFixed(2);
+const stdDev = (values: number[]) => {
+	if (values.length < 2) return null;
+	const mean = values.reduce((acc, value) => acc + value, 0) / values.length;
+	const variance =
+		values.reduce((acc, value) => acc + (value - mean) ** 2, 0) / values.length;
+	return Math.sqrt(variance);
 };
-
-const DASHBOARD_SECTIONS = [
-	{ key: "overview", label: "Ümumi baxış" },
-	{ key: "teachers", label: "Müəllim nəticələri" },
-	{ key: "branches", label: "Filial müqayisəsi" },
-	{ key: "heatmap", label: "İstilik xəritəsi" },
-	{ key: "comments", label: "Şərhlər" },
-] as const;
-
-const aggregateCycle = (
-	submissions: Array<DocEntry<SubmissionDoc>>,
-	answers: Array<DocEntry<AnswerDoc>>,
-	questions: Record<string, QuestionDoc>,
-	groupMap: Record<string, GroupDoc>,
-) => {
-	const teacherStats: AggregationResult["teacherStats"] = {};
-	const branchStats: AggregationResult["branchStats"] = {};
-	const heatmap: AggregationResult["heatmap"] = {};
-	const comments: AggregationResult["comments"] = [];
-
-	const submissionMap = submissions.reduce<Record<string, SubmissionDoc>>(
-		(acc, item) => {
-			acc[item.id] = item.data;
-			return acc;
-		},
-		{},
-	);
-
-	const submissionCountsTeacher: Record<string, Set<string>> = {};
-	const submissionCountsBranch: Record<string, Set<string>> = {};
-	const submissionCountsHeatmap: Record<
-		string,
-		Record<string, Set<string>>
-	> = {};
-
-	answers.forEach((answer) => {
-		const submission = submissionMap[answer.data.submissionId];
-		if (!submission) return;
-		const question = questions[answer.data.questionId];
-		if (!question) return;
-
-		if (question.type === "text") {
-			comments.push({
-				submissionId: answer.data.submissionId,
-				targetId: submission.targetId,
-				questionId: answer.data.questionId,
-				value: String(answer.data.value ?? ""),
-				createdAt: answer.data.createdAt,
-				branchId: submission.branchId,
-				groupId: submission.groupId,
-				subjectId: submission.subjectId,
+const flowFromTask = (task: TaskDoc): TargetFlow => {
+	if (task.raterRole === "student" && task.targetType === "teacher")
+		return "student_teacher";
+	if (task.raterRole === "teacher" && task.targetType === "manager")
+		return "teacher_management";
+	if (task.raterRole === "teacher" && task.targetType === "teacher")
+		return "teacher_self";
+	return "management_teacher";
+};
+const loadAnswers = async (submissionIds: string[]) => {
+	const docs: Array<DocEntry<AnswerDoc>> = [];
+	for (const chunk of chunkArray(submissionIds, 200)) {
+		if (chunk.length === 0) continue;
+		const res = await supabase
+			.from("answers")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.in("submission_id", chunk);
+		(res.data ?? []).forEach((row) => {
+			docs.push({
+				id: `${row.submission_id}_${row.question_id}`,
+				data: mapAnswerRow(row),
 			});
-			return;
-		}
-
-		const numeric = toNumber(answer.data.value);
-		if (numeric === null) return;
-
-		const teacherStat = teacherStats[submission.targetId] ?? {
-			sum: 0,
-			count: 0,
-			submissions: 0,
-		};
-		teacherStat.sum += numeric;
-		teacherStat.count += 1;
-		teacherStats[submission.targetId] = teacherStat;
-
-		const branchStat = branchStats[submission.branchId] ?? {
-			sum: 0,
-			count: 0,
-			submissions: 0,
-		};
-		branchStat.sum += numeric;
-		branchStat.count += 1;
-		branchStats[submission.branchId] = branchStat;
-
-		if (submission.subjectId) {
-			const classLevel = submission.groupId
-				? (groupMap[submission.groupId]?.classLevel ?? "N/A")
-				: "N/A";
-			if (!heatmap[submission.subjectId]) {
-				heatmap[submission.subjectId] = {};
-			}
-			const cell = heatmap[submission.subjectId][classLevel] ?? {
-				sum: 0,
-				count: 0,
-				submissions: 0,
-			};
-			cell.sum += numeric;
-			cell.count += 1;
-			heatmap[submission.subjectId][classLevel] = cell;
-		}
-
-		submissionCountsTeacher[submission.targetId] =
-			submissionCountsTeacher[submission.targetId] || new Set();
-		submissionCountsTeacher[submission.targetId].add(answer.data.submissionId);
-
-		submissionCountsBranch[submission.branchId] =
-			submissionCountsBranch[submission.branchId] || new Set();
-		submissionCountsBranch[submission.branchId].add(answer.data.submissionId);
-
-		if (submission.subjectId) {
-			const classLevel = submission.groupId
-				? (groupMap[submission.groupId]?.classLevel ?? "N/A")
-				: "N/A";
-			submissionCountsHeatmap[submission.subjectId] =
-				submissionCountsHeatmap[submission.subjectId] || {};
-			submissionCountsHeatmap[submission.subjectId][classLevel] =
-				submissionCountsHeatmap[submission.subjectId][classLevel] || new Set();
-			submissionCountsHeatmap[submission.subjectId][classLevel].add(
-				answer.data.submissionId,
-			);
-		}
-	});
-
-	Object.entries(submissionCountsTeacher).forEach(([teacherId, set]) => {
-		if (teacherStats[teacherId]) teacherStats[teacherId].submissions = set.size;
-	});
-	Object.entries(submissionCountsBranch).forEach(([branchId, set]) => {
-		if (branchStats[branchId]) branchStats[branchId].submissions = set.size;
-	});
-	Object.entries(submissionCountsHeatmap).forEach(([subjectId, levels]) => {
-		Object.entries(levels).forEach(([classLevel, set]) => {
-			if (heatmap[subjectId]?.[classLevel])
-				heatmap[subjectId][classLevel].submissions = set.size;
 		});
-	});
-
-	return { teacherStats, branchStats, heatmap, comments };
-};
-
-const formatDistribution = (
-	distribution?: Record<string, number>,
-	numeric = false,
-) => {
-	if (!distribution) return "-";
-	const entries = Object.entries(distribution).filter(([, count]) => count > 0);
-	if (entries.length === 0) return "-";
-	const sorted = numeric
-		? entries.sort((a, b) => Number(a[0]) - Number(b[0]))
-		: entries.sort((a, b) => a[0].localeCompare(b[0]));
-	return sorted.map(([value, count]) => `${value}:${count}`).join(" ");
-};
-
-const formatAvg = (avg: number | null | undefined, count: number) => {
-	if (avg === null || avg === undefined || count === 0) return "—";
-	return avg.toFixed(2);
+	}
+	return docs;
 };
 
 export const AdminDashboardPage = () => {
@@ -212,169 +82,169 @@ export const AdminDashboardPage = () => {
 	const [groups, setGroups] = useState<Array<DocEntry<GroupDoc>>>([]);
 	const [subjects, setSubjects] = useState<Array<DocEntry<SubjectDoc>>>([]);
 	const [questions, setQuestions] = useState<Record<string, QuestionDoc>>({});
-	const [submissions, setSubmissions] = useState<
-		Array<DocEntry<SubmissionDoc>>
-	>([]);
+	const [tasks, setTasks] = useState<Array<DocEntry<TaskDoc>>>([]);
+	const [submissions, setSubmissions] = useState<Array<DocEntry<SubmissionDoc>>>([]);
 	const [answers, setAnswers] = useState<Array<DocEntry<AnswerDoc>>>([]);
 	const [prevSubmissions, setPrevSubmissions] = useState<
 		Array<DocEntry<SubmissionDoc>>
 	>([]);
-	const [prevAnswers, setPrevAnswers] = useState<Array<DocEntry<AnswerDoc>>>(
-		[],
+	const [prevAnswers, setPrevAnswers] = useState<Array<DocEntry<AnswerDoc>>>([]);
+	const [questionSets, setQuestionSets] = useState<Record<TargetFlow, string[]>>({
+		student_teacher: [],
+		teacher_management: [],
+		management_teacher: [],
+		teacher_self: [],
+	});
+	const [selectedCycleId, setSelectedCycleId] = useState("");
+	const [selectedTeacherId, setSelectedTeacherId] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [status, setStatus] = useState<string | null>(null);
+	const [nowMs, setNowMs] = useState(() => Date.now());
+	const [exportMode, setExportMode] = useState<"summary" | "raw" | "comments">(
+		"summary",
 	);
-	const [selectedCycleId, setSelectedCycleId] = useState<string>("");
-	const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+	const [reminderDays, setReminderDays] = useState("2");
+	const [reminderForce, setReminderForce] = useState(false);
 	const [filters, setFilters] = useState({
 		branchId: "",
 		teacherId: "",
 		groupId: "",
 		subjectId: "",
 		classLevel: "",
+		raterRole: "all" as "all" | "student" | "teacher" | "manager",
+		targetType: "all" as "all" | "teacher" | "manager",
 		search: "",
+		minSubmissions: "3",
 	});
 	const { section } = useParams();
-	const activeSection =
-		DASHBOARD_SECTIONS.find((item) => item.key === section)?.key ?? "overview";
+	const activeSection: Section =
+		SECTIONS.find((item) => item.key === section)?.key ?? "overview";
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (!section || !DASHBOARD_SECTIONS.some((item) => item.key === section)) {
+		if (!section || !SECTIONS.some((item) => item.key === section)) {
 			navigate("/admin/dashboard/overview", { replace: true });
 		}
 	}, [navigate, section]);
 
 	useEffect(() => {
 		const loadLookups = async () => {
-			const [
-				cycleRes,
-				teacherRes,
-				branchRes,
-				groupRes,
-				subjectRes,
-				questionRes,
-			] = await Promise.all([
-				supabase.from("survey_cycles").select("*").eq("org_id", ORG_ID),
-				supabase
-					.from("teachers")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
-				supabase
-					.from("branches")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
-				supabase
-					.from("groups")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
-				supabase
-					.from("subjects")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
-				supabase.from("questions").select("*").eq("org_id", ORG_ID),
-			]);
-
+			const [cycleRes, teacherRes, branchRes, groupRes, subjectRes, questionRes] =
+				await Promise.all([
+					supabase.from("survey_cycles").select("*").eq("org_id", ORG_ID),
+					supabase
+						.from("teachers")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null),
+					supabase
+						.from("branches")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null),
+					supabase
+						.from("groups")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null),
+					supabase
+						.from("subjects")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null),
+					supabase.from("questions").select("*").eq("org_id", ORG_ID),
+				]);
 			const cycleDocs = (cycleRes.data ?? []).map((row) => ({
 				id: row.id,
 				data: mapSurveyCycleRow(row),
 			}));
 			setCycles(cycleDocs);
 			setTeachers(
-				(teacherRes.data ?? []).map((row) => ({
-					id: row.id,
-					data: mapTeacherRow(row),
-				})),
+				(teacherRes.data ?? []).map((row) => ({ id: row.id, data: mapTeacherRow(row) })),
 			);
 			setBranches(
-				(branchRes.data ?? []).map((row) => ({
-					id: row.id,
-					data: mapBranchRow(row),
-				})),
+				(branchRes.data ?? []).map((row) => ({ id: row.id, data: mapBranchRow(row) })),
 			);
 			setGroups(
-				(groupRes.data ?? []).map((row) => ({
-					id: row.id,
-					data: mapGroupRow(row),
-				})),
+				(groupRes.data ?? []).map((row) => ({ id: row.id, data: mapGroupRow(row) })),
 			);
 			setSubjects(
-				(subjectRes.data ?? []).map((row) => ({
-					id: row.id,
-					data: mapSubjectRow(row),
-				})),
+				(subjectRes.data ?? []).map((row) => ({ id: row.id, data: mapSubjectRow(row) })),
 			);
-
-			const questionMap: Record<string, QuestionDoc> = {};
+			const qMap: Record<string, QuestionDoc> = {};
 			(questionRes.data ?? []).forEach((row) => {
-				questionMap[row.id] = mapQuestionRow(row);
+				qMap[row.id] = mapQuestionRow(row);
 			});
-			setQuestions(questionMap);
-
-			if (cycleDocs.length > 0 && !selectedCycleId) {
-				const latest = [...cycleDocs].sort(
-					(a, b) => b.data.year - a.data.year,
-				)[0];
-				setSelectedCycleId(latest.id);
+			setQuestions(qMap);
+			if (cycleDocs.length > 0) {
+				const latest = [...cycleDocs].sort((a, b) => b.data.year - a.data.year)[0];
+				setSelectedCycleId((prev) => prev || latest.id);
 			}
 		};
-
 		void loadLookups();
-	}, [selectedCycleId]);
+	}, []);
 
 	useEffect(() => {
-		if (filters.teacherId) {
-			setSelectedTeacherId(filters.teacherId);
-		}
+		if (filters.teacherId) setSelectedTeacherId(filters.teacherId);
 	}, [filters.teacherId]);
 
 	useEffect(() => {
-		if (!selectedTeacherId && teachers.length > 0) {
-			setSelectedTeacherId(teachers[0].id);
-		}
-	}, [teachers, selectedTeacherId]);
+		setNowMs(Date.now());
+	}, [selectedCycleId, submissions.length, answers.length]);
 
 	useEffect(() => {
 		const loadCycleData = async () => {
 			if (!selectedCycleId) return;
-
-			const submissionRes = await supabase
-				.from("submissions")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.eq("cycle_id", selectedCycleId);
+			setLoading(true);
+			const [taskRes, submissionRes, setRes] = await Promise.all([
+				supabase
+					.from("tasks")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId),
+				supabase
+					.from("submissions")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId),
+				supabase
+					.from("question_sets")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId),
+			]);
+			const taskDocs = (taskRes.data ?? []).map((row) => ({
+				id: row.id,
+				data: mapTaskRow(row),
+			}));
 			const submissionDocs = (submissionRes.data ?? []).map((row) => ({
 				id: row.task_id ?? row.id,
 				data: mapSubmissionRow(row),
 			}));
+			const answerDocs = await loadAnswers(submissionDocs.map((item) => item.id));
+			const setMap: Record<TargetFlow, string[]> = {
+				student_teacher: [],
+				teacher_management: [],
+				management_teacher: [],
+				teacher_self: [],
+			};
+			(setRes.data ?? []).forEach((row) => {
+				const item = mapQuestionSetRow(row);
+				setMap[item.targetFlow] = item.questionIds ?? [];
+			});
+			setTasks(taskDocs);
 			setSubmissions(submissionDocs);
-
-			const answerDocs: Array<DocEntry<AnswerDoc>> = [];
-			const ids = submissionDocs.map((item) => item.id);
-			const chunks = chunkArray(ids, 200);
-			for (const chunk of chunks) {
-				if (chunk.length === 0) continue;
-				const answerRes = await supabase
-					.from("answers")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.in("submission_id", chunk);
-				(answerRes.data ?? []).forEach((row) => {
-					const key = `${row.submission_id}_${row.question_id}`;
-					answerDocs.push({ id: key, data: mapAnswerRow(row) });
-				});
-			}
 			setAnswers(answerDocs);
+			setQuestionSets(setMap);
 
-			const currentCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
-			const prevCycle = cycles.find(
-				(cycle) => cycle.data.year === (currentCycle?.data.year ?? 0) - 1,
-			);
-			if (!prevCycle) {
+			const current = cycles.find((cycle) => cycle.id === selectedCycleId);
+			const prev = cycles
+				.filter((cycle) => cycle.data.year < (current?.data.year ?? 0))
+				.sort((a, b) => b.data.year - a.data.year)[0];
+			if (!prev) {
 				setPrevSubmissions([]);
 				setPrevAnswers([]);
+				setLoading(false);
 				return;
 			}
 
@@ -382,63 +252,43 @@ export const AdminDashboardPage = () => {
 				.from("submissions")
 				.select("*")
 				.eq("org_id", ORG_ID)
-				.eq("cycle_id", prevCycle.id);
+				.eq("cycle_id", prev.id);
 			const prevSubmissionDocs = (prevSubmissionRes.data ?? []).map((row) => ({
 				id: row.task_id ?? row.id,
 				data: mapSubmissionRow(row),
 			}));
+			const prevAnswerDocs = await loadAnswers(
+				prevSubmissionDocs.map((item) => item.id),
+			);
 			setPrevSubmissions(prevSubmissionDocs);
-
-			const prevAnswerDocs: Array<DocEntry<AnswerDoc>> = [];
-			const prevIds = prevSubmissionDocs.map((item) => item.id);
-			const prevChunks = chunkArray(prevIds, 200);
-			for (const chunk of prevChunks) {
-				if (chunk.length === 0) continue;
-				const answerRes = await supabase
-					.from("answers")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.in("submission_id", chunk);
-				(answerRes.data ?? []).forEach((row) => {
-					const key = `${row.submission_id}_${row.question_id}`;
-					prevAnswerDocs.push({ id: key, data: mapAnswerRow(row) });
-				});
-			}
 			setPrevAnswers(prevAnswerDocs);
+			setLoading(false);
 		};
 
 		void loadCycleData();
 	}, [selectedCycleId, cycles]);
 
 	const teacherMap = useMemo(
-		() => Object.fromEntries(teachers.map((t) => [t.id, t.data])),
+		() => Object.fromEntries(teachers.map((item) => [item.id, item.data])),
 		[teachers],
 	);
 	const branchMap = useMemo(
-		() => Object.fromEntries(branches.map((b) => [b.id, b.data])),
+		() => Object.fromEntries(branches.map((item) => [item.id, item.data])),
 		[branches],
 	);
 	const groupMap = useMemo(
-		() => Object.fromEntries(groups.map((g) => [g.id, g.data])),
+		() => Object.fromEntries(groups.map((item) => [item.id, item.data])),
 		[groups],
 	);
 	const subjectMap = useMemo(
-		() => Object.fromEntries(subjects.map((s) => [s.id, s.data])),
+		() => Object.fromEntries(subjects.map((item) => [item.id, item.data])),
 		[subjects],
 	);
-
-	const filteredTeacherOptions = useMemo(() => {
-		if (!filters.branchId) return teachers;
-		return teachers.filter((teacher) => {
-			if (teacher.data.branchId === filters.branchId) return true;
-			return (teacher.data.branchIds ?? []).includes(filters.branchId);
-		});
-	}, [teachers, filters.branchId]);
-
-	const filteredGroupOptions = useMemo(() => {
-		if (!filters.branchId) return groups;
-		return groups.filter((group) => group.data.branchId === filters.branchId);
-	}, [groups, filters.branchId]);
+	const taskMap = useMemo(
+		() => Object.fromEntries(tasks.map((item) => [item.id, item.data])),
+		[tasks],
+	);
+	const currentCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
 
 	const filterSubmission = useCallback(
 		(submission: DocEntry<SubmissionDoc>) => {
@@ -456,390 +306,393 @@ export const AdminDashboardPage = () => {
 					: null;
 				if (!group || group.classLevel !== filters.classLevel) return false;
 			}
+			const task = taskMap[submission.id];
+			if (filters.raterRole !== "all" && task && task.raterRole !== filters.raterRole)
+				return false;
+			if (
+				filters.targetType !== "all" &&
+				task &&
+				task.targetType !== filters.targetType
+			)
+				return false;
+			if (filters.search.trim()) {
+				const q = filters.search.trim().toLowerCase();
+				const teacherName = teacherMap[submission.data.targetId]?.name ?? "";
+				const groupName = submission.data.groupId
+					? (groupMap[submission.data.groupId]?.name ?? "")
+					: "";
+				const subjectName = submission.data.subjectId
+					? (subjectMap[submission.data.subjectId]?.name ?? "")
+					: "";
+				if (!`${teacherName} ${groupName} ${subjectName}`.toLowerCase().includes(q))
+					return false;
+			}
 			return true;
 		},
-		[filters, groupMap],
+		[filters, groupMap, subjectMap, taskMap, teacherMap],
 	);
 
 	const filteredSubmissions = useMemo(
 		() => submissions.filter(filterSubmission),
 		[submissions, filterSubmission],
 	);
-
+	const filteredIds = useMemo(
+		() => new Set(filteredSubmissions.map((item) => item.id)),
+		[filteredSubmissions],
+	);
+	const filteredAnswers = useMemo(
+		() =>
+			answers.filter((answer) => filteredIds.has(answer.data.submissionId)),
+		[answers, filteredIds],
+	);
 	const prevFilteredSubmissions = useMemo(
 		() => prevSubmissions.filter(filterSubmission),
 		[prevSubmissions, filterSubmission],
 	);
-
-	const filteredSubmissionIds = useMemo(
-		() => new Set(filteredSubmissions.map((item) => item.id)),
-		[filteredSubmissions],
-	);
-
-	const prevFilteredSubmissionIds = useMemo(
+	const prevFilteredIds = useMemo(
 		() => new Set(prevFilteredSubmissions.map((item) => item.id)),
 		[prevFilteredSubmissions],
 	);
-
-	const filteredAnswers = useMemo(
-		() =>
-			answers.filter((answer) =>
-				filteredSubmissionIds.has(answer.data.submissionId),
-			),
-		[answers, filteredSubmissionIds],
-	);
-
 	const prevFilteredAnswers = useMemo(
 		() =>
 			prevAnswers.filter((answer) =>
-				prevFilteredSubmissionIds.has(answer.data.submissionId),
+				prevFilteredIds.has(answer.data.submissionId),
 			),
-		[prevAnswers, prevFilteredSubmissionIds],
+		[prevAnswers, prevFilteredIds],
 	);
 
-	const selectedTeacherSubmissions = useMemo(() => {
-		if (!selectedTeacherId) return [];
-		return filteredSubmissions.filter(
-			(submission) => submission.data.targetId === selectedTeacherId,
-		);
-	}, [filteredSubmissions, selectedTeacherId]);
-
-	const selectedTeacherSubmissionIds = useMemo(
-		() => new Set(selectedTeacherSubmissions.map((item) => item.id)),
-		[selectedTeacherSubmissions],
-	);
-
-	const selectedTeacherAnswers = useMemo(
+	const numericValues = useMemo(
 		() =>
-			filteredAnswers.filter((answer) =>
-				selectedTeacherSubmissionIds.has(answer.data.submissionId),
-			),
-		[filteredAnswers, selectedTeacherSubmissionIds],
+			filteredAnswers
+				.filter((answer) => questions[answer.data.questionId]?.type === "scale")
+				.map((answer) => toNumber(answer.data.value))
+				.filter((item): item is number => item !== null),
+		[filteredAnswers, questions],
 	);
+	const prevNumericValues = useMemo(
+		() =>
+			prevFilteredAnswers
+				.filter((answer) => questions[answer.data.questionId]?.type === "scale")
+				.map((answer) => toNumber(answer.data.value))
+				.filter((item): item is number => item !== null),
+		[prevFilteredAnswers, questions],
+	);
+	const avgCurrent = useMemo(() => {
+		if (numericValues.length === 0) return null;
+		return numericValues.reduce((acc, value) => acc + value, 0) / numericValues.length;
+	}, [numericValues]);
+	const avgPrev = useMemo(() => {
+		if (prevNumericValues.length === 0) return null;
+		return (
+			prevNumericValues.reduce((acc, value) => acc + value, 0) /
+			prevNumericValues.length
+		);
+	}, [prevNumericValues]);
 
-	const selectedTeacherQuestionStats = useMemo(() => {
-		if (!selectedTeacherId) return [];
-		const stats: Array<{
-			questionId: string;
-			text: string;
-			type: QuestionDoc["type"];
-			avg?: number;
-			count: number;
-			choices?: Record<string, number>;
-			texts?: string[];
-			distribution?: Record<string, number>;
-			distributionLabel: string;
-		}> = [];
-
-		const statMap: Record<
+	const teacherStats = useMemo(() => {
+		const stats: Record<
 			string,
-			{
-				sum: number;
-				count: number;
-				choices: Record<string, number>;
-				texts: string[];
-				type: QuestionDoc["type"];
-				distribution: Record<string, number>;
-			}
+			{ sum: number; count: number; submissions: Set<string> }
 		> = {};
-
-		selectedTeacherAnswers.forEach((answer) => {
-			const question = questions[answer.data.questionId];
-			if (!question) return;
-			const entry = statMap[answer.data.questionId] ?? {
+		filteredAnswers.forEach((answer) => {
+			const submission = filteredSubmissions.find(
+				(item) => item.id === answer.data.submissionId,
+			);
+			if (!submission) return;
+			if (questions[answer.data.questionId]?.type !== "scale") return;
+			const numeric = toNumber(answer.data.value);
+			if (numeric === null) return;
+			const entry = stats[submission.data.targetId] ?? {
 				sum: 0,
 				count: 0,
-				choices: {},
-				texts: [],
-				type: question.type,
-				distribution: {},
+				submissions: new Set<string>(),
 			};
-
-			if (question.type === "text") {
-				const textValue = String(answer.data.value ?? "").trim();
-				if (textValue) entry.texts.push(textValue);
-			} else if (question.type === "choice") {
-				const raw =
-					typeof answer.data.value === "string"
-						? answer.data.value
-						: String(answer.data.value ?? "");
-				const value = raw.trim();
-				if (value) {
-					entry.choices[value] = (entry.choices[value] ?? 0) + 1;
-					entry.count += 1;
-				}
-			} else {
-				const numeric = toNumber(answer.data.value);
-				if (numeric !== null) {
-					entry.sum += numeric;
-					entry.count += 1;
-					const key = String(numeric);
-					entry.distribution[key] = (entry.distribution[key] ?? 0) + 1;
-				}
-			}
-
-			statMap[answer.data.questionId] = entry;
+			entry.sum += numeric;
+			entry.count += 1;
+			entry.submissions.add(submission.id);
+			stats[submission.data.targetId] = entry;
 		});
+		return Object.entries(stats)
+			.map(([teacherId, entry]) => ({
+				teacherId,
+				avg: entry.count === 0 ? null : entry.sum / entry.count,
+				submissions: entry.submissions.size,
+			}))
+			.sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
+	}, [filteredAnswers, filteredSubmissions, questions]);
 
-		Object.entries(statMap).forEach(([questionId, entry]) => {
-			const question = questions[questionId];
-			if (!question) return;
-			const distributionLabel =
-				question.type === "choice"
-					? formatDistribution(entry.choices)
-					: question.type === "scale"
-						? formatDistribution(entry.distribution, true)
-						: "-";
+	useEffect(() => {
+		if (!selectedTeacherId && teacherStats.length > 0) {
+			setSelectedTeacherId(teacherStats[0].teacherId);
+		}
+	}, [selectedTeacherId, teacherStats]);
 
-			stats.push({
-				questionId,
-				text: question.text,
-				type: question.type,
-				avg: entry.count > 0 ? entry.sum / entry.count : undefined,
-				count: entry.count,
-				choices: entry.choices,
-				texts: entry.texts,
-				distribution: entry.distribution,
-				distributionLabel,
-			});
+	const branchStats = useMemo(() => {
+		const stats: Record<
+			string,
+			{ sum: number; count: number; submissions: Set<string> }
+		> = {};
+		filteredAnswers.forEach((answer) => {
+			const submission = filteredSubmissions.find(
+				(item) => item.id === answer.data.submissionId,
+			);
+			if (!submission) return;
+			if (questions[answer.data.questionId]?.type !== "scale") return;
+			const numeric = toNumber(answer.data.value);
+			if (numeric === null) return;
+			const entry = stats[submission.data.branchId] ?? {
+				sum: 0,
+				count: 0,
+				submissions: new Set<string>(),
+			};
+			entry.sum += numeric;
+			entry.count += 1;
+			entry.submissions.add(submission.id);
+			stats[submission.data.branchId] = entry;
 		});
-
-		return stats;
-	}, [selectedTeacherAnswers, questions, selectedTeacherId]);
-
-	const currentAggregation = useMemo(
-		() =>
-			aggregateCycle(filteredSubmissions, filteredAnswers, questions, groupMap),
-		[filteredSubmissions, filteredAnswers, questions, groupMap],
-	);
-
-	const prevAggregation = useMemo(
-		() =>
-			aggregateCycle(
-				prevFilteredSubmissions,
-				prevFilteredAnswers,
-				questions,
-				groupMap,
-			),
-		[prevFilteredSubmissions, prevFilteredAnswers, questions, groupMap],
-	);
-
-	const currentCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
-	const riskThreshold = currentCycle?.data.thresholds?.y ?? 3;
-	const observeMonths = currentCycle?.data.thresholds?.p ?? 3;
-
-	const topTeachers = useMemo(() => {
-		return Object.entries(currentAggregation.teacherStats)
-			.map(([teacherId, stat]) => ({
-				teacherId,
-				avg: stat.count === 0 ? null : stat.sum / stat.count,
-				submissions: stat.submissions,
-			}))
-			.filter(
-				(
-					item,
-				): item is { teacherId: string; avg: number; submissions: number } =>
-					item.avg !== null,
-			)
-			.sort((a, b) => b.avg - a.avg)
-			.slice(0, 5);
-	}, [currentAggregation]);
-
-	const riskTeachers = useMemo(() => {
-		return Object.entries(currentAggregation.teacherStats)
-			.map(([teacherId, stat]) => ({
-				teacherId,
-				avg: stat.count === 0 ? null : stat.sum / stat.count,
-				submissions: stat.submissions,
-			}))
-			.filter(
-				(
-					item,
-				): item is { teacherId: string; avg: number; submissions: number } =>
-					item.avg !== null,
-			)
-			.filter((item) => item.avg < riskThreshold);
-	}, [currentAggregation, riskThreshold]);
-
-	const branchCompare = useMemo(() => {
-		return Object.entries(currentAggregation.branchStats).map(
-			([branchId, stat]) => ({
+		return Object.entries(stats)
+			.map(([branchId, entry]) => ({
 				branchId,
-				avg: stat.count === 0 ? null : stat.sum / stat.count,
-				submissions: stat.submissions,
-			}),
-		);
-	}, [currentAggregation]);
-
-	const heatmapCells = useMemo(() => {
-		const rows: Array<{
-			subjectId: string;
-			classLevel: string;
-			avg: number | null;
-			submissions: number;
-		}> = [];
-		Object.entries(currentAggregation.heatmap).forEach(
-			([subjectId, levels]) => {
-				Object.entries(levels).forEach(([classLevel, stat]) => {
-					rows.push({
-						subjectId,
-						classLevel,
-						avg: stat.count === 0 ? null : stat.sum / stat.count,
-						submissions: stat.submissions,
-					});
-				});
-			},
-		);
-		return rows;
-	}, [currentAggregation]);
+				avg: entry.count === 0 ? null : entry.sum / entry.count,
+				submissions: entry.submissions.size,
+			}))
+			.sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
+	}, [filteredAnswers, filteredSubmissions, questions]);
 
 	const commentFeed = useMemo(() => {
-		return currentAggregation.comments
-			.filter((comment) => {
-				if (
-					filters.search &&
-					!comment.value.toLowerCase().includes(filters.search.toLowerCase())
-				)
-					return false;
-				return true;
-			})
-			.sort((a, b) => {
-				const aRaw = a.createdAt
-					? new Date(a.createdAt as string).getTime()
-					: 0;
-				const bRaw = b.createdAt
-					? new Date(b.createdAt as string).getTime()
-					: 0;
-				const aTime = Number.isNaN(aRaw) ? 0 : aRaw;
-				const bTime = Number.isNaN(bRaw) ? 0 : bRaw;
-				return bTime - aTime;
-			})
-			.slice(0, 30);
-	}, [currentAggregation.comments, filters.search]);
-
-	const overallCurrent = useMemo(() => {
-		const sum = Object.values(currentAggregation.teacherStats).reduce(
-			(acc, item) => acc + item.sum,
-			0,
-		);
-		const count = Object.values(currentAggregation.teacherStats).reduce(
-			(acc, item) => acc + item.count,
-			0,
-		);
-		const submissionsCount = filteredSubmissions.length;
-		return {
-			avg: count === 0 ? null : sum / count,
-			submissions: submissionsCount,
-		};
-	}, [currentAggregation, filteredSubmissions]);
-
-	const overallPrev = useMemo(() => {
-		const sum = Object.values(prevAggregation.teacherStats).reduce(
-			(acc, item) => acc + item.sum,
-			0,
-		);
-		const count = Object.values(prevAggregation.teacherStats).reduce(
-			(acc, item) => acc + item.count,
-			0,
-		);
-		const submissionsCount = prevFilteredSubmissions.length;
-		return {
-			avg: count === 0 ? null : sum / count,
-			submissions: submissionsCount,
-		};
-	}, [prevAggregation, prevFilteredSubmissions]);
-
-	const selectedTeacherSummary = useMemo(() => {
-		if (!selectedTeacherId) return { avg: null, submissions: 0 };
-		const stat = currentAggregation.teacherStats[selectedTeacherId];
-		if (!stat) return { avg: null, submissions: 0 };
-		return {
-			avg: stat.count === 0 ? null : stat.sum / stat.count,
-			submissions: stat.submissions,
-		};
-	}, [currentAggregation.teacherStats, selectedTeacherId]);
-
-	const selectedTeacherTexts = useMemo(() => {
-		return selectedTeacherQuestionStats
+		return filteredAnswers
+			.filter((answer) => questions[answer.data.questionId]?.type === "text")
+			.map((answer) => ({
+				answer,
+				submission: filteredSubmissions.find(
+					(item) => item.id === answer.data.submissionId,
+				),
+			}))
 			.filter(
-				(stat) => stat.type === "text" && stat.texts && stat.texts.length > 0,
+				(item) => item.submission && String(item.answer.data.value ?? "").trim().length > 0,
 			)
-			.flatMap((stat) => stat.texts ?? []);
-	}, [selectedTeacherQuestionStats]);
+			.sort((a, b) => {
+				const aTime = toJsDate(a.submission?.data.createdAt)?.getTime() ?? 0;
+				const bTime = toJsDate(b.submission?.data.createdAt)?.getTime() ?? 0;
+				return bTime - aTime;
+			});
+	}, [filteredAnswers, filteredSubmissions, questions]);
 
-	const selectedTeacherNonTextStats = useMemo(
-		() => selectedTeacherQuestionStats.filter((stat) => stat.type !== "text"),
-		[selectedTeacherQuestionStats],
+	const filteredTasks = useMemo(() => {
+		return tasks.filter((task) => {
+			if (filters.branchId && task.data.branchId !== filters.branchId) return false;
+			if (filters.teacherId && task.data.targetId !== filters.teacherId) return false;
+			if (filters.groupId && task.data.groupId !== filters.groupId) return false;
+			if (filters.subjectId && task.data.subjectId !== filters.subjectId)
+				return false;
+			if (filters.raterRole !== "all" && task.data.raterRole !== filters.raterRole)
+				return false;
+			if (
+				filters.targetType !== "all" &&
+				task.data.targetType !== filters.targetType
+			)
+				return false;
+			return true;
+		});
+	}, [tasks, filters]);
+
+	const participation = useMemo(() => {
+		const done = filteredTasks.filter((task) => task.data.status === "DONE").length;
+		const total = filteredTasks.length;
+		const uniqueRaters = new Set(filteredTasks.map((task) => task.data.raterUid));
+		const doneRaters = new Set(
+			filteredTasks
+				.filter((task) => task.data.status === "DONE")
+				.map((task) => task.data.raterUid),
+		);
+		return {
+			done,
+			total,
+			open: total - done,
+			completionRate: total === 0 ? 0 : (done / total) * 100,
+			coverageRate:
+				uniqueRaters.size === 0 ? 0 : (doneRaters.size / uniqueRaters.size) * 100,
+		};
+	}, [filteredTasks]);
+
+	const riskThreshold = currentCycle?.data.thresholds?.y ?? 3;
+	const riskTeachers = teacherStats.filter(
+		(item) => item.avg !== null && item.avg < riskThreshold,
 	);
 
-	const handleExportCsv = () => {
-		if (!selectedCycleId) return;
-		const year = currentCycle?.data.year ?? "-";
-		const rows = filteredSubmissions.map((submission) => {
-			const submissionAnswers = filteredAnswers.filter(
-				(answer) => answer.data.submissionId === submission.id,
-			);
-			const numericValues: number[] = [];
-			const comments: string[] = [];
+	const quality = useMemo(() => {
+		const bySubmission: Record<string, Array<DocEntry<AnswerDoc>>> = {};
+		filteredAnswers.forEach((answer) => {
+			bySubmission[answer.data.submissionId] =
+				bySubmission[answer.data.submissionId] ?? [];
+			bySubmission[answer.data.submissionId].push(answer);
+		});
+		let expectedRequired = 0;
+		let answeredRequired = 0;
+		let textSubmissions = 0;
+		let uniformSubmissions = 0;
+		let missingContext = 0;
+		let latestTs = 0;
+		const teacherCounts: Record<string, number> = {};
 
-			submissionAnswers.forEach((answer) => {
-				const question = questions[answer.data.questionId];
-				if (!question) return;
-				if (question.type === "text") {
-					const text = String(answer.data.value ?? "").trim();
-					if (text) comments.push(text);
+		filteredSubmissions.forEach((submission) => {
+			const task = taskMap[submission.id];
+			const flow = task ? flowFromTask(task) : null;
+			const requiredIds = (flow ? questionSets[flow] : []).filter(
+				(id) => questions[id]?.required,
+			);
+			expectedRequired += requiredIds.length;
+			const local = bySubmission[submission.id] ?? [];
+			const localLookup = Object.fromEntries(
+				local.map((item) => [item.data.questionId, item.data]),
+			);
+			requiredIds.forEach((id) => {
+				const answer = localLookup[id];
+				if (!answer) return;
+				if (typeof answer.value === "number") {
+					answeredRequired += 1;
 					return;
 				}
-				if (question.type !== "scale") return;
-				const numeric = toNumber(answer.data.value);
-				if (numeric !== null) numericValues.push(numeric);
+				if (String(answer.value ?? "").trim().length > 0) answeredRequired += 1;
 			});
-
-			const avg =
-				numericValues.length === 0
-					? ""
-					: numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
-			return [
-				year,
-				teacherMap[submission.data.targetId]?.name ?? submission.data.targetId,
-				submission.data.targetId,
-				submission.data.groupId
-					? (groupMap[submission.data.groupId]?.name ?? submission.data.groupId)
-					: "-",
-				submission.data.subjectId
-					? (subjectMap[submission.data.subjectId]?.name ??
-						submission.data.subjectId)
-					: "-",
-				avg === "" ? "" : Number(avg).toFixed(2),
-				formatShortDate(toJsDate(submission.data.createdAt)),
-				comments.join(" | "),
-			];
+			const scoreValues = local
+				.filter((item) => questions[item.data.questionId]?.type === "scale")
+				.map((item) => toNumber(item.data.value))
+				.filter((item): item is number => item !== null);
+			if (scoreValues.length > 1 && scoreValues.every((v) => v === scoreValues[0])) {
+				uniformSubmissions += 1;
+			}
+			if (
+				local.some(
+					(item) =>
+						questions[item.data.questionId]?.type === "text" &&
+						String(item.data.value ?? "").trim().length > 0,
+				)
+			) {
+				textSubmissions += 1;
+			}
+			if (!submission.data.groupId || !submission.data.subjectId) missingContext += 1;
+			teacherCounts[submission.data.targetId] =
+				(teacherCounts[submission.data.targetId] ?? 0) + 1;
+			latestTs = Math.max(latestTs, toJsDate(submission.data.createdAt)?.getTime() ?? 0);
 		});
+		const minSample = Number(filters.minSubmissions || 3);
+		const lowSample = Object.values(teacherCounts).filter((v) => v < minSample).length;
+		const teacherTotal = Object.keys(teacherCounts).length;
+		return {
+			requiredRate:
+				expectedRequired === 0 ? 100 : (answeredRequired / expectedRequired) * 100,
+			textRate:
+				filteredSubmissions.length === 0
+					? 0
+					: (textSubmissions / filteredSubmissions.length) * 100,
+			uniformRate:
+				filteredSubmissions.length === 0
+					? 0
+					: (uniformSubmissions / filteredSubmissions.length) * 100,
+			std: stdDev(numericValues),
+			lowSample,
+			lowSampleRate:
+				teacherTotal === 0 ? 0 : (lowSample / teacherTotal) * 100,
+			staleDays:
+				latestTs === 0 ? null : Math.floor((nowMs - latestTs) / 86400000),
+			missingContextRate:
+				filteredSubmissions.length === 0
+					? 0
+					: (missingContext / filteredSubmissions.length) * 100,
+		};
+	}, [filteredAnswers, filteredSubmissions, taskMap, questionSets, questions, filters.minSubmissions, numericValues, nowMs]);
 
+	const selectedTeacherSubmissions = useMemo(
+		() => filteredSubmissions.filter((item) => item.data.targetId === selectedTeacherId),
+		[filteredSubmissions, selectedTeacherId],
+	);
+
+	const handleExport = () => {
+		if (!selectedCycleId) return;
+		const cycleYear = currentCycle?.data.year ?? "-";
+		if (exportMode === "summary") {
+			downloadCsv(
+				`dashboard-summary-${cycleYear}.csv`,
+				["cycle_year", "teacher_name", "teacher_id", "avg", "submissions"],
+				teacherStats.map((item) => [
+					cycleYear,
+					teacherMap[item.teacherId]?.name ?? item.teacherId,
+					item.teacherId,
+					item.avg === null ? "" : item.avg.toFixed(2),
+					item.submissions,
+				]),
+			);
+			return;
+		}
+		if (exportMode === "comments") {
+			downloadCsv(
+				`dashboard-comments-${cycleYear}.csv`,
+				["cycle_year", "teacher", "question", "comment", "date"],
+				commentFeed.map((item) => [
+					cycleYear,
+					item.submission
+						? (teacherMap[item.submission.data.targetId]?.name ??
+							item.submission.data.targetId)
+						: "-",
+					questions[item.answer.data.questionId]?.text ?? item.answer.data.questionId,
+					String(item.answer.data.value ?? ""),
+					formatShortDate(toJsDate(item.submission?.data.createdAt)),
+				]),
+			);
+			return;
+		}
 		downloadCsv(
-			`admin-results-${year}.csv`,
-			[
-				"cycle_year",
-				"teacher_name",
-				"teacher_id",
-				"group",
-				"subject",
-				"score_avg",
-				"submitted_at",
-				"comment",
-			],
-			rows,
+			`dashboard-raw-${cycleYear}.csv`,
+			["cycle_year", "submission_id", "teacher", "question", "type", "value"],
+			filteredAnswers.map((answer) => {
+				const submission = filteredSubmissions.find(
+					(item) => item.id === answer.data.submissionId,
+				);
+				const question = questions[answer.data.questionId];
+				return [
+					cycleYear,
+					answer.data.submissionId,
+					submission
+						? (teacherMap[submission.data.targetId]?.name ??
+							submission.data.targetId)
+						: "-",
+					question?.text ?? answer.data.questionId,
+					question?.type ?? "-",
+					typeof answer.data.value === "object"
+						? JSON.stringify(answer.data.value)
+						: String(answer.data.value ?? ""),
+				];
+			}),
 		);
+	};
+
+	const sendReminders = async () => {
+		if (!selectedCycleId) return;
+		setStatus(null);
+		const { data, error } = await supabase.rpc("create_cycle_reminders", {
+			p_cycle_id: selectedCycleId,
+			p_days_before: Number(reminderDays || 0),
+			p_force: reminderForce,
+		});
+		if (error) {
+			setStatus(error.message || "Reminder gonderilemedi");
+			return;
+		}
+		setStatus(`${data ?? 0} reminder yaradildi.`);
 	};
 
 	return (
 		<div className="panel">
-			<div className="panel-header">
-				<div>
-					<h2>İdarə paneli</h2>
-					<p>İllik nəticələr və müqayisələr.</p>
+			<section className="page-hero">
+				<div className="page-hero__content">
+					<div className="eyebrow">Executive Dashboard</div>
+					<h2>Rəhbərlik paneli</h2>
+					<p>
+						Filtrlənmiş nəticələrə əsasən performans, risk və keyfiyyət monitorinqi.
+					</p>
 				</div>
-				<div className="actions">
+				<div className="page-hero__aside">
 					<label className="field">
 						<span className="label">Sorğu dövrü</span>
 						<select
@@ -847,7 +700,7 @@ export const AdminDashboardPage = () => {
 							value={selectedCycleId}
 							onChange={(event) => setSelectedCycleId(event.target.value)}
 						>
-							<option value="">Sorğu dövrü seçin</option>
+							<option value="">Dövr seçin</option>
 							{cycles.map((cycle) => (
 								<option key={cycle.id} value={cycle.id}>
 									{cycle.data.year} ({cycle.data.status})
@@ -855,19 +708,27 @@ export const AdminDashboardPage = () => {
 							))}
 						</select>
 					</label>
-					<button
-						className="btn"
-						type="button"
-						onClick={handleExportCsv}
-						disabled={!selectedCycleId}
-					>
-						CSV ixracı
-					</button>
+					<div className="form-row">
+						<select
+							className="input"
+							value={exportMode}
+							onChange={(event) =>
+								setExportMode(event.target.value as "summary" | "raw" | "comments")
+							}
+						>
+							<option value="summary">Summary export</option>
+							<option value="raw">Raw export</option>
+							<option value="comments">Comments export</option>
+						</select>
+						<button className="btn" type="button" onClick={handleExport}>
+							CSV export
+						</button>
+					</div>
 				</div>
-			</div>
+			</section>
 
-			<div className="segmented mt-4">
-				{DASHBOARD_SECTIONS.map((item) => (
+			<div className="segmented">
+				{SECTIONS.map((item) => (
 					<NavLink
 						key={item.key}
 						to={`/admin/dashboard/${item.key}`}
@@ -877,20 +738,8 @@ export const AdminDashboardPage = () => {
 					</NavLink>
 				))}
 			</div>
-			<div className="card">
-				<div className="section-header">
-					<div>
-						<h3>Sorğular / Sorğu dövrü</h3>
-						<p>Seçilmiş sorğu dövrü üzrə ümumi göstəricilər və filtrlər.</p>
-					</div>
-					{currentCycle && (
-						<div className="meta">
-							Sorğu dövrü: {currentCycle.data.year} • Vəziyyət:{" "}
-							{currentCycle.data.status}
-						</div>
-					)}
-				</div>
 
+			<div className="card">
 				<div className="filters">
 					<label className="field">
 						<span className="label">Filial</span>
@@ -898,15 +747,10 @@ export const AdminDashboardPage = () => {
 							className="input"
 							value={filters.branchId}
 							onChange={(event) =>
-								setFilters((prev) => ({
-									...prev,
-									branchId: event.target.value,
-									groupId: "",
-									classLevel: "",
-								}))
+								setFilters((prev) => ({ ...prev, branchId: event.target.value }))
 							}
 						>
-							<option value="">Hamısı</option>
+							<option value="">Hamisi</option>
 							{branches.map((branch) => (
 								<option key={branch.id} value={branch.id}>
 									{branch.data.name}
@@ -915,19 +759,16 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Müəllim</span>
+						<span className="label">Muellim</span>
 						<select
 							className="input"
 							value={filters.teacherId}
 							onChange={(event) =>
-								setFilters((prev) => ({
-									...prev,
-									teacherId: event.target.value,
-								}))
+								setFilters((prev) => ({ ...prev, teacherId: event.target.value }))
 							}
 						>
-							<option value="">Hamısı</option>
-							{filteredTeacherOptions.map((teacher) => (
+							<option value="">Hamisi</option>
+							{teachers.map((teacher) => (
 								<option key={teacher.id} value={teacher.id}>
 									{teacher.data.name}
 								</option>
@@ -943,8 +784,8 @@ export const AdminDashboardPage = () => {
 								setFilters((prev) => ({ ...prev, groupId: event.target.value }))
 							}
 						>
-							<option value="">Hamısı</option>
-							{filteredGroupOptions.map((group) => (
+							<option value="">Hamisi</option>
+							{groups.map((group) => (
 								<option key={group.id} value={group.id}>
 									{group.data.name}
 								</option>
@@ -952,7 +793,7 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Sinif səviyyəsi</span>
+						<span className="label">Sinif seviyesi</span>
 						<select
 							className="input"
 							value={filters.classLevel}
@@ -963,31 +804,26 @@ export const AdminDashboardPage = () => {
 								}))
 							}
 						>
-							<option value="">Hamısı</option>
-							{Array.from(
-								new Set(
-									filteredGroupOptions.map((group) => group.data.classLevel),
+							<option value="">Hamisi</option>
+							{Array.from(new Set(groups.map((group) => group.data.classLevel))).map(
+								(level) => (
+									<option key={level} value={level}>
+										{level}
+									</option>
 								),
-							).map((level) => (
-								<option key={level} value={level}>
-									{level}
-								</option>
-							))}
+							)}
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Fənn</span>
+						<span className="label">Fenn</span>
 						<select
 							className="input"
 							value={filters.subjectId}
 							onChange={(event) =>
-								setFilters((prev) => ({
-									...prev,
-									subjectId: event.target.value,
-								}))
+								setFilters((prev) => ({ ...prev, subjectId: event.target.value }))
 							}
 						>
-							<option value="">Hamısı</option>
+							<option value="">Hamisi</option>
 							{subjects.map((subject) => (
 								<option key={subject.id} value={subject.id}>
 									{subject.data.name}
@@ -996,10 +832,44 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Şərh axtarışı</span>
+						<span className="label">Rater rolu</span>
+						<select
+							className="input"
+							value={filters.raterRole}
+							onChange={(event) =>
+								setFilters((prev) => ({
+									...prev,
+									raterRole: event.target.value as "all" | "student" | "teacher" | "manager",
+								}))
+							}
+						>
+							<option value="all">Hamisi</option>
+							<option value="student">Student</option>
+							<option value="teacher">Teacher</option>
+							<option value="manager">Manager</option>
+						</select>
+					</label>
+					<label className="field">
+						<span className="label">Target tipi</span>
+						<select
+							className="input"
+							value={filters.targetType}
+							onChange={(event) =>
+								setFilters((prev) => ({
+									...prev,
+									targetType: event.target.value as "all" | "teacher" | "manager",
+								}))
+							}
+						>
+							<option value="all">Hamisi</option>
+							<option value="teacher">Teacher</option>
+							<option value="manager">Manager</option>
+						</select>
+					</label>
+					<label className="field">
+						<span className="label">Axtaris</span>
 						<input
 							className="input"
-							placeholder="Məsələn: izahı aydın"
 							value={filters.search}
 							onChange={(event) =>
 								setFilters((prev) => ({ ...prev, search: event.target.value }))
@@ -1007,102 +877,132 @@ export const AdminDashboardPage = () => {
 						/>
 					</label>
 				</div>
+				<div className="divider" />
+				<div className="form-row">
+					<label className="field">
+						<span className="label">Reminder gunu</span>
+						<input
+							className="input"
+							type="number"
+							value={reminderDays}
+							onChange={(event) => setReminderDays(event.target.value)}
+						/>
+					</label>
+					<label className="check-item">
+						<input
+							type="checkbox"
+							checked={reminderForce}
+							onChange={(event) => setReminderForce(event.target.checked)}
+						/>
+						<span>Force reminder</span>
+					</label>
+					<button className="btn" type="button" onClick={sendReminders}>
+						Reminder yarat
+					</button>
+					<label className="field">
+						<span className="label">Min sample</span>
+						<input
+							className="input"
+							type="number"
+							value={filters.minSubmissions}
+							onChange={(event) =>
+								setFilters((prev) => ({
+									...prev,
+									minSubmissions: event.target.value,
+								}))
+							}
+						/>
+					</label>
+				</div>
+				{status && <div className="notice">{status}</div>}
 			</div>
+
+			{loading && <div className="card">Yuklenir...</div>}
 
 			{activeSection === "overview" && (
 				<>
-					<div className="card">
-						<div className="grid three">
-							<div className="stat-card">
-								<div className="stat-label">
-									Cari il ortalaması
-									<InfoTip text="Seçilmiş sorğu dövrü üzrə bütün scale cavablarının ortalaması." />
-								</div>
-								<div className="stat-value">
-									{formatAvg(overallCurrent.avg, overallCurrent.submissions)}
-								</div>
-								<div className="stat-meta">n={overallCurrent.submissions}</div>
+					<div className="grid three">
+						<div className="stat-card">
+							<div className="stat-label">
+								Cari ortalama
+								<InfoTip text="Filtrlenmis scale cavablarinin ortalamasi." />
 							</div>
-							<div className="stat-card">
-								<div className="stat-label">
-									Keçən il ortalaması
-									<InfoTip text="Əvvəlki sorğu dövrü üzrə scale cavablarının ortalaması." />
-								</div>
-								<div className="stat-value">
-									{formatAvg(overallPrev.avg, overallPrev.submissions)}
-								</div>
-								<div className="stat-meta">n={overallPrev.submissions}</div>
+							<div className="stat-value">{formatAvg(avgCurrent, numericValues.length)}</div>
+							<div className="stat-meta">n={filteredSubmissions.length}</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Kecen il ortalama</div>
+							<div className="stat-value">
+								{formatAvg(avgPrev, prevFilteredSubmissions.length)}
 							</div>
-							<div className="stat-card">
-								<div className="stat-label">
-									Risk qaydası
-									<InfoTip text="Ortalama bu həddən aşağıdırsa risk statusu tətbiq olunur." />
-								</div>
-								<div className="stat-value">orta &lt; {riskThreshold}</div>
-								<div className="stat-meta">
-									Tədbir: {observeMonths} ay müşahidə
-								</div>
+							<div className="stat-meta">
+								Delta:{" "}
+								{avgCurrent !== null && avgPrev !== null
+									? `${avgCurrent > avgPrev ? "+" : ""}${(avgCurrent - avgPrev).toFixed(2)}`
+									: "-"}
 							</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Istirak</div>
+							<div className="stat-value">{participation.completionRate.toFixed(1)}%</div>
+							<div className="stat-meta">
+								{participation.done}/{participation.total}
+							</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Coverage</div>
+							<div className="stat-value">{participation.coverageRate.toFixed(1)}%</div>
+							<div className="stat-meta">Aktiv rater payi</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Risk muellimler</div>
+							<div className="stat-value">{riskTeachers.length}</div>
+							<div className="stat-meta">Threshold: {riskThreshold}</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Achiq tasklar</div>
+							<div className="stat-value">{participation.open}</div>
+							<div className="stat-meta">Reminder ucun prioritet</div>
 						</div>
 					</div>
 
-					<div className="card">
-						<div className="section-header">
-							<div>
-								<h3>Müəllimlər</h3>
-								<p>Ən yaxşı və risk müəllim siyahıları.</p>
+					<div className="grid two">
+						<div className="card">
+							<h3>Top muellimler</h3>
+							<div className="data-table">
+								<div className="data-row header">
+									<div>Muellim</div>
+									<div>Avg</div>
+									<div>n</div>
+								</div>
+								{teacherStats.slice(0, 8).map((item) => (
+									<div className="data-row" key={item.teacherId}>
+										<div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
+										<div>{formatAvg(item.avg, item.submissions)}</div>
+										<div>{item.submissions}</div>
+									</div>
+								))}
+								{teacherStats.length === 0 && (
+									<div className="empty">Melumat yoxdur.</div>
+								)}
 							</div>
 						</div>
-						<div className="grid two">
-							<div className="card">
-								<h4>Ən yaxşı müəllimlər</h4>
-								<div className="data-table">
-									<div className="data-row header">
-										<div>Müəllim</div>
-										<div>Orta</div>
-										<div>n</div>
-									</div>
-									{topTeachers.map((item) => (
-										<div className="data-row" key={item.teacherId}>
-											<div>
-												{teacherMap[item.teacherId]?.name ?? item.teacherId}
-											</div>
-											<div>{formatAvg(item.avg, item.submissions)}</div>
-											<div>{item.submissions}</div>
-										</div>
-									))}
-									{topTeachers.length === 0 && (
-										<div className="empty">Məlumat yoxdur.</div>
-									)}
+						<div className="card">
+							<h3>Risk siyahisi</h3>
+							<div className="data-table">
+								<div className="data-row header">
+									<div>Muellim</div>
+									<div>Avg</div>
+									<div>n</div>
 								</div>
-							</div>
-
-							<div className="card">
-								<h4>Risk müəllimlər</h4>
-								<div className="data-table">
-									<div className="data-row header">
-										<div>Müəllim</div>
-										<div>Orta</div>
-										<div>n</div>
-										<div>Plan</div>
+								{riskTeachers.map((item) => (
+									<div className="data-row" key={item.teacherId}>
+										<div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
+										<div>{formatAvg(item.avg, item.submissions)}</div>
+										<div>{item.submissions}</div>
 									</div>
-									{riskTeachers.map((item) => (
-										<div className="data-row" key={item.teacherId}>
-											<div>
-												{teacherMap[item.teacherId]?.name ?? item.teacherId}
-											</div>
-											<div>{formatAvg(item.avg, item.submissions)}</div>
-											<div>{item.submissions}</div>
-											<div className="badge warn">
-												Səbəb: orta &lt; {riskThreshold}. Plan: {observeMonths}{" "}
-												ay müşahidə
-											</div>
-										</div>
-									))}
-									{riskTeachers.length === 0 && (
-										<div className="empty">Risk yoxdur.</div>
-									)}
-								</div>
+								))}
+								{riskTeachers.length === 0 && <div className="empty">Risk yoxdur.</div>}
 							</div>
 						</div>
 					</div>
@@ -1111,19 +1011,13 @@ export const AdminDashboardPage = () => {
 
 			{activeSection === "teachers" && (
 				<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>Müəllim nəticələri</h3>
-							<p>Seçilmiş müəllim üzrə sual nəticələri və səsvermə yazıları.</p>
-						</div>
-					</div>
 					<div className="form-row">
 						<select
 							className="input"
 							value={selectedTeacherId}
 							onChange={(event) => setSelectedTeacherId(event.target.value)}
 						>
-							<option value="">Müəllim seçin</option>
+							<option value="">Muellim secin</option>
 							{teachers.map((teacher) => (
 								<option key={teacher.id} value={teacher.id}>
 									{teacher.data.name}
@@ -1131,47 +1025,13 @@ export const AdminDashboardPage = () => {
 							))}
 						</select>
 						<div className="stat-pill">
-							Orta:{" "}
-							{formatAvg(
-								selectedTeacherSummary.avg,
-								selectedTeacherSummary.submissions,
-							)}
-						</div>
-						<div className="stat-pill">
-							n={selectedTeacherSummary.submissions}
+							Submission: {selectedTeacherSubmissions.length}
 						</div>
 					</div>
-
-					<div className="data-table">
-						<div className="data-row header">
-							<div>Sual</div>
-							<div>Tip</div>
-							<div>Ortalama</div>
-							<div>n</div>
-							<div>Paylanma</div>
-						</div>
-						{selectedTeacherNonTextStats.map((stat) => (
-							<div className="data-row" key={stat.questionId}>
-								<div>{stat.text}</div>
-								<div>{stat.type}</div>
-								<div>
-									{stat.type === "scale" ? (stat.avg?.toFixed(2) ?? "-") : "-"}
-								</div>
-								<div>{stat.count}</div>
-								<div>{stat.distributionLabel}</div>
-							</div>
-						))}
-						{selectedTeacherNonTextStats.length === 0 && (
-							<div className="empty">Bu müəllim üçün nəticə yoxdur.</div>
-						)}
-					</div>
-
-					<div className="divider" />
-
 					<div className="data-table">
 						<div className="data-row header">
 							<div>Qrup</div>
-							<div>Fənn</div>
+							<div>Fenn</div>
 							<div>Tarix</div>
 						</div>
 						{selectedTeacherSubmissions.map((submission) => (
@@ -1186,131 +1046,118 @@ export const AdminDashboardPage = () => {
 										? (subjectMap[submission.data.subjectId]?.name ?? "-")
 										: "-"}
 								</div>
-								<div>
-									{formatShortDate(toJsDate(submission.data.createdAt))}
-								</div>
+								<div>{formatShortDate(toJsDate(submission.data.createdAt))}</div>
 							</div>
 						))}
 						{selectedTeacherSubmissions.length === 0 && (
-							<div className="empty">Bu müəllim üçün səsvermə yoxdur.</div>
+							<div className="empty">Submission yoxdur.</div>
 						)}
 					</div>
-
-					{selectedTeacherTexts.length > 0 && (
-						<>
-							<div className="divider" />
-							<h4>Yazılı şərhlər</h4>
-							<div className="comment-feed">
-								{selectedTeacherTexts.map((text, index) => (
-									<div
-										className="comment"
-										key={`${selectedTeacherId}_${index}`}
-									>
-										<div className="comment-text">{text}</div>
-									</div>
-								))}
-							</div>
-						</>
-					)}
 				</div>
 			)}
 
 			{activeSection === "branches" && (
 				<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>Filial müqayisəsi</h3>
-							<p>Seçilmiş sorğu dövrü üzrə filialların müqayisəsi.</p>
-						</div>
-					</div>
+					<h3>Filial muqayisesi</h3>
 					<div className="data-table">
 						<div className="data-row header">
 							<div>Filial</div>
-							<div>Orta</div>
+							<div>Avg</div>
 							<div>n</div>
 						</div>
-						{branchCompare.map((item) => (
+						{branchStats.map((item) => (
 							<div className="data-row" key={item.branchId}>
 								<div>{branchMap[item.branchId]?.name ?? item.branchId}</div>
 								<div>{formatAvg(item.avg, item.submissions)}</div>
 								<div>{item.submissions}</div>
 							</div>
 						))}
-						{branchCompare.length === 0 && (
-							<div className="empty">Məlumat yoxdur.</div>
-						)}
-					</div>
-				</div>
-			)}
-
-			{activeSection === "heatmap" && (
-				<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>İstilik xəritəsi</h3>
-							<p>Fənn və sinif səviyyəsi üzrə orta nəticələr.</p>
-						</div>
-					</div>
-					<div className="heatmap">
-						{heatmapCells.map((cell) => (
-							<div
-								className="heatmap-cell"
-								key={`${cell.subjectId}_${cell.classLevel}`}
-							>
-								<div className="heatmap-title">
-									{subjectMap[cell.subjectId]?.name ?? cell.subjectId} •{" "}
-									{cell.classLevel}
-								</div>
-								<div className="heatmap-value">
-									{formatAvg(cell.avg, cell.submissions)}
-								</div>
-								<div className="heatmap-meta">n={cell.submissions}</div>
-							</div>
-						))}
-						{heatmapCells.length === 0 && (
-							<div className="empty">Məlumat yoxdur.</div>
-						)}
+						{branchStats.length === 0 && <div className="empty">Melumat yoxdur.</div>}
 					</div>
 				</div>
 			)}
 
 			{activeSection === "comments" && (
 				<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>Şərhlər</h3>
-							<p>Son yazılı rəylər və müəllim üzrə filtr.</p>
-						</div>
-					</div>
+					<h3>Comment feed</h3>
 					<div className="comment-feed">
-						{commentFeed.map((comment) => (
-							<div
-								className="comment"
-								key={`${comment.submissionId}_${comment.questionId}`}
-							>
+						{commentFeed.map((item, index) => (
+							<div className="comment" key={`${item.submission?.id}_${index}`}>
 								<div className="comment-title">
-									{teacherMap[comment.targetId]?.name ?? comment.targetId}
+									{item.submission
+										? (teacherMap[item.submission.data.targetId]?.name ??
+											item.submission.data.targetId)
+										: "-"}
 								</div>
-								{questions[comment.questionId]?.text && (
-									<div className="comment-meta">
-										{questions[comment.questionId]?.text}
-									</div>
-								)}
-								<div className="comment-text">{comment.value}</div>
 								<div className="comment-meta">
-									{branchMap[comment.branchId]?.name ?? comment.branchId}
-									{comment.groupId &&
-										` • ${groupMap[comment.groupId]?.name ?? comment.groupId}`}
-									{comment.subjectId &&
-										` • ${subjectMap[comment.subjectId]?.name ?? comment.subjectId}`}
+									{questions[item.answer.data.questionId]?.text ?? "-"}
+								</div>
+								<div className="comment-text">
+									{String(item.answer.data.value ?? "")}
 								</div>
 							</div>
 						))}
-						{commentFeed.length === 0 && (
-							<div className="empty">Şərh yoxdur.</div>
-						)}
+						{commentFeed.length === 0 && <div className="empty">Serh yoxdur.</div>}
 					</div>
 				</div>
+			)}
+
+			{activeSection === "quality" && (
+				<>
+					<div className="grid three">
+						<div className="stat-card">
+							<div className="stat-label">Required completion</div>
+							<div className="stat-value">{quality.requiredRate.toFixed(1)}%</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Text coverage</div>
+							<div className="stat-value">{quality.textRate.toFixed(1)}%</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Scale std-dev</div>
+							<div className="stat-value">
+								{quality.std === null ? "-" : quality.std.toFixed(2)}
+							</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Uniform submission</div>
+							<div className="stat-value">{quality.uniformRate.toFixed(1)}%</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Low sample</div>
+							<div className="stat-value">{quality.lowSample}</div>
+							<div className="stat-meta">{quality.lowSampleRate.toFixed(1)}%</div>
+						</div>
+						<div className="stat-card">
+							<div className="stat-label">Freshness</div>
+							<div className="stat-value">
+								{quality.staleDays === null ? "-" : `${quality.staleDays} gun`}
+							</div>
+							<div className="stat-meta">
+								Meta boslugu: {quality.missingContextRate.toFixed(1)}%
+							</div>
+						</div>
+					</div>
+					<div className="card">
+						<div className="stack">
+							<div className="notice">
+								{quality.requiredRate < 95
+									? "Mecburi suallarin completion faizi asagidir."
+									: "Mecburi suallar uzre completion stabildir."}
+							</div>
+							<div className="notice">
+								{quality.uniformRate > 35
+									? "Uniform cavablar coxdur, sual keyfiyyeti audit olunmalidir."
+									: "Uniform cavablar meqbul heddedir."}
+							</div>
+							<div className="notice">
+								{quality.missingContextRate > 10
+									? "Group/subject konteksti olmayan submission coxdur."
+									: "Submission konteksi yetarlidir."}
+							</div>
+						</div>
+					</div>
+				</>
 			)}
 		</div>
 	);

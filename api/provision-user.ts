@@ -128,6 +128,21 @@ const respondError = (res: NextApiResponse, status: number, message: string) => 
 	res.status(status).json({ error: message });
 };
 
+const ALLOWED_CREATE_ROLES = new Set([
+	"student",
+	"teacher",
+	"manager",
+	"moderator",
+	"branch_admin",
+]);
+
+const BRANCH_STAFF_CREATE_ROLES = new Set([
+	"student",
+	"teacher",
+	"manager",
+	"moderator",
+]);
+
 const getOrigin = (req: NextApiRequest) => {
 	const header = req.headers.origin;
 	if (!header) return null;
@@ -204,6 +219,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		if (!name) return respondError(res, 400, "Name is required");
 		if (mode !== "login" && mode !== "email")
 			return respondError(res, 400, "Invalid mode");
+		if (typeof role !== "string" || !ALLOWED_CREATE_ROLES.has(role)) {
+			return respondError(res, 400, "Invalid role");
+		}
 
 		const actorRow = actor as ActorRow;
 		const isSuperAdmin = actorRow.role === "superadmin";
@@ -212,8 +230,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		if (!isSuperAdmin && !isBranchStaff)
 			return respondError(res, 403, "Forbidden");
 
-		if (!isSuperAdmin && role === "branch_admin") {
-			return respondError(res, 403, "Cannot create branch admin");
+		if (!isSuperAdmin && !BRANCH_STAFF_CREATE_ROLES.has(role)) {
+			return respondError(res, 403, "Role is not allowed");
 		}
 
 		const branchId = payload.branchId ?? actorRow.branch_id ?? null;

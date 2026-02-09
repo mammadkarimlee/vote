@@ -7,6 +7,7 @@ import {
 	useNavigate,
 } from "react-router-dom";
 import { ThemeToggle } from "../components/theme/ThemeToggle";
+import { NotificationBell } from "../components/NotificationBell";
 import { useAuth } from "../features/auth/AuthProvider";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -70,6 +71,7 @@ export const Layout = () => {
 					)}
 				</nav>
 				<div className="topbar-actions">
+					<NotificationBell />
 					<button
 						className="back-button"
 						type="button"

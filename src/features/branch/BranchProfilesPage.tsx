@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapUserRow } from "../../lib/supabaseMappers";
@@ -21,7 +21,7 @@ export const BranchProfilesPage = () => {
 	const [password, setPassword] = useState("");
 	const [status, setStatus] = useState<string | null>(null);
 
-	const loadUsers = async () => {
+	const loadUsers = useCallback(async () => {
 		if (!branchId) {
 			setUsers([]);
 			return;
@@ -39,11 +39,11 @@ export const BranchProfilesPage = () => {
 			data: mapUserRow(row),
 		}));
 		setUsers(items);
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadUsers();
-	}, [branchId]);
+	}, [loadUsers]);
 
 	const handleCreate = async () => {
 		if (!name.trim() || !branchId) {
@@ -205,3 +205,4 @@ export const BranchProfilesPage = () => {
 		</div>
 	);
 };
+

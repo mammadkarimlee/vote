@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -44,7 +44,7 @@ export const BranchAssignmentsPage = () => {
 
 	const preselectedTeacherId = searchParams.get("teacherId") ?? "";
 
-	const loadData = async () => {
+	const loadData = useCallback(async () => {
 		if (!branchId) {
 			setTeachers([]);
 			setGroups([]);
@@ -118,11 +118,11 @@ export const BranchAssignmentsPage = () => {
 				(assignment) => assignment.data.branchId === branchId,
 			),
 		);
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadData();
-	}, [branchId]);
+	}, [loadData]);
 
 	useEffect(() => {
 		if (!teacherId && preselectedTeacherId) {
@@ -432,3 +432,4 @@ export const BranchAssignmentsPage = () => {
 		</div>
 	);
 };
+

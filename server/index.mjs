@@ -113,6 +113,21 @@ const respondError = (res, status, message) => {
 	res.status(status).json({ error: message });
 };
 
+const ALLOWED_CREATE_ROLES = new Set([
+	"student",
+	"teacher",
+	"manager",
+	"moderator",
+	"branch_admin",
+]);
+
+const BRANCH_STAFF_CREATE_ROLES = new Set([
+	"student",
+	"teacher",
+	"manager",
+	"moderator",
+]);
+
 app.get("/health", (_req, res) => {
 	res.json({ ok: true });
 });
@@ -144,6 +159,9 @@ app.post("/provision-user", async (req, res) => {
 		if (!name) return respondError(res, 400, "Name is required");
 		if (mode !== "login" && mode !== "email")
 			return respondError(res, 400, "Invalid mode");
+		if (typeof role !== "string" || !ALLOWED_CREATE_ROLES.has(role)) {
+			return respondError(res, 400, "Invalid role");
+		}
 
 		const isSuperAdmin = actor.role === "superadmin";
 		const isBranchStaff =
@@ -151,8 +169,8 @@ app.post("/provision-user", async (req, res) => {
 		if (!isSuperAdmin && !isBranchStaff)
 			return respondError(res, 403, "Forbidden");
 
-		if (!isSuperAdmin && role === "branch_admin") {
-			return respondError(res, 403, "Cannot create branch admin");
+		if (!isSuperAdmin && !BRANCH_STAFF_CREATE_ROLES.has(role)) {
+			return respondError(res, 403, "Role is not allowed");
 		}
 
 		const branchId = payload.branchId ?? actor.branch_id ?? null;
@@ -296,6 +314,5 @@ app.post("/provision-user", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-	// eslint-disable-next-line no-console
 	console.log(`Provision API running on http://localhost:${PORT}`);
 });

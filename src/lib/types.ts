@@ -151,6 +151,24 @@ export type AnswerDoc = {
 	createdAt: unknown;
 };
 
+export type NotificationType = "reminder" | "system" | "success";
+export type NotificationLevel = "info" | "warning" | "success";
+
+export type NotificationDoc = {
+	userId: string;
+	cycleId?: string | null;
+	taskId?: string | null;
+	type: NotificationType;
+	level: NotificationLevel;
+	title: string;
+	message: string;
+	actionPath?: string | null;
+	metadata?: Record<string, unknown> | null;
+	isRead: boolean;
+	readAt?: unknown;
+	createdAt: unknown;
+};
+
 export type AiInsightDoc = {
 	cycleId: string;
 	targetId: string;

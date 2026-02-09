@@ -186,20 +186,6 @@ export const BranchResultsPage = () => {
 		void loadCycleData();
 	}, [selectedCycleId, branchId, isSuperAdmin]);
 
-	if (!isSuperAdmin) {
-		return (
-			<div className="panel">
-				<div className="card">
-					<h3>Nəticələr yalnız SuperAdmin üçündür</h3>
-					<p>
-						Filial adminləri nəticələri görə bilməz. Yalnız “DONE” statusu
-						göstərilir.
-					</p>
-				</div>
-			</div>
-		);
-	}
-
 	const teacherMap = useMemo(
 		() => Object.fromEntries(teachers.map((t) => [t.id, t.data])),
 		[teachers],
@@ -214,6 +200,10 @@ export const BranchResultsPage = () => {
 	);
 
 	const filteredAnswers = useMemo(() => answers, [answers]);
+	const submissionMap = useMemo(
+		() => Object.fromEntries(submissions.map((item) => [item.id, item.data])),
+		[submissions],
+	);
 
 	const teacherStats = useMemo(() => {
 		const stats: Record<
@@ -223,9 +213,7 @@ export const BranchResultsPage = () => {
 		const submissionCounts: Record<string, Set<string>> = {};
 
 		filteredAnswers.forEach((answer) => {
-			const submission = submissions.find(
-				(item) => item.id === answer.data.submissionId,
-			);
+			const submission = submissionMap[answer.data.submissionId];
 			if (!submission) return;
 			const question = questions[answer.data.questionId];
 			if (!question || question.type !== "scale") return;
@@ -233,18 +221,18 @@ export const BranchResultsPage = () => {
 			const numeric = toNumber(answer.data.value);
 			if (numeric === null) return;
 
-			const stat = stats[submission.data.targetId] ?? {
+			const stat = stats[submission.targetId] ?? {
 				sum: 0,
 				count: 0,
 				submissions: 0,
 			};
 			stat.sum += numeric;
 			stat.count += 1;
-			stats[submission.data.targetId] = stat;
+			stats[submission.targetId] = stat;
 
-			submissionCounts[submission.data.targetId] =
-				submissionCounts[submission.data.targetId] || new Set();
-			submissionCounts[submission.data.targetId].add(answer.data.submissionId);
+			submissionCounts[submission.targetId] =
+				submissionCounts[submission.targetId] || new Set();
+			submissionCounts[submission.targetId].add(answer.data.submissionId);
 		});
 
 		Object.entries(submissionCounts).forEach(([teacherId, set]) => {
@@ -252,7 +240,7 @@ export const BranchResultsPage = () => {
 		});
 
 		return stats;
-	}, [filteredAnswers, submissions, questions]);
+	}, [filteredAnswers, submissionMap, questions]);
 
 	const teacherRows = useMemo(() => {
 		return Object.entries(teacherStats)
@@ -496,6 +484,20 @@ export const BranchResultsPage = () => {
 			<div className="stat-pill">n={selectedTeacherSummary.submissions}</div>
 		</div>
 	);
+
+	if (!isSuperAdmin) {
+		return (
+			<div className="panel">
+				<div className="card">
+					<h3>Nəticələr yalnız SuperAdmin üçündür</h3>
+					<p>
+						Filial adminləri nəticələri görə bilməz. Yalnız “DONE” statusu
+						göstərilir.
+					</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="panel">

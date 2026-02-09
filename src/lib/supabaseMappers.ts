@@ -7,6 +7,7 @@ import type {
 	DepartmentDoc,
 	GroupDoc,
 	ManagementAssignmentDoc,
+	NotificationDoc,
 	PkpdAchievementDoc,
 	PkpdDecisionDoc,
 	PkpdExamDoc,
@@ -158,6 +159,24 @@ export const mapAnswerRow = (row: Row): AnswerDoc => ({
 	submissionId: row.submission_id,
 	questionId: row.question_id,
 	value: row.value,
+	createdAt: row.created_at ?? null,
+});
+
+export const mapNotificationRow = (row: Row): NotificationDoc => ({
+	userId: row.user_id,
+	cycleId: row.cycle_id ?? null,
+	taskId: row.task_id ?? null,
+	type: row.type,
+	level: row.level ?? "info",
+	title: row.title,
+	message: row.message,
+	actionPath: row.action_path ?? null,
+	metadata:
+		row.metadata && typeof row.metadata === "object"
+			? (row.metadata as Record<string, unknown>)
+			: {},
+	isRead: row.is_read ?? false,
+	readAt: row.read_at ?? null,
 	createdAt: row.created_at ?? null,
 });
 

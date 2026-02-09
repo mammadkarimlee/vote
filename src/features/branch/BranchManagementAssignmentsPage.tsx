@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -26,7 +26,7 @@ export const BranchManagementAssignmentsPage = () => {
 	const [status, setStatus] = useState<string | null>(null);
 	const [localBranchName, setLocalBranchName] = useState("");
 
-	const loadData = async () => {
+	const loadData = useCallback(async () => {
 		if (!branchId) {
 			setManagers([]);
 			setAssignments([]);
@@ -71,11 +71,11 @@ export const BranchManagementAssignmentsPage = () => {
 			),
 		);
 		setLocalBranchName(branchRes.data?.name ?? "");
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadData();
-	}, [branchId]);
+	}, [loadData]);
 
 	const handleCreate = async () => {
 		if (!managerUid || !year || !branchId) {
@@ -206,3 +206,4 @@ export const BranchManagementAssignmentsPage = () => {
 		</div>
 	);
 };
+

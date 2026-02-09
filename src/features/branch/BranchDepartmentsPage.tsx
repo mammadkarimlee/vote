@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapDepartmentRow } from "../../lib/supabaseMappers";
@@ -22,7 +22,7 @@ export const BranchDepartmentsPage = () => {
 	const [editName, setEditName] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
 
-	const loadDepartments = async () => {
+	const loadDepartments = useCallback(async () => {
 		if (!branchId) {
 			setDepartments([]);
 			return;
@@ -43,11 +43,11 @@ export const BranchDepartmentsPage = () => {
 			data: mapDepartmentRow(row),
 		}));
 		setDepartments(items);
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadDepartments();
-	}, [branchId]);
+	}, [loadDepartments]);
 
 	const handleCreate = async () => {
 		if (!branchId) {
@@ -255,3 +255,4 @@ export const BranchDepartmentsPage = () => {
 		</div>
 	);
 };
+

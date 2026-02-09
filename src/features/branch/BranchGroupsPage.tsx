@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapGroupRow } from "../../lib/supabaseMappers";
@@ -26,7 +26,7 @@ export const BranchGroupsPage = () => {
 	const [editClassLevel, setEditClassLevel] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
 
-	const loadGroups = async () => {
+	const loadGroups = useCallback(async () => {
 		if (!branchId) {
 			setGroups([]);
 			return;
@@ -45,9 +45,9 @@ export const BranchGroupsPage = () => {
 			data: mapGroupRow(row),
 		}));
 		setGroups(items.filter((group) => group.data.branchId === branchId));
-	};
+	}, [branchId]);
 
-	const loadBranchName = async () => {
+	const loadBranchName = useCallback(async () => {
 		if (!branchId) return;
 		const { data } = await supabase
 			.from("branches")
@@ -56,12 +56,12 @@ export const BranchGroupsPage = () => {
 			.eq("id", branchId)
 			.maybeSingle();
 		setLocalBranchName(data?.name ?? "");
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadGroups();
 		void loadBranchName();
-	}, [branchId]);
+	}, [loadBranchName, loadGroups]);
 
 	const handleCreate = async () => {
 		if (!name.trim() || !classLevel || !branchId) {
@@ -342,3 +342,4 @@ export const BranchGroupsPage = () => {
 		</div>
 	);
 };
+

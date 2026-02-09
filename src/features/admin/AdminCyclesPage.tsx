@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -656,18 +656,11 @@ export const AdminCyclesPage = () => {
 		setStatus(`Tapşırıqlar hazırdır: ${tasksToCreate.length}${warningText}`);
 	};
 
-	const selectedCycle = useMemo(
-		() => cycles.find((cycle) => cycle.id === selectedCycleId),
-		[cycles, selectedCycleId],
+	const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
+	const branchMap = Object.fromEntries(
+		branches.map((branch) => [branch.id, branch.data]),
 	);
-
-	const branchMap = useMemo(
-		() =>
-			Object.fromEntries(branches.map((branch) => [branch.id, branch.data])),
-		[branches],
-	);
-
-	const summary = useMemo(() => cycles.length, [cycles]);
+	const summary = cycles.length;
 
 	return (
 		<div className="panel">
@@ -881,3 +874,4 @@ export const AdminCyclesPage = () => {
 		</div>
 	);
 };
+

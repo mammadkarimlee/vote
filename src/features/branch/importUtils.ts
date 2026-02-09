@@ -1,8 +1,7 @@
-﻿import * as XLSX from "xlsx";
-
-export type ParsedRow = Record<string, string>;
+﻿export type ParsedRow = Record<string, string>;
 
 export const parseSpreadsheet = async (file: File): Promise<ParsedRow[]> => {
+	const XLSX = await import("xlsx");
 	const arrayBuffer = await file.arrayBuffer();
 	const workbook = XLSX.read(arrayBuffer, { type: "array" });
 	const sheetName = workbook.SheetNames[0];

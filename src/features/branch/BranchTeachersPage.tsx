@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -119,7 +119,7 @@ export const BranchTeachersPage = () => {
 	const [importDepartmentId, setImportDepartmentId] = useState("");
 	const [status, setStatus] = useState<string | null>(null);
 
-	const loadLookups = async () => {
+	const loadLookups = useCallback(async () => {
 		if (!branchId) {
 			setTeachers([]);
 			setDepartments([]);
@@ -191,11 +191,11 @@ export const BranchTeachersPage = () => {
 				data: mapTeachingAssignmentRow(row),
 			})),
 		);
-	};
+	}, [branchId]);
 
 	useEffect(() => {
 		void loadLookups();
-	}, [branchId]);
+	}, [loadLookups]);
 
 	useEffect(() => {
 		if (!photoFile) {
@@ -1114,3 +1114,4 @@ export const BranchTeachersPage = () => {
 		</div>
 	);
 };
+

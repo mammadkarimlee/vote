@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -13,7 +13,7 @@ import type {
 	SurveyCycleDoc,
 	TaskDoc,
 } from "../../lib/types";
-import { chunkArray, toJsDate } from "../../lib/utils";
+import { chunkArray, formatDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 const flowFromTask = (task: TaskDoc): QuestionSetDoc["targetFlow"] => {
@@ -24,6 +24,29 @@ const flowFromTask = (task: TaskDoc): QuestionSetDoc["targetFlow"] => {
 	if (task.raterRole === "teacher" && task.targetType === "teacher")
 		return "teacher_self";
 	return "management_teacher";
+};
+
+const normalizeDraft = (
+	raw: Record<string, unknown>,
+	questions: Array<{ id: string; data: QuestionDoc }>,
+) => {
+	const allowedIds = new Set(questions.map((question) => question.id));
+	const next: Record<string, string | number> = {};
+
+	Object.entries(raw).forEach(([questionId, value]) => {
+		if (!allowedIds.has(questionId)) return;
+		const question = questions.find((item) => item.id === questionId)?.data;
+		if (!question) return;
+		if (question.type === "scale" && typeof value === "number") {
+			next[questionId] = value;
+			return;
+		}
+		if ((question.type === "choice" || question.type === "text") && value) {
+			next[questionId] = String(value);
+		}
+	});
+
+	return next;
 };
 
 export const TaskVotePage = () => {
@@ -37,10 +60,19 @@ export const TaskVotePage = () => {
 	const [cycle, setCycle] = useState<SurveyCycleDoc | null>(null);
 	const [answers, setAnswers] = useState<Record<string, string | number>>({});
 	const [status, setStatus] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [submitting, setSubmitting] = useState(false);
+	const [draftLoaded, setDraftLoaded] = useState(false);
+
+	const draftKey = taskId ? `vote_draft_${taskId}` : "";
 
 	useEffect(() => {
-		if (!taskId) return;
+		if (!taskId || !user) return;
+
 		const loadTask = async () => {
+			setLoading(true);
+			setStatus(null);
+
 			const taskRes = await supabase
 				.from("tasks")
 				.select("*")
@@ -49,11 +81,22 @@ export const TaskVotePage = () => {
 				.maybeSingle();
 
 			if (!taskRes.data) {
-				setStatus("Tapşırıq tapılmadı");
+				setStatus("Tapşırıq tapılmadı.");
+				setTask(null);
+				setQuestions([]);
+				setLoading(false);
 				return;
 			}
 
 			const taskData = mapTaskRow(taskRes.data);
+			if (taskData.raterUid !== user.id) {
+				setStatus("Bu tapşırığa giriş icazəniz yoxdur.");
+				setTask(null);
+				setQuestions([]);
+				setLoading(false);
+				return;
+			}
+
 			setTask(taskData);
 
 			const cycleRes = await supabase
@@ -74,7 +117,9 @@ export const TaskVotePage = () => {
 				.maybeSingle();
 
 			if (!questionSetRes.data) {
-				setStatus("Bu tapşırıq üçün sual seti tapılmadı");
+				setStatus("Bu tapşırıq üçün sual seti tapılmadı.");
+				setQuestions([]);
+				setLoading(false);
 				return;
 			}
 
@@ -82,12 +127,12 @@ export const TaskVotePage = () => {
 			const ids = questionSet.questionIds ?? [];
 			if (ids.length === 0) {
 				setQuestions([]);
+				setLoading(false);
 				return;
 			}
 
-			const chunks = chunkArray(ids, 200);
 			const loaded: Array<{ id: string; data: QuestionDoc }> = [];
-			for (const chunk of chunks) {
+			for (const chunk of chunkArray(ids, 200)) {
 				const qRes = await supabase
 					.from("questions")
 					.select("*")
@@ -100,37 +145,94 @@ export const TaskVotePage = () => {
 
 			loaded.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
 			setQuestions(loaded);
+			setLoading(false);
 		};
 
 		void loadTask();
-	}, [taskId]);
+	}, [taskId, user]);
+
+	useEffect(() => {
+		if (!draftKey || questions.length === 0 || draftLoaded) return;
+		const raw = localStorage.getItem(draftKey);
+		if (!raw) {
+			setDraftLoaded(true);
+			return;
+		}
+		try {
+			const parsed = JSON.parse(raw) as Record<string, unknown>;
+			setAnswers(normalizeDraft(parsed, questions));
+		} catch {
+			localStorage.removeItem(draftKey);
+		}
+		setDraftLoaded(true);
+	}, [draftKey, draftLoaded, questions]);
+
+	useEffect(() => {
+		if (!draftKey || !draftLoaded) return;
+		localStorage.setItem(draftKey, JSON.stringify(answers));
+	}, [answers, draftKey, draftLoaded]);
 
 	const isOpen = useMemo(() => {
 		if (!cycle) return false;
 		if (cycle.status !== "OPEN") return false;
+		const now = new Date();
 		const start = toJsDate(cycle.startAt);
 		const end = toJsDate(cycle.endAt);
-		const now = new Date();
 		if (start && now < start) return false;
 		if (end && now > end) return false;
 		return true;
+	}, [cycle]);
+
+	const requiredTotal = useMemo(
+		() => questions.filter((question) => question.data.required).length,
+		[questions],
+	);
+	const requiredDone = useMemo(
+		() =>
+			questions.filter(
+				(question) =>
+					question.data.required &&
+					answers[question.id] !== undefined &&
+					answers[question.id] !== "",
+			).length,
+		[answers, questions],
+	);
+	const completion = useMemo(() => {
+		if (questions.length === 0) return 0;
+		const answeredCount = questions.filter(
+			(question) => answers[question.id] !== undefined && answers[question.id] !== "",
+		).length;
+		return Math.round((answeredCount / questions.length) * 100);
+	}, [answers, questions]);
+
+	const cycleInfo = useMemo(() => {
+		if (!cycle) return "Sorğu dövrü məlumatı yoxdur";
+		const start = formatDate(toJsDate(cycle.startAt));
+		const end = formatDate(toJsDate(cycle.endAt));
+		return `${cycle.year} • ${cycle.status} • ${start} - ${end}`;
 	}, [cycle]);
 
 	const handleChange = (questionId: string, value: string | number) => {
 		setAnswers((prev) => ({ ...prev, [questionId]: value }));
 	};
 
+	const clearDraft = () => {
+		if (draftKey) localStorage.removeItem(draftKey);
+		setAnswers({});
+		setStatus("Saxlanmış qaralama təmizləndi.");
+	};
+
 	const handleSubmit = async () => {
-		if (!user || !task || !taskId) return;
+		if (!taskId || !task || !user) return;
 		setStatus(null);
 
+		if (submitting) return;
 		if (task.status === "DONE") {
-			setStatus("Bu tapşırıq artıq tamamlanıb");
+			setStatus("Bu tapşırıq artıq tamamlanıb.");
 			return;
 		}
-
 		if (!isOpen) {
-			setStatus("Sorğu dövrü açıq deyil, cavab göndərmək mümkün deyil");
+			setStatus("Sorğu dövrü açıq deyil. Göndəriş mümkün deyil.");
 			return;
 		}
 
@@ -140,7 +242,7 @@ export const TaskVotePage = () => {
 				(answers[question.id] === undefined || answers[question.id] === ""),
 		);
 		if (missingRequired.length > 0) {
-			setStatus("Bütün məcburi sualları cavablayın");
+			setStatus("Bütün məcburi suallar cavablanmalıdır.");
 			return;
 		}
 
@@ -151,51 +253,89 @@ export const TaskVotePage = () => {
 			}))
 			.filter((item) => item.value !== undefined && item.value !== "");
 
+		setSubmitting(true);
 		const { error } = await supabase.rpc("submit_vote", {
 			p_task_id: taskId,
 			p_answers: answersPayload,
 		});
+		setSubmitting(false);
 
 		if (error) {
-			setStatus(error.message || "Cavablar göndərilmədi");
+			setStatus(error.message || "Cavablar göndərilə bilmədi.");
 			return;
 		}
 
-		setStatus("Cavablar göndərildi");
+		if (draftKey) localStorage.removeItem(draftKey);
+		setStatus("Cavablar uğurla göndərildi.");
 		navigate("/vote", { replace: true });
 	};
+
+	if (loading) {
+		return (
+			<div className="page">
+				<div className="card">Yüklənir...</div>
+			</div>
+		);
+	}
 
 	if (!task) {
 		return (
 			<div className="page">
-				<div className="card">Tapşırıq yüklənir...</div>
+				<div className="card">
+					<div className="stack">
+						<Link to="/vote" className="link">
+							← Tapşırıqlara qayıt
+						</Link>
+						<div className="notice">{status ?? "Tapşırıq yüklənmədi."}</div>
+					</div>
+				</div>
 			</div>
 		);
 	}
 
 	return (
 		<div className="page">
-			<div className="card">
+			<section className="card vote-form-header">
 				<div className="stack">
 					<Link to="/vote" className="link">
 						← Tapşırıqlara qayıt
 					</Link>
-					<h1>Sorğu formu</h1>
-					{cycle && (
-						<div className="meta">
-							Sorğu dövrü: {cycle.year} • Vəziyyət: {cycle.status}
+					<h1>Səsvermə formu</h1>
+					<div className="meta">{cycleInfo}</div>
+				</div>
+				<div className="vote-progress">
+					<div className="stat-card">
+						<div className="stat-label">Ümumi irəliləyiş</div>
+						<div className="stat-value">{completion}%</div>
+						<div className="progress-track">
+							<div className="progress-fill" style={{ width: `${completion}%` }} />
 						</div>
-					)}
+					</div>
+					<div className="stat-card">
+						<div className="stat-label">Məcburi suallar</div>
+						<div className="stat-value">
+							{requiredDone}/{requiredTotal}
+						</div>
+						<div className="stat-meta">
+							{isOpen ? "Göndəriş aktivdir" : "Göndəriş bağlıdır"}
+						</div>
+					</div>
+				</div>
+			</section>
 
+			<div className="card">
+				{questions.length === 0 ? (
+					<div className="empty">Bu task üçün sual yoxdur.</div>
+				) : (
 					<div className="stack">
-						{questions.map((question) => (
+						{questions.map((question, index) => (
 							<div className="question" key={question.id}>
 								<div className="question-title">
+									<span className="question-number">#{index + 1}</span>{" "}
 									{question.data.text}
-									{question.data.required && (
-										<span className="required">*</span>
-									)}
+									{question.data.required && <span className="required">*</span>}
 								</div>
+
 								{question.data.type === "scale" && (
 									<div className="scale">
 										{Array.from({
@@ -220,6 +360,7 @@ export const TaskVotePage = () => {
 										})}
 									</div>
 								)}
+
 								{question.data.type === "choice" && (
 									<div className="choice">
 										{(question.data.options ?? []).map((option) => (
@@ -236,10 +377,11 @@ export const TaskVotePage = () => {
 										))}
 									</div>
 								)}
+
 								{question.data.type === "text" && (
 									<textarea
 										className="input"
-										rows={3}
+										rows={4}
 										placeholder="Fikrinizi yazın..."
 										value={String(answers[question.id] ?? "")}
 										onChange={(event) =>
@@ -250,19 +392,22 @@ export const TaskVotePage = () => {
 							</div>
 						))}
 					</div>
+				)}
 
-					{status && <div className="notice">{status}</div>}
+				{status && <div className="notice">{status}</div>}
 
-					<div className="actions">
-						<button
-							className="btn primary"
-							type="button"
-							onClick={handleSubmit}
-							disabled={!isOpen}
-						>
-							Göndər
-						</button>
-					</div>
+				<div className="actions">
+					<button className="btn ghost" type="button" onClick={clearDraft}>
+						Qaralamanı təmizlə
+					</button>
+					<button
+						className="btn primary"
+						type="button"
+						onClick={handleSubmit}
+						disabled={!isOpen || submitting || questions.length === 0}
+					>
+						{submitting ? "Göndərilir..." : "Göndər"}
+					</button>
 				</div>
 			</div>
 		</div>
