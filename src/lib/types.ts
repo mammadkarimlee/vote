@@ -68,6 +68,7 @@ export type GroupDoc = {
 export type SubjectDoc = {
 	name: string;
 	code?: string | null;
+	departmentId?: string | null;
 };
 
 export type DepartmentDoc = {

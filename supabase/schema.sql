@@ -604,6 +604,7 @@ alter table public.groups
   add column if not exists archived_by text references public.users (id) on delete set null;
 
 alter table public.subjects
+  add column if not exists department_id text references public.departments (id) on delete set null,
   add column if not exists deleted_at timestamptz,
   add column if not exists deleted_by text references public.users (id) on delete set null,
   add column if not exists archived_at timestamptz,
@@ -759,8 +760,11 @@ create trigger audit_notifications
 create unique index if not exists users_org_login_uidx on public.users (org_id, login) where login is not null;
 create unique index if not exists users_org_email_uidx on public.users (org_id, email) where email is not null;
 create unique index if not exists branches_org_name_uidx on public.branches (org_id, name);
-create unique index if not exists subjects_org_name_uidx on public.subjects (org_id, name);
-create unique index if not exists subjects_org_code_uidx on public.subjects (org_id, code) where code is not null;
+drop index if exists subjects_org_name_uidx;
+drop index if exists subjects_org_code_uidx;
+create unique index if not exists subjects_org_name_uidx on public.subjects (org_id, department_id, name);
+create unique index if not exists subjects_org_code_uidx on public.subjects (org_id, department_id, code) where code is not null;
+create index if not exists subjects_department_idx on public.subjects (department_id);
 create unique index if not exists groups_org_branch_name_uidx on public.groups (org_id, branch_id, name);
 create unique index if not exists survey_cycles_org_year_uidx on public.survey_cycles (org_id, year);
 
@@ -1585,6 +1589,13 @@ create policy subjects_select on public.subjects
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
+      and exists (
+        select 1 from public.departments d
+        where d.id = department_id
+          and d.org_id = subjects.org_id
+          and d.branch_id = public.current_branch_id()
+          and d.deleted_at is null
+      )
     )
     or exists (
       select 1 from public.tasks t
@@ -1601,6 +1612,13 @@ create policy subjects_insert on public.subjects
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
+      and exists (
+        select 1 from public.departments d
+        where d.id = department_id
+          and d.org_id = subjects.org_id
+          and d.branch_id = public.current_branch_id()
+          and d.deleted_at is null
+      )
     )
   );
 
@@ -1611,6 +1629,13 @@ create policy subjects_update on public.subjects
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
+      and exists (
+        select 1 from public.departments d
+        where d.id = department_id
+          and d.org_id = subjects.org_id
+          and d.branch_id = public.current_branch_id()
+          and d.deleted_at is null
+      )
     )
   )
   with check (
@@ -1618,6 +1643,13 @@ create policy subjects_update on public.subjects
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
+      and exists (
+        select 1 from public.departments d
+        where d.id = department_id
+          and d.org_id = subjects.org_id
+          and d.branch_id = public.current_branch_id()
+          and d.deleted_at is null
+      )
     )
   );
 
@@ -1628,6 +1660,13 @@ create policy subjects_delete on public.subjects
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
+      and exists (
+        select 1 from public.departments d
+        where d.id = department_id
+          and d.org_id = subjects.org_id
+          and d.branch_id = public.current_branch_id()
+          and d.deleted_at is null
+      )
     )
   );
 

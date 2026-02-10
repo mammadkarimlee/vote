@@ -77,6 +77,7 @@ export const mapGroupRow = (row: Row): GroupDoc => ({
 export const mapSubjectRow = (row: Row): SubjectDoc => ({
 	name: row.name,
 	code: row.code ?? null,
+	departmentId: row.department_id ?? null,
 });
 
 export const mapDepartmentRow = (row: Row): DepartmentDoc => ({
