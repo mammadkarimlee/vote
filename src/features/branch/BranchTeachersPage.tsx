@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { toErrorMessage } from "../../lib/errorMessage";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapDepartmentRow,
@@ -477,9 +478,7 @@ export const BranchTeachersPage = () => {
 			setStatus(`Login: ${result.login} • Şifrə: ${result.password}`);
 			await loadLookups();
 		} catch (error) {
-			setStatus(
-				error instanceof Error ? error.message : "Yaratma zamanı xəta oldu",
-			);
+			setStatus(toErrorMessage(error, "Yaratma zamanı xəta oldu"));
 		}
 	};
 
@@ -507,11 +506,19 @@ export const BranchTeachersPage = () => {
 		setEditingId(teacher.id);
 		setEditFirstName(teacher.data.firstName ?? "");
 		setEditLastName(teacher.data.lastName ?? "");
-		setEditDepartmentId(teacher.data.departmentId ?? "");
+		const nextDepartmentId = teacher.data.departmentId ?? "";
+		const departmentExists = departments.some(
+			(department) => department.id === nextDepartmentId,
+		);
+		setEditDepartmentId(departmentExists ? nextDepartmentId : "");
 		setEditCategory(teacher.data.category ?? "standard");
 		setEditPhotoFile(null);
 		setEditPhotoPreview(teacher.data.photoUrl ?? null);
-		setStatus(null);
+		setStatus(
+			departmentExists
+				? null
+				: "Bu müəllimin kafedrası bu filialda tapılmadı. Zəhmət olmasa düzgün kafedranı seçib yadda saxlayın.",
+		);
 	};
 
 	const handleEditCancel = () => {
@@ -570,9 +577,7 @@ export const BranchTeachersPage = () => {
 			setEditPhotoPreview(null);
 			await loadLookups();
 		} catch (error) {
-			setStatus(
-				error instanceof Error ? error.message : "Yeniləmə zamanı xəta oldu",
-			);
+			setStatus(toErrorMessage(error, "Yeniləmə zamanı xəta oldu"));
 		} finally {
 			setSavingEdit(false);
 		}
@@ -591,9 +596,7 @@ export const BranchTeachersPage = () => {
 				setImportDepartmentId(resolvedDepartmentId);
 			}
 		} catch (error) {
-			setStatus(
-				error instanceof Error ? error.message : "Kafedra seçilməsi alınmadı",
-			);
+			setStatus(toErrorMessage(error, "Kafedra seçilməsi alınmadı"));
 			return;
 		}
 
@@ -657,7 +660,7 @@ export const BranchTeachersPage = () => {
 			} catch (error) {
 				failed += 1;
 				lastErrorMessage =
-					error instanceof Error ? error.message : "Yaratma zamanı xəta oldu";
+					toErrorMessage(error, "Yaratma zamanı xəta oldu");
 			}
 		}
 
