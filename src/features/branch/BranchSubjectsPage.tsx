@@ -68,31 +68,55 @@ export const BranchSubjectsPage = () => {
 		}
 
 		const departmentIds = departments.map((item) => item.id).filter(Boolean);
-		if (departmentIds.length === 0) {
+		const rows: Array<Record<string, unknown>> = [];
+
+		if (departmentIds.length > 0) {
+			const { data, error } = await supabase
+				.from("subjects")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.in("department_id", departmentIds)
+				.is("deleted_at", null);
+
+			if (error) {
+				setLoadError(error.message || "Yükləmə zamanı xəta oldu");
+				return;
+			}
+
+			(data ?? []).forEach((row) => rows.push(row as Record<string, unknown>));
+		}
+
+		if (isSuperAdmin) {
+			const { data, error } = await supabase
+				.from("subjects")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.is("department_id", null)
+				.is("deleted_at", null);
+
+			if (error) {
+				setLoadError(error.message || "Yükləmə zamanı xəta oldu");
+				return;
+			}
+
+			(data ?? []).forEach((row) => rows.push(row as Record<string, unknown>));
+		}
+
+		if (departmentIds.length === 0 && !isSuperAdmin) {
 			setSubjects([]);
 			return;
 		}
 
-		const { data, error } = await supabase
-			.from("subjects")
-			.select("*")
-			.eq("org_id", ORG_ID)
-			.in("department_id", departmentIds)
-			.is("deleted_at", null);
-
-		if (error) {
-			setLoadError(error.message || "Yükləmə zamanı xəta oldu");
-			return;
-		}
+		const unique = new Map<string, SubjectEntry>();
+		rows.forEach((row) => {
+			const id = typeof row.id === "string" ? row.id : "";
+			if (!id) return;
+			unique.set(id, { id, data: mapSubjectRow(row) });
+		});
 
 		setLoadError(null);
-		setSubjects(
-			(data ?? []).map((row) => ({
-				id: row.id,
-				data: mapSubjectRow(row),
-			})),
-		);
-	}, [branchId, departments]);
+		setSubjects(Array.from(unique.values()));
+	}, [branchId, departments, isSuperAdmin]);
 
 	useEffect(() => {
 		void loadDepartments();
@@ -473,4 +497,3 @@ export const BranchSubjectsPage = () => {
 		</div>
 	);
 };
-
