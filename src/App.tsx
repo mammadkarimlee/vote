@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { CyclesRedirect } from "./app/CyclesRedirect";
 import { HomeRedirect } from "./app/HomeRedirect";
 import { Layout } from "./app/Layout";
 import { RequireAuth } from "./app/RequireAuth";
@@ -40,6 +41,7 @@ const App = () => (
 			}
 		>
 			<Route path="/" element={<HomeRedirect />} />
+			<Route path="/cycles" element={<CyclesRedirect />} />
 			<Route path="/me" element={<ProfilePage />} />
 			<Route
 				path="/vote"
@@ -89,6 +91,7 @@ const App = () => (
 					</RequireRole>
 				}
 			>
+				<Route index element={<BranchCyclesPage />} />
 				<Route path="teachers" element={<BranchTeachersPage />} />
 				<Route path="students" element={<BranchStudentsPage />} />
 				<Route path="groups" element={<BranchGroupsPage />} />
@@ -104,6 +107,7 @@ const App = () => (
 				<Route path="cycles" element={<BranchCyclesPage />} />
 				<Route path="cycles/:cycleId" element={<BranchCycleDetailPage />} />
 				<Route path="pkpd" element={<BranchPkpdPage />} />
+				<Route path="*" element={<Navigate to="/branch/cycles" replace />} />
 			</Route>
 			<Route
 				path="/admin"

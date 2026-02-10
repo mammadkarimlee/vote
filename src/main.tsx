@@ -11,7 +11,10 @@ const normalizedBase = basePath === "/" ? "/" : basePath.replace(/\/$/, "");
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<BrowserRouter basename={normalizedBase}>
+		<BrowserRouter
+			basename={normalizedBase}
+			future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+		>
 			<ThemeProvider>
 				<AuthProvider>
 					<App />

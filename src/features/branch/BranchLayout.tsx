@@ -232,14 +232,15 @@ const MenuGroup = ({ title, items }: NavGroup) => (
 export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 	const location = useLocation();
 	const prefix = isAdmin ? "/admin" : "/branch";
-	const showMenu = location.pathname === prefix;
+	const normalizedPath = location.pathname.replace(/\/+$/, "") || "/";
+	const showMenu = normalizedPath === prefix;
 
 	useEffect(() => {
 		const key = isAdmin ? "last_admin_path" : "last_branch_path";
-		if (location.pathname.startsWith(prefix) && location.pathname !== prefix) {
-			localStorage.setItem(key, location.pathname);
+		if (normalizedPath.startsWith(prefix) && normalizedPath !== prefix) {
+			localStorage.setItem(key, normalizedPath);
 		}
-	}, [isAdmin, location.pathname, prefix]);
+	}, [isAdmin, normalizedPath, prefix]);
 
 	const adminGroups: NavGroup[] = [
 		{
@@ -247,7 +248,7 @@ export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 			items: [
 				{
 					to: "/admin/dashboard/overview",
-					label: "Dashboard",
+					label: "İdarə paneli",
 					icon: "dashboard",
 				},
 				{ to: "/admin/branches", label: "Filiallar", icon: "branches" },
@@ -340,7 +341,7 @@ export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 							<>
 								<div className="icon-menu-header">
 									<div className="icon-menu-title">
-										{isAdmin ? "SuperAdmin paneli" : "Filial paneli"}
+										{isAdmin ? "Mərkəzi idarə paneli" : "Filial paneli"}
 									</div>
 									<div className="icon-menu-subtitle">
 										{isAdmin

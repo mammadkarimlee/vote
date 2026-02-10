@@ -32,11 +32,11 @@ import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils
 type DocEntry<T> = { id: string; data: T };
 type Section = "overview" | "teachers" | "branches" | "comments" | "quality";
 const SECTIONS: Array<{ key: Section; label: string }> = [
-	{ key: "overview", label: "Executive" },
-	{ key: "teachers", label: "Muellimler" },
+	{ key: "overview", label: "Ümumi baxış" },
+	{ key: "teachers", label: "Müəllimlər" },
 	{ key: "branches", label: "Filiallar" },
-	{ key: "comments", label: "Serhler" },
-	{ key: "quality", label: "Keyfiyyet" },
+	{ key: "comments", label: "Şərhlər" },
+	{ key: "quality", label: "Keyfiyyət" },
 ];
 const formatAvg = (avg: number | null | undefined, count: number) =>
 	avg === null || avg === undefined || count === 0 ? "-" : avg.toFixed(2);
@@ -676,17 +676,17 @@ export const AdminDashboardPage = () => {
 			p_force: reminderForce,
 		});
 		if (error) {
-			setStatus(error.message || "Reminder gonderilemedi");
+			setStatus(error.message || "Xatırlatma göndərilə bilmədi");
 			return;
 		}
-		setStatus(`${data ?? 0} reminder yaradildi.`);
+		setStatus(`${data ?? 0} xatırlatma yaradıldı.`);
 	};
 
 	return (
 		<div className="panel">
 			<section className="page-hero">
 				<div className="page-hero__content">
-					<div className="eyebrow">Executive Dashboard</div>
+					<div className="eyebrow">İdarəetmə paneli</div>
 					<h2>Rəhbərlik paneli</h2>
 					<p>
 						Filtrlənmiş nəticələrə əsasən performans, risk və keyfiyyət monitorinqi.
@@ -716,12 +716,12 @@ export const AdminDashboardPage = () => {
 								setExportMode(event.target.value as "summary" | "raw" | "comments")
 							}
 						>
-							<option value="summary">Summary export</option>
-							<option value="raw">Raw export</option>
-							<option value="comments">Comments export</option>
+							<option value="summary">Xülasə ixracı</option>
+							<option value="raw">Ətraflı ixrac</option>
+							<option value="comments">Şərhlər ixracı</option>
 						</select>
 						<button className="btn" type="button" onClick={handleExport}>
-							CSV export
+							CSV ixracı
 						</button>
 					</div>
 				</div>
@@ -750,7 +750,7 @@ export const AdminDashboardPage = () => {
 								setFilters((prev) => ({ ...prev, branchId: event.target.value }))
 							}
 						>
-							<option value="">Hamisi</option>
+							<option value="">Hamısı</option>
 							{branches.map((branch) => (
 								<option key={branch.id} value={branch.id}>
 									{branch.data.name}
@@ -759,7 +759,7 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Muellim</span>
+						<span className="label">Müəllim</span>
 						<select
 							className="input"
 							value={filters.teacherId}
@@ -767,7 +767,7 @@ export const AdminDashboardPage = () => {
 								setFilters((prev) => ({ ...prev, teacherId: event.target.value }))
 							}
 						>
-							<option value="">Hamisi</option>
+							<option value="">Hamısı</option>
 							{teachers.map((teacher) => (
 								<option key={teacher.id} value={teacher.id}>
 									{teacher.data.name}
@@ -784,7 +784,7 @@ export const AdminDashboardPage = () => {
 								setFilters((prev) => ({ ...prev, groupId: event.target.value }))
 							}
 						>
-							<option value="">Hamisi</option>
+							<option value="">Hamısı</option>
 							{groups.map((group) => (
 								<option key={group.id} value={group.id}>
 									{group.data.name}
@@ -793,7 +793,7 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Sinif seviyesi</span>
+						<span className="label">Sinif səviyyəsi</span>
 						<select
 							className="input"
 							value={filters.classLevel}
@@ -804,7 +804,7 @@ export const AdminDashboardPage = () => {
 								}))
 							}
 						>
-							<option value="">Hamisi</option>
+							<option value="">Hamısı</option>
 							{Array.from(new Set(groups.map((group) => group.data.classLevel))).map(
 								(level) => (
 									<option key={level} value={level}>
@@ -815,7 +815,7 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Fenn</span>
+						<span className="label">Fənn</span>
 						<select
 							className="input"
 							value={filters.subjectId}
@@ -823,7 +823,7 @@ export const AdminDashboardPage = () => {
 								setFilters((prev) => ({ ...prev, subjectId: event.target.value }))
 							}
 						>
-							<option value="">Hamisi</option>
+							<option value="">Hamısı</option>
 							{subjects.map((subject) => (
 								<option key={subject.id} value={subject.id}>
 									{subject.data.name}
@@ -832,7 +832,7 @@ export const AdminDashboardPage = () => {
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Rater rolu</span>
+						<span className="label">Qiymətləndirən rolu</span>
 						<select
 							className="input"
 							value={filters.raterRole}
@@ -843,14 +843,14 @@ export const AdminDashboardPage = () => {
 								}))
 							}
 						>
-							<option value="all">Hamisi</option>
-							<option value="student">Student</option>
-							<option value="teacher">Teacher</option>
-							<option value="manager">Manager</option>
+							<option value="all">Hamısı</option>
+							<option value="student">Şagird</option>
+							<option value="teacher">Müəllim</option>
+							<option value="manager">Rəhbər</option>
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Target tipi</span>
+						<span className="label">Hədəf tipi</span>
 						<select
 							className="input"
 							value={filters.targetType}
@@ -861,13 +861,13 @@ export const AdminDashboardPage = () => {
 								}))
 							}
 						>
-							<option value="all">Hamisi</option>
-							<option value="teacher">Teacher</option>
-							<option value="manager">Manager</option>
+							<option value="all">Hamısı</option>
+							<option value="teacher">Müəllim</option>
+							<option value="manager">Rəhbər</option>
 						</select>
 					</label>
 					<label className="field">
-						<span className="label">Axtaris</span>
+						<span className="label">Axtarış</span>
 						<input
 							className="input"
 							value={filters.search}
@@ -880,7 +880,7 @@ export const AdminDashboardPage = () => {
 				<div className="divider" />
 				<div className="form-row">
 					<label className="field">
-						<span className="label">Reminder gunu</span>
+						<span className="label">Xatırlatma günü</span>
 						<input
 							className="input"
 							type="number"
@@ -894,13 +894,13 @@ export const AdminDashboardPage = () => {
 							checked={reminderForce}
 							onChange={(event) => setReminderForce(event.target.checked)}
 						/>
-						<span>Force reminder</span>
+						<span>Məcburi xatırlatma</span>
 					</label>
 					<button className="btn" type="button" onClick={sendReminders}>
-						Reminder yarat
+						Xatırlatma yarat
 					</button>
 					<label className="field">
-						<span className="label">Min sample</span>
+						<span className="label">Minimum nümunə</span>
 						<input
 							className="input"
 							type="number"
@@ -917,62 +917,62 @@ export const AdminDashboardPage = () => {
 				{status && <div className="notice">{status}</div>}
 			</div>
 
-			{loading && <div className="card">Yuklenir...</div>}
+			{loading && <div className="card">Yüklənir...</div>}
 
 			{activeSection === "overview" && (
 				<>
 					<div className="grid three">
 						<div className="stat-card">
 							<div className="stat-label">
-								Cari ortalama
-								<InfoTip text="Filtrlenmis scale cavablarinin ortalamasi." />
+								Cari orta göstərici
+								<InfoTip text="Filtrlənmiş şkala cavablarının orta göstəricisi." />
 							</div>
 							<div className="stat-value">{formatAvg(avgCurrent, numericValues.length)}</div>
 							<div className="stat-meta">n={filteredSubmissions.length}</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Kecen il ortalama</div>
+							<div className="stat-label">Ötən il orta göstərici</div>
 							<div className="stat-value">
 								{formatAvg(avgPrev, prevFilteredSubmissions.length)}
 							</div>
 							<div className="stat-meta">
-								Delta:{" "}
+								Fərq:{" "}
 								{avgCurrent !== null && avgPrev !== null
 									? `${avgCurrent > avgPrev ? "+" : ""}${(avgCurrent - avgPrev).toFixed(2)}`
 									: "-"}
 							</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Istirak</div>
+							<div className="stat-label">İştirak</div>
 							<div className="stat-value">{participation.completionRate.toFixed(1)}%</div>
 							<div className="stat-meta">
 								{participation.done}/{participation.total}
 							</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Coverage</div>
+							<div className="stat-label">Əhatə</div>
 							<div className="stat-value">{participation.coverageRate.toFixed(1)}%</div>
-							<div className="stat-meta">Aktiv rater payi</div>
+							<div className="stat-meta">Aktiv qiymətləndirici payı</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Risk muellimler</div>
+							<div className="stat-label">Risk müəllimlər</div>
 							<div className="stat-value">{riskTeachers.length}</div>
-							<div className="stat-meta">Threshold: {riskThreshold}</div>
+							<div className="stat-meta">Hədd: {riskThreshold}</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Achiq tasklar</div>
+							<div className="stat-label">Açıq tapşırıqlar</div>
 							<div className="stat-value">{participation.open}</div>
-							<div className="stat-meta">Reminder ucun prioritet</div>
+							<div className="stat-meta">Xatırlatma üçün prioritet</div>
 						</div>
 					</div>
 
 					<div className="grid two">
 						<div className="card">
-							<h3>Top muellimler</h3>
+							<h3>Ən yüksək nəticəli müəllimlər</h3>
 							<div className="data-table">
 								<div className="data-row header">
-									<div>Muellim</div>
-									<div>Avg</div>
+									<div>Müəllim</div>
+									<div>Orta</div>
 									<div>n</div>
 								</div>
 								{teacherStats.slice(0, 8).map((item) => (
@@ -983,16 +983,16 @@ export const AdminDashboardPage = () => {
 									</div>
 								))}
 								{teacherStats.length === 0 && (
-									<div className="empty">Melumat yoxdur.</div>
+									<div className="empty">Məlumat yoxdur.</div>
 								)}
 							</div>
 						</div>
 						<div className="card">
-							<h3>Risk siyahisi</h3>
+							<h3>Risk siyahısı</h3>
 							<div className="data-table">
 								<div className="data-row header">
-									<div>Muellim</div>
-									<div>Avg</div>
+									<div>Müəllim</div>
+									<div>Orta</div>
 									<div>n</div>
 								</div>
 								{riskTeachers.map((item) => (
@@ -1017,7 +1017,7 @@ export const AdminDashboardPage = () => {
 							value={selectedTeacherId}
 							onChange={(event) => setSelectedTeacherId(event.target.value)}
 						>
-							<option value="">Muellim secin</option>
+							<option value="">Müəllim seçin</option>
 							{teachers.map((teacher) => (
 								<option key={teacher.id} value={teacher.id}>
 									{teacher.data.name}
@@ -1025,13 +1025,13 @@ export const AdminDashboardPage = () => {
 							))}
 						</select>
 						<div className="stat-pill">
-							Submission: {selectedTeacherSubmissions.length}
+							Səsvermə sayı: {selectedTeacherSubmissions.length}
 						</div>
 					</div>
 					<div className="data-table">
 						<div className="data-row header">
 							<div>Qrup</div>
-							<div>Fenn</div>
+							<div>Fənn</div>
 							<div>Tarix</div>
 						</div>
 						{selectedTeacherSubmissions.map((submission) => (
@@ -1050,7 +1050,7 @@ export const AdminDashboardPage = () => {
 							</div>
 						))}
 						{selectedTeacherSubmissions.length === 0 && (
-							<div className="empty">Submission yoxdur.</div>
+							<div className="empty">Səsvermə yoxdur.</div>
 						)}
 					</div>
 				</div>
@@ -1058,11 +1058,11 @@ export const AdminDashboardPage = () => {
 
 			{activeSection === "branches" && (
 				<div className="card">
-					<h3>Filial muqayisesi</h3>
+					<h3>Filial müqayisəsi</h3>
 					<div className="data-table">
 						<div className="data-row header">
 							<div>Filial</div>
-							<div>Avg</div>
+							<div>Orta</div>
 							<div>n</div>
 						</div>
 						{branchStats.map((item) => (
@@ -1072,14 +1072,14 @@ export const AdminDashboardPage = () => {
 								<div>{item.submissions}</div>
 							</div>
 						))}
-						{branchStats.length === 0 && <div className="empty">Melumat yoxdur.</div>}
+						{branchStats.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
 					</div>
 				</div>
 			)}
 
 			{activeSection === "comments" && (
 				<div className="card">
-					<h3>Comment feed</h3>
+					<h3>Şərh axını</h3>
 					<div className="comment-feed">
 						{commentFeed.map((item, index) => (
 							<div className="comment" key={`${item.submission?.id}_${index}`}>
@@ -1097,7 +1097,7 @@ export const AdminDashboardPage = () => {
 								</div>
 							</div>
 						))}
-						{commentFeed.length === 0 && <div className="empty">Serh yoxdur.</div>}
+						{commentFeed.length === 0 && <div className="empty">Şərh yoxdur.</div>}
 					</div>
 				</div>
 			)}
@@ -1106,35 +1106,35 @@ export const AdminDashboardPage = () => {
 				<>
 					<div className="grid three">
 						<div className="stat-card">
-							<div className="stat-label">Required completion</div>
+							<div className="stat-label">Məcburi sualların tamamlanması</div>
 							<div className="stat-value">{quality.requiredRate.toFixed(1)}%</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Text coverage</div>
+							<div className="stat-label">Mətn cavabı əhatəsi</div>
 							<div className="stat-value">{quality.textRate.toFixed(1)}%</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Scale std-dev</div>
+							<div className="stat-label">Şkala üzrə standart yayınma</div>
 							<div className="stat-value">
 								{quality.std === null ? "-" : quality.std.toFixed(2)}
 							</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Uniform submission</div>
+							<div className="stat-label">Eyni tipli cavab payı</div>
 							<div className="stat-value">{quality.uniformRate.toFixed(1)}%</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Low sample</div>
+							<div className="stat-label">Aşağı nümunə sayı</div>
 							<div className="stat-value">{quality.lowSample}</div>
 							<div className="stat-meta">{quality.lowSampleRate.toFixed(1)}%</div>
 						</div>
 						<div className="stat-card">
-							<div className="stat-label">Freshness</div>
+							<div className="stat-label">Məlumatın aktuallığı</div>
 							<div className="stat-value">
-								{quality.staleDays === null ? "-" : `${quality.staleDays} gun`}
+								{quality.staleDays === null ? "-" : `${quality.staleDays} gün`}
 							</div>
 							<div className="stat-meta">
-								Meta boslugu: {quality.missingContextRate.toFixed(1)}%
+								Kontekst boşluğu: {quality.missingContextRate.toFixed(1)}%
 							</div>
 						</div>
 					</div>
@@ -1142,18 +1142,18 @@ export const AdminDashboardPage = () => {
 						<div className="stack">
 							<div className="notice">
 								{quality.requiredRate < 95
-									? "Mecburi suallarin completion faizi asagidir."
-									: "Mecburi suallar uzre completion stabildir."}
+									? "Məcburi sualların tamamlanma faizi aşağıdır."
+									: "Məcburi suallar üzrə tamamlanma stabildir."}
 							</div>
 							<div className="notice">
 								{quality.uniformRate > 35
-									? "Uniform cavablar coxdur, sual keyfiyyeti audit olunmalidir."
-									: "Uniform cavablar meqbul heddedir."}
+									? "Eyni tipli cavablar çoxdur, sual keyfiyyəti audit olunmalıdır."
+									: "Eyni tipli cavablar məqbul həddədir."}
 							</div>
 							<div className="notice">
 								{quality.missingContextRate > 10
-									? "Group/subject konteksti olmayan submission coxdur."
-									: "Submission konteksi yetarlidir."}
+									? "Qrup/fənn konteksti olmayan səsvermə çoxdur."
+									: "Səsvermə konteksti yetərlidir."}
 							</div>
 						</div>
 					</div>

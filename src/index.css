@@ -593,8 +593,18 @@
     @apply border-transparent bg-primary text-primary-foreground;
   }
 
+  .btn.danger {
+    @apply border-transparent bg-destructive text-destructive-foreground;
+  }
+
   .btn.ghost {
     @apply border-transparent bg-transparent text-muted-foreground hover:text-foreground;
+  }
+
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-60;
+    transform: none;
+    box-shadow: none;
   }
 
   .back-button {
@@ -614,6 +624,35 @@
 
   .notice {
     @apply rounded-2xl border border-border bg-secondary px-4 py-3 text-sm;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 grid place-items-center bg-slate-900/45 p-4 backdrop-blur-sm;
+  }
+
+  .modal-card {
+    @apply w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-strong;
+    animation: page-fade 0.2s ease both;
+  }
+
+  .modal-title {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  .modal-message {
+    @apply mt-2 text-sm text-muted-foreground;
+  }
+
+  .modal-field {
+    @apply mt-4;
+  }
+
+  .modal-actions {
+    @apply mt-4 justify-end;
+  }
+
+  .modal-error {
+    @apply mt-3 border-destructive/30 bg-destructive/10 text-destructive;
   }
 
   .data-table {

@@ -190,7 +190,7 @@ export const BranchSubjectsPage = () => {
 					/>
 					<input
 						className="input"
-						placeholder="Kod (optional)"
+						placeholder="Kod (istəyə bağlı)"
 						value={code}
 						onChange={(event) => setCode(event.target.value)}
 					/>

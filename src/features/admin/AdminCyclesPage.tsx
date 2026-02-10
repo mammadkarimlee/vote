@@ -22,6 +22,7 @@ import type {
 	TaskDoc,
 } from "../../lib/types";
 import { chunkArray, toJsDate } from "../../lib/utils";
+import { useAuth } from "../auth/AuthProvider";
 
 const flows: TargetFlow[] = [
 	"student_teacher",
@@ -54,6 +55,7 @@ const buildTaskId = (task: {
 	].join("_");
 
 export const AdminCyclesPage = () => {
+	const { user } = useAuth();
 	const [cycles, setCycles] = useState<
 		Array<{ id: string; data: SurveyCycleDoc }>
 	>([]);
@@ -74,6 +76,13 @@ export const AdminCyclesPage = () => {
 	const [thresholdY, setThresholdY] = useState("3");
 	const [thresholdP, setThresholdP] = useState("3");
 	const [status, setStatus] = useState<string | null>(null);
+	const [deleteCycle, setDeleteCycle] = useState<{
+		id: string;
+		year: number;
+	} | null>(null);
+	const [deletePassword, setDeletePassword] = useState("");
+	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
 
 	const loadCycles = async () => {
 		const { data, error } = await supabase
@@ -144,30 +153,68 @@ export const AdminCyclesPage = () => {
 		void loadQuestionSet();
 	}, [selectedCycleId, selectedFlow]);
 
+	useEffect(() => {
+		if (!deleteCycle) return;
+		const previous = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.body.style.overflow = previous;
+		};
+	}, [deleteCycle]);
+
 	const handleCreate = async () => {
 		if (!year || !startAt || !durationDays) {
 			setStatus("Bütün sahələri doldurun");
 			return;
 		}
 
+		const yearNum = Number(year);
+		const durationNum = Number(durationDays);
+		const thresholdYNum = Number(thresholdY);
+		const thresholdPNum = Number(thresholdP);
+
+		if (!Number.isInteger(yearNum) || yearNum < 2000) {
+			setStatus("İl düzgün daxil edilməyib");
+			return;
+		}
+		if (!Number.isFinite(durationNum) || durationNum <= 0) {
+			setStatus("Müddət düzgün daxil edilməyib");
+			return;
+		}
+		if (!Number.isFinite(thresholdYNum) || !Number.isFinite(thresholdPNum)) {
+			setStatus("Risk hədləri düzgün daxil edilməyib");
+			return;
+		}
+		if (cycles.some((cycle) => cycle.data.year === yearNum)) {
+			setStatus(`Bu il (${yearNum}) üçün sorğu dövrü artıq mövcuddur.`);
+			return;
+		}
+
 		const startDate = new Date(startAt);
 		const endDate = new Date(startDate);
-		endDate.setDate(endDate.getDate() + Number(durationDays));
+		endDate.setDate(endDate.getDate() + durationNum);
 
 		const { error } = await supabase.from("survey_cycles").insert({
 			org_id: ORG_ID,
 			branch_ids: selectedBranchIds.length > 0 ? selectedBranchIds : null,
-			year: Number(year),
+			year: yearNum,
 			start_at: startDate.toISOString(),
 			end_at: endDate.toISOString(),
-			duration_days: Number(durationDays),
+			duration_days: durationNum,
 			status: "DRAFT",
-			threshold_y: Number(thresholdY),
-			threshold_p: Number(thresholdP),
+			threshold_y: thresholdYNum,
+			threshold_p: thresholdPNum,
 		});
 
 		if (error) {
-			setStatus("Yaratma zamanı xəta oldu");
+			const duplicateYear =
+				error.code === "23505" ||
+				error.message.includes("survey_cycles_org_year_uidx");
+			setStatus(
+				duplicateYear
+					? `Bu il (${yearNum}) üçün sorğu dövrü artıq mövcuddur.`
+					: error.message || "Yaratma zamanı xəta oldu",
+			);
 			return;
 		}
 
@@ -188,6 +235,64 @@ export const AdminCyclesPage = () => {
 			setStatus("Status yenilənmədi");
 			return;
 		}
+		await loadCycles();
+	};
+
+	const openDeleteModal = (cycleId: string, yearValue: number) => {
+		setDeleteCycle({ id: cycleId, year: yearValue });
+		setDeletePassword("");
+		setDeleteError(null);
+	};
+
+	const closeDeleteModal = () => {
+		if (deleteSubmitting) return;
+		setDeleteCycle(null);
+		setDeletePassword("");
+		setDeleteError(null);
+	};
+
+	const handleDeleteCycle = async () => {
+		if (!deleteCycle) return;
+		if (!deletePassword.trim()) {
+			setDeleteError("Silmə üçün şifrəni daxil edin.");
+			return;
+		}
+		if (!user?.email) {
+			setDeleteError("Hesab email-i tapılmadı. Yenidən daxil olun.");
+			return;
+		}
+
+		setDeleteSubmitting(true);
+		setDeleteError(null);
+
+		const { error: authError } = await supabase.auth.signInWithPassword({
+			email: user.email,
+			password: deletePassword,
+		});
+		if (authError) {
+			setDeleteError("Şifrə yanlışdır.");
+			setDeleteSubmitting(false);
+			return;
+		}
+
+		const { error } = await supabase
+			.from("survey_cycles")
+			.delete()
+			.eq("org_id", ORG_ID)
+			.eq("id", deleteCycle.id);
+
+		if (error) {
+			setDeleteError(error.message || "Sorğu dövrü silinmədi.");
+			setDeleteSubmitting(false);
+			return;
+		}
+
+		if (selectedCycleId === deleteCycle.id) {
+			setSelectedCycleId("");
+		}
+		setStatus(`Sorğu dövrü (${deleteCycle.year}) silindi.`);
+		setDeleteSubmitting(false);
+		closeDeleteModal();
 		await loadCycles();
 	};
 
@@ -675,36 +780,51 @@ export const AdminCyclesPage = () => {
 			<div className="card">
 				<h3>Yeni sorğu dövrü</h3>
 				<div className="form-grid">
-					<input
-						className="input"
-						placeholder="İl"
-						value={year}
-						onChange={(event) => setYear(event.target.value)}
-					/>
-					<input
-						className="input"
-						type="date"
-						value={startAt}
-						onChange={(event) => setStartAt(event.target.value)}
-					/>
-					<input
-						className="input"
-						placeholder="Açıq qalma (gün)"
-						value={durationDays}
-						onChange={(event) => setDurationDays(event.target.value)}
-					/>
-					<input
-						className="input"
-						placeholder="Risk y (orta < y)"
-						value={thresholdY}
-						onChange={(event) => setThresholdY(event.target.value)}
-					/>
-					<input
-						className="input"
-						placeholder="p (ay müşahidə)"
-						value={thresholdP}
-						onChange={(event) => setThresholdP(event.target.value)}
-					/>
+					<label className="field">
+						<span className="label">İl</span>
+						<input
+							className="input"
+							placeholder="Məs: 2026"
+							value={year}
+							onChange={(event) => setYear(event.target.value)}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">Başlanğıc tarixi</span>
+						<input
+							className="input"
+							type="date"
+							value={startAt}
+							onChange={(event) => setStartAt(event.target.value)}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">Müddət (gün)</span>
+						<input
+							className="input"
+							placeholder="Məs: 7"
+							value={durationDays}
+							onChange={(event) => setDurationDays(event.target.value)}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">Risk həddi (Y)</span>
+						<input
+							className="input"
+							placeholder="Məs: 3"
+							value={thresholdY}
+							onChange={(event) => setThresholdY(event.target.value)}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">İzləmə həddi (P)</span>
+						<input
+							className="input"
+							placeholder="Məs: 3"
+							value={thresholdP}
+							onChange={(event) => setThresholdP(event.target.value)}
+						/>
+					</label>
 					<button className="btn primary" type="button" onClick={handleCreate}>
 						Yarat
 					</button>
@@ -793,6 +913,13 @@ export const AdminCyclesPage = () => {
 										Bağla
 									</button>
 								)}
+								<button
+									className="btn danger"
+									type="button"
+									onClick={() => openDeleteModal(cycle.id, cycle.data.year)}
+								>
+									Sil
+								</button>
 							</div>
 						</div>
 					);
@@ -859,7 +986,7 @@ export const AdminCyclesPage = () => {
 							type="button"
 							onClick={handleCopyFromPreviousCycle}
 						>
-							Keçən ildən kopyala
+							Keçən ildən köçür
 						</button>
 						<button
 							className="btn"
@@ -868,6 +995,49 @@ export const AdminCyclesPage = () => {
 						>
 							Tapşırıqları yarat
 						</button>
+					</div>
+				</div>
+			)}
+
+			{deleteCycle && (
+				<div className="modal-overlay" role="dialog" aria-modal="true">
+					<div className="modal-card">
+						<div className="modal-title">Sorğu dövrünü sil</div>
+						<p className="modal-message">
+							{deleteCycle.year} ili üçün sorğu dövrü və bağlı məlumatlar silinəcək.
+							Davam etmək üçün hesab şifrənizi daxil edin.
+						</p>
+						<label className="field modal-field">
+							<span className="label">Şifrə</span>
+							<input
+								className="input"
+								type="password"
+								value={deletePassword}
+								onChange={(event) => setDeletePassword(event.target.value)}
+								placeholder="Şifrənizi daxil edin"
+								autoFocus
+								disabled={deleteSubmitting}
+							/>
+						</label>
+						{deleteError && <div className="notice modal-error">{deleteError}</div>}
+						<div className="actions modal-actions">
+							<button
+								className="btn ghost"
+								type="button"
+								onClick={closeDeleteModal}
+								disabled={deleteSubmitting}
+							>
+								İmtina
+							</button>
+							<button
+								className="btn danger"
+								type="button"
+								onClick={() => void handleDeleteCycle()}
+								disabled={deleteSubmitting}
+							>
+								{deleteSubmitting ? "Silinir..." : "Təsdiqlə və sil"}
+							</button>
+						</div>
 					</div>
 				</div>
 			)}

@@ -269,7 +269,7 @@ export const BranchStudentsPage = () => {
 							}}
 						/>
 						<span className="hint">
-							Şablon sütunları: name, groupId, classLevel, branchId (optional)
+							Şablon sütunları: name, groupId, classLevel, branchId (istəyə bağlı)
 						</span>
 					</div>
 					<div className="hint">Şifrə default olaraq login ilə eynidir.</div>

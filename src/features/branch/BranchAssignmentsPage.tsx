@@ -376,7 +376,7 @@ export const BranchAssignmentsPage = () => {
 						/>
 						<span className="hint">
 							Şablon sütunları: teacherId, groupId, subjectId, year, branchId
-							(optional)
+							(istəyə bağlı)
 						</span>
 					</div>
 					{status && <div className="notice">{status}</div>}

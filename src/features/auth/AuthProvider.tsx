@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapUserRow } from "../../lib/supabaseMappers";
 import type { UserDoc } from "../../lib/types";
@@ -17,6 +17,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 	const [user, setUser] = useState<User | null>(null);
 	const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
 	const [loading, setLoading] = useState(true);
+	const currentUserIdRef = useRef<string | null>(null);
+	const userId = user?.id ?? null;
 
 	useEffect(() => {
 		let active = true;
@@ -25,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 			const { data } = await supabase.auth.getSession();
 			if (!active) return;
 			const nextUser = data.session?.user ?? null;
+			currentUserIdRef.current = nextUser?.id ?? null;
 			setUser(nextUser);
 			if (!nextUser) {
 				setLoading(false);
@@ -35,10 +38,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 		const { data } = supabase.auth.onAuthStateChange((_event, session) => {
 			const nextUser = session?.user ?? null;
+			const nextUserId = nextUser?.id ?? null;
+			const prevUserId = currentUserIdRef.current;
+			const userChanged = prevUserId !== nextUserId;
+
+			currentUserIdRef.current = nextUserId;
 			setUser(nextUser);
-			setUserDoc(null);
+
 			if (!nextUser) {
+				setUserDoc(null);
 				setLoading(false);
+				return;
+			}
+
+			if (userChanged) {
+				setUserDoc(null);
+				setLoading(true);
 			}
 		});
 
@@ -49,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 	}, []);
 
 	useEffect(() => {
-		if (!user) return undefined;
+		if (!userId) return undefined;
 		let active = true;
 
 		const loadUserDoc = async () => {
@@ -58,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 				.from("users")
 				.select("*")
 				.eq("org_id", ORG_ID)
-				.eq("id", user.id)
+				.eq("id", userId)
 				.maybeSingle();
 
 			if (!active) return;
@@ -77,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 		return () => {
 			active = false;
 		};
-	}, [user]);
+	}, [userId]);
 
 	const value = useMemo<AuthState>(
 		() => ({

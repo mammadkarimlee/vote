@@ -489,9 +489,9 @@ export const BranchResultsPage = () => {
 		return (
 			<div className="panel">
 				<div className="card">
-					<h3>Nəticələr yalnız SuperAdmin üçündür</h3>
+					<h3>Nəticələr yalnız mərkəzi idarəetmə rolu üçündür</h3>
 					<p>
-						Filial adminləri nəticələri görə bilməz. Yalnız “DONE” statusu
+						Filial adminləri nəticələri görə bilməz. Yalnız tamamlanma statusu
 						göstərilir.
 					</p>
 				</div>
@@ -545,7 +545,7 @@ export const BranchResultsPage = () => {
 				<div className="stat-card">
 					<div className="stat-label">
 						Ümumi orta
-						<InfoTip text="Seçilmiş sorğu dövrü üzrə scale cavablarının ortalaması." />
+						<InfoTip text="Seçilmiş sorğu dövrü üzrə şkala cavablarının orta göstəricisi." />
 					</div>
 					<div className="stat-value">
 						{formatAvg(overallSummary.avg, overallSummary.submissions)}
@@ -563,10 +563,10 @@ export const BranchResultsPage = () => {
 				<div className="stat-card">
 					<div className="stat-label">
 						Qiymətləndirmə
-						<InfoTip text="Scale sualları üçün 1–10 bal aralığı." />
+						<InfoTip text="Şkala sualları üçün 1–10 bal aralığı." />
 					</div>
 					<div className="stat-value">1–10</div>
-					<div className="stat-meta">Scale sualları</div>
+					<div className="stat-meta">Şkala sualları</div>
 				</div>
 			</div>
 

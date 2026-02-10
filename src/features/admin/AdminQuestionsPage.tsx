@@ -109,7 +109,7 @@ export const AdminQuestionsPage = () => {
 						value={text}
 						onChange={(event) => setText(event.target.value)}
 					/>
-					<input className="input" value="1–10 (scale)" disabled />
+					<input className="input" value="1–10 (şkala)" disabled />
 					<select
 						className="input"
 						value={required ? "yes" : "no"}
@@ -120,14 +120,14 @@ export const AdminQuestionsPage = () => {
 					</select>
 					<input
 						className="input"
-						placeholder="Kateqoriya (optional)"
+						placeholder="Kateqoriya (istəyə bağlı)"
 						value={category}
 						onChange={(event) => setCategory(event.target.value)}
 					/>
 				</div>
 				<div className="form-row">
 					<span className="hint">
-						Sual tipi yalnız 1–10 scale olaraq sabitdir.
+						Sual tipi yalnız 1–10 şkala kimi sabitdir.
 					</span>
 				</div>
 				<div className="actions">

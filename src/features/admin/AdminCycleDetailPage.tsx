@@ -406,7 +406,7 @@ export const AdminCycleDetailPage = () => {
 					<div className="stat-card">
 						<div className="stat-label">
 							Ümumi orta
-							<InfoTip text="Scale (1–10) sualları üzrə bütün cavabların ortalaması." />
+							<InfoTip text="Şkala (1–10) sualları üzrə bütün cavabların orta göstəricisi." />
 						</div>
 						<div className="stat-value">
 							{formatAvg(overallSummary.avg, overallSummary.submissions)}

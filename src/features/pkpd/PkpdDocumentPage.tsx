@@ -38,7 +38,7 @@ const toc = [
 	{ id: "prinsipler", label: "Prinsiplər" },
 	{ id: "proses", label: "Proses və komissiya" },
 	{ id: "meyarlar", label: "Meyarlar (100 bal)" },
-	{ id: "balabirge", label: "Balabirgə dəyərləndirilməsi (30)" },
+	{ id: "balabilge", label: "Balabilgə dəyərləndirmə (30)" },
 	{ id: "ozunu", label: "Özünü dəyərləndirmə (10)" },
 	{ id: "rehberlik", label: "Rəhbərlik dəyərləndirməsi (10)" },
 	{ id: "akkreditasiya", label: "Akkreditasiya: İmtahan + Portfolio" },
@@ -253,10 +253,10 @@ export const PkpdDocumentPage = () => {
 					</Table>
 				</section>
 
-				<section id="balabirge" className="space-y-3">
-					<Badge variant="outline">Balabirgə</Badge>
+				<section id="balabilge" className="space-y-3">
+					<Badge variant="outline">Balabilgə</Badge>
 					<h2 className="text-2xl font-semibold">
-						Balabirgə dəyərləndirilməsi (30)
+						Balabilgə dəyərləndirmə (30)
 					</h2>
 					<Tabs defaultValue="biq">
 						<TabsList>
@@ -270,14 +270,14 @@ export const PkpdDocumentPage = () => {
 							</p>
 							<FormulaBox
 								label="Formula"
-								formula="BİQ balı = (BİQ ortalama × 15) / 100"
+								formula="BİQ balı = (BİQ orta göstərici × 15) / 100"
 							/>
 							<Table>
 								<TableHeader>
 									<TableRow>
 										<TableHead>Sinif</TableHead>
 										<TableHead>Fənn</TableHead>
-										<TableHead>Ortalama</TableHead>
+										<TableHead>Orta göstərici</TableHead>
 										<TableHead>Bal</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -298,13 +298,13 @@ export const PkpdDocumentPage = () => {
 							</p>
 							<FormulaBox
 								label="Formula"
-								formula="Sorğu balı = (Sorğu ortalama × 15) / 100"
+								formula="Sorğu balı = (Sorğu orta göstərici × 15) / 100"
 							/>
 							<Table>
 								<TableHeader>
 									<TableRow>
 										<TableHead>Qrup</TableHead>
-										<TableHead>Ortalama</TableHead>
+										<TableHead>Orta göstərici</TableHead>
 										<TableHead>Bal</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -471,7 +471,7 @@ export const PkpdDocumentPage = () => {
 
 				<section id="bonus-ballar" className="space-y-3">
 					<Badge variant="outline">Bonus ballar</Badge>
-					<h2 className="text-2xl font-semibold">Bonus ballar (checklist)</h2>
+					<h2 className="text-2xl font-semibold">Bonus ballar (yoxlama siyahısı)</h2>
 					<div className="grid gap-2">
 						{bonusOptions.map((option) => (
 							<label

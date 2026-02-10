@@ -149,7 +149,7 @@ export const BranchCycleDetailPage = () => {
 				<div className="section-header">
 					<div>
 						<h3>Ümumi xülasə</h3>
-						<p>Şagirdlərin “DONE” statusu.</p>
+						<p>Şagirdlərin tamamlanma statusu.</p>
 					</div>
 					{cycle && (
 						<div className="meta">
@@ -183,13 +183,13 @@ export const BranchCycleDetailPage = () => {
 				<div className="section-header">
 					<div>
 						<h3>Şagird iştirak siyahısı</h3>
-						<p>Anonimdir: yalnız “DONE” statusu görünür.</p>
+						<p>Anonimdir: yalnız tamamlanma vəziyyəti görünür.</p>
 					</div>
 				</div>
 				<div className="data-table">
 					<div className="data-row header">
 						<div>Ad</div>
-						<div>DONE</div>
+						<div>Tamamlanıb</div>
 						<div>Tapşırıq</div>
 					</div>
 					{studentRows.map((student) => (

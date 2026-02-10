@@ -164,7 +164,7 @@ export const AdminBranchesPage = () => {
 					/>
 					<input
 						className="input"
-						placeholder="Ünvan (optional)"
+						placeholder="Ünvan (istəyə bağlı)"
 						value={address}
 						onChange={(event) => setAddress(event.target.value)}
 					/>

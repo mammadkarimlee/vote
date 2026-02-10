@@ -1245,7 +1245,7 @@ export const BranchPkpdPage = () => {
 						<div className="form-row">
 							<input
 								className="input"
-								placeholder="Qeyd (optional)"
+								placeholder="Qeyd (istəyə bağlı)"
 								value={portfolioNote}
 								onChange={(event) => setPortfolioNote(event.target.value)}
 							/>
@@ -1293,7 +1293,7 @@ export const BranchPkpdPage = () => {
 				<div className="form-row">
 					<input
 						className="input"
-						placeholder="Qeyd (optional)"
+						placeholder="Qeyd (istəyə bağlı)"
 						value={achievementNote}
 						onChange={(event) => setAchievementNote(event.target.value)}
 					/>

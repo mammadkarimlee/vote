@@ -851,7 +851,7 @@ begin
       where id = new.target_id
         and org_id = new.org_id
     ) then
-      raise exception 'invalid teacher target';
+      raise exception 'müəllim hədəfi etibarsızdır';
     end if;
   elsif new.target_type = 'manager' then
     if not exists (
@@ -860,7 +860,7 @@ begin
         and org_id = new.org_id
         and role = 'manager'
     ) then
-      raise exception 'invalid manager target';
+      raise exception 'rəhbər hədəfi etibarsızdır';
     end if;
   end if;
   return new;
@@ -890,27 +890,27 @@ begin
      and org_id = new.org_id;
 
   if not found then
-    raise exception 'invalid question';
+    raise exception 'sual etibarsızdır';
   end if;
 
   if v_type = 'scale' then
     if jsonb_typeof(new.value) <> 'number' then
-      raise exception 'invalid scale answer';
+      raise exception 'bal cavabı etibarsızdır';
     end if;
     if (new.value::text)::numeric < coalesce(v_min, 1)
        or (new.value::text)::numeric > coalesce(v_max, 10) then
-      raise exception 'scale out of range';
+      raise exception 'bal dəyəri icazə verilən aralıqda deyil';
     end if;
   elsif v_type = 'choice' then
     if jsonb_typeof(new.value) <> 'string' then
-      raise exception 'invalid choice answer';
+      raise exception 'seçim cavabı etibarsızdır';
     end if;
     if not (trim(both '"' from new.value::text) = any(coalesce(v_options, '{}'::text[]))) then
-      raise exception 'invalid choice option';
+      raise exception 'seçim variantı etibarsızdır';
     end if;
   elsif v_type = 'text' then
     if jsonb_typeof(new.value) <> 'string' then
-      raise exception 'invalid text answer';
+      raise exception 'mətn cavabı etibarsızdır';
     end if;
   end if;
 
@@ -935,7 +935,7 @@ declare
   v_updated integer := 0;
 begin
   if auth.uid() is null then
-    raise exception 'not authenticated';
+    raise exception 'istifadəçi təsdiqlənməyib';
   end if;
 
   update public.notifications
@@ -970,11 +970,11 @@ declare
   v_inserted integer := 0;
 begin
   if auth.uid() is null then
-    raise exception 'not authenticated';
+    raise exception 'istifadəçi təsdiqlənməyib';
   end if;
 
   if not (public.is_superadmin() or public.is_branch_staff()) then
-    raise exception 'not allowed';
+    raise exception 'icazə yoxdur';
   end if;
 
   select *
@@ -984,11 +984,11 @@ begin
      and org_id = public.current_org_id();
 
   if not found then
-    raise exception 'cycle not found';
+    raise exception 'sorğu dövrü tapılmadı';
   end if;
 
   if v_cycle.status <> 'OPEN' and not p_force then
-    raise exception 'cycle not open';
+    raise exception 'sorğu dövrü açıq deyil';
   end if;
 
   insert into public.notifications (
@@ -1077,7 +1077,7 @@ declare
   v_missing text[];
 begin
   if auth.uid() is null then
-    raise exception 'not authenticated';
+    raise exception 'istifadəçi təsdiqlənməyib';
   end if;
 
   select *
@@ -1088,19 +1088,19 @@ begin
    for update;
 
   if not found then
-    raise exception 'task not found';
+    raise exception 'tapşırıq tapılmadı';
   end if;
 
   if v_task.rater_id <> auth.uid()::text then
-    raise exception 'not allowed';
+    raise exception 'icazə yoxdur';
   end if;
 
   if v_task.status <> 'OPEN' then
-    raise exception 'task already completed';
+    raise exception 'tapşırıq artıq tamamlanıb';
   end if;
 
   if exists (select 1 from public.submissions where task_id = v_task.id) then
-    raise exception 'submission already exists';
+    raise exception 'cavab artıq göndərilib';
   end if;
 
   select *
@@ -1110,15 +1110,15 @@ begin
      and org_id = v_task.org_id;
 
   if not found then
-    raise exception 'cycle not found';
+    raise exception 'sorğu dövrü tapılmadı';
   end if;
 
   if v_cycle.status <> 'OPEN' then
-    raise exception 'cycle not open';
+    raise exception 'sorğu dövrü açıq deyil';
   end if;
 
   if v_now < v_cycle.start_at or v_now > v_cycle.end_at then
-    raise exception 'cycle closed';
+    raise exception 'sorğu dövrünün müddəti bitib';
   end if;
 
   if v_task.rater_role = 'student' and v_task.target_type = 'teacher' then
@@ -1139,7 +1139,7 @@ begin
      and target_flow = v_flow;
 
   if v_question_ids is null or array_length(v_question_ids, 1) is null then
-    raise exception 'question set not found';
+    raise exception 'sual dəsti tapılmadı';
   end if;
 
   create temp table tmp_answers (
@@ -1159,7 +1159,7 @@ begin
       from tmp_answers a
      where not (a.question_id = any(v_question_ids))
   ) then
-    raise exception 'invalid question id';
+    raise exception 'sual ID-si etibarsızdır';
   end if;
 
   select array_agg(q.id)
@@ -1183,7 +1183,7 @@ begin
      );
 
   if v_missing is not null then
-    raise exception 'missing required answers';
+    raise exception 'məcburi cavablar çatışmır';
   end if;
 
   if exists (
@@ -1199,7 +1199,7 @@ begin
          or (a.value::text)::numeric > coalesce(q.scale_max, 10)
        )
   ) then
-    raise exception 'invalid scale answer';
+    raise exception 'bal cavabı etibarsızdır';
   end if;
 
   if exists (
@@ -1214,7 +1214,7 @@ begin
          or not (trim(both '"' from a.value::text) = any(coalesce(q.options, '{}'::text[])))
        )
   ) then
-    raise exception 'invalid choice answer';
+    raise exception 'seçim cavabı etibarsızdır';
   end if;
 
   if exists (
@@ -1226,7 +1226,7 @@ begin
      where q.type = 'text'
        and jsonb_typeof(a.value) <> 'string'
   ) then
-    raise exception 'invalid text answer';
+    raise exception 'mətn cavabı etibarsızdır';
   end if;
 
   insert into public.submissions (
@@ -2453,3 +2453,4 @@ values ('default', 'Default Org')
 on conflict (id) do nothing;
 
 commit;
+

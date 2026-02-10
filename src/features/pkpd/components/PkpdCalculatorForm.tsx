@@ -14,8 +14,8 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import { ScoreCard } from "./ScoreCard";
 
 const fieldMeta = {
-	biq: { min: 0, max: 100, label: "BİQ ortalama (0–100)", weight: 15 },
-	survey: { min: 0, max: 100, label: "Sorğu ortalama (0–100)", weight: 15 },
+	biq: { min: 0, max: 100, label: "BİQ orta göstərici (0–100)", weight: 15 },
+	survey: { min: 0, max: 100, label: "Sorğu orta göstərici (0–100)", weight: 15 },
 	self: { min: 0, max: 10, label: "Özünü dəyərləndirmə (0–10)", weight: 10 },
 	leadership: {
 		min: 0,
@@ -185,9 +185,9 @@ export const PkpdCalculatorForm = () => {
 		const url = `${window.location.origin}${window.location.pathname}?${buildParams(fields, bonusIds).toString()}`;
 		try {
 			await navigator.clipboard.writeText(url);
-			setShareStatus("Link kopyalandı");
+			setShareStatus("Link köçürüldü");
 		} catch {
-			setShareStatus("Link kopyalana bilmədi");
+			setShareStatus("Link köçürülə bilmədi");
 		}
 	};
 
@@ -298,13 +298,13 @@ export const PkpdCalculatorForm = () => {
 
 			<div className="space-y-4">
 				<ScoreCard
-					title="Toplam bal"
+					title="Ümumi bal"
 					value={values.breakdown.total.toFixed(1)}
 					subtitle="0–100 + bonus"
 				/>
 				<div className="rounded-2xl border border-border bg-card px-4 py-3">
 					<div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-						Status
+						Nəticə statusu
 					</div>
 					<div className="mt-2">
 						<DecisionBadge score={values.breakdown.total} />

@@ -66,7 +66,7 @@ export const Layout = () => {
 						)}
 					{role === "superadmin" && (
 						<NavLink to="/admin" className={navClass}>
-							SuperAdmin paneli
+							Mərkəzi idarə paneli
 						</NavLink>
 					)}
 				</nav>

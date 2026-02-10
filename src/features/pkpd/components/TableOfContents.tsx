@@ -45,7 +45,7 @@ export const TableOfContents = ({
 	return (
 		<nav
 			className={cn("flex flex-col gap-1 text-sm", className)}
-			aria-label="Table of contents"
+			aria-label="Mündəricat"
 		>
 			{items.map((item) => (
 				<a

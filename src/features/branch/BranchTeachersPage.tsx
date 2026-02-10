@@ -977,7 +977,7 @@ export const BranchTeachersPage = () => {
 								}}
 							/>
 							<span className="hint">
-								Şablon sütunları: name, category (optional), branchId (optional)
+								Şablon sütunları: name, category (istəyə bağlı), branchId (istəyə bağlı)
 							</span>
 						</div>
 					</div>

@@ -258,7 +258,7 @@ export const BranchGroupsPage = () => {
 						}}
 					/>
 					<span className="hint">
-						Şablon sütunları: name, classLevel, branchId (optional)
+						Şablon sütunları: name, classLevel, branchId (istəyə bağlı)
 					</span>
 				</div>
 				{status && <div className="notice">{status}</div>}

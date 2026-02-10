@@ -14,7 +14,7 @@ type RoleOption = {
 };
 
 const roleOptions: RoleOption[] = [
-	{ value: "branch_admin", label: "Branch admin" },
+	{ value: "branch_admin", label: "Filial admini" },
 	{ value: "moderator", label: "Moderator" },
 ];
 
