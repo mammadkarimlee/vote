@@ -439,7 +439,20 @@ export const AdminCyclesPage = () => {
 			managementRes.error ||
 			existingTasksRes.error
 		) {
-			setStatus("Tapşırıqlar hazırlanmadı");
+			const loadError =
+				usersRes.error ||
+				studentsRes.error ||
+				teachersRes.error ||
+				groupsRes.error ||
+				subjectsRes.error ||
+				assignmentsRes.error ||
+				managementRes.error ||
+				existingTasksRes.error;
+			setStatus(
+				loadError?.message
+					? `Tapşırıqlar hazırlanmadı: ${loadError.message}`
+					: "Tapşırıqlar hazırlanmadı",
+			);
 			return;
 		}
 
@@ -547,6 +560,16 @@ export const AdminCyclesPage = () => {
 		const teacherMap = Object.fromEntries(
 			teachersScoped.map((teacher) => [teacher.id, teacher.data]),
 		);
+		const teacherIdByUserId = teachersScoped.reduce<Record<string, string>>(
+			(acc, teacher) => {
+				if (teacher.data.uid) {
+					acc[teacher.data.uid] = teacher.id;
+				}
+				acc[teacher.id] = teacher.id;
+				return acc;
+			},
+			{},
+		);
 		const managerMap = usersScoped.reduce<Record<string, string>>(
 			(acc, user) => {
 				if (user.data.role === "manager") {
@@ -558,6 +581,7 @@ export const AdminCyclesPage = () => {
 		);
 
 		const tasksToCreate: Array<{ id: string; data: TaskDoc }> = [];
+		let skippedTeacherSelfWithoutProfile = 0;
 
 		if (!assignmentYear) {
 			setStatus("Tapşırıq yaradılmadı: dərs təyinatı tapılmadı");
@@ -646,7 +670,12 @@ export const AdminCyclesPage = () => {
 		});
 
 		teacherUsers.forEach((user) => {
-			const teacher = teacherMap[user.id];
+			const teacherId = teacherIdByUserId[user.id];
+			if (!teacherId) {
+				skippedTeacherSelfWithoutProfile += 1;
+				return;
+			}
+			const teacher = teacherMap[teacherId];
 			const branch = teacher?.branchId ?? user.data.branchId;
 			if (!branch) return;
 			const task: TaskDoc = {
@@ -654,7 +683,7 @@ export const AdminCyclesPage = () => {
 				raterUid: user.id,
 				raterRole: "teacher",
 				targetType: "teacher",
-				targetId: user.id,
+				targetId: teacherId,
 				targetName:
 					teacher?.name ?? user.data.displayName ?? user.data.login ?? null,
 				branchId: branch,
@@ -664,7 +693,7 @@ export const AdminCyclesPage = () => {
 				cycleId,
 				raterUid: user.id,
 				targetType: "teacher",
-				targetId: user.id,
+				targetId: teacherId,
 			});
 			if (!existingTaskIds.has(taskId)) {
 				tasksToCreate.push({ id: taskId, data: task });
@@ -713,6 +742,11 @@ export const AdminCyclesPage = () => {
 				`Rəhbərlik təyinatı ${managementYear} ilindən istifadə olundu`,
 			);
 		}
+		if (skippedTeacherSelfWithoutProfile > 0) {
+			warnings.push(
+				`${skippedTeacherSelfWithoutProfile} müəllim üçün profil tapılmadığına görə özünüqiymətləndirmə tapşırığı yaradılmadı`,
+			);
+		}
 
 		if (tasksToCreate.length === 0) {
 			if (existingTaskIds.size > 0) {
@@ -752,7 +786,14 @@ export const AdminCyclesPage = () => {
 			}));
 			const { error } = await supabase.from("tasks").insert(rows);
 			if (error) {
-				setStatus("Tapşırıqlar hazırlanmadı");
+				const parts = [error.message, error.details, error.hint].filter(
+					(value): value is string => Boolean(value),
+				);
+				setStatus(
+					parts.length > 0
+						? `Tapşırıqlar hazırlanmadı: ${parts.join(" | ")}`
+						: "Tapşırıqlar hazırlanmadı",
+				);
 				return;
 			}
 		}
