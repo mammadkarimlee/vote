@@ -9,6 +9,11 @@ const LOGIN_EMAIL_DOMAIN =
 	process.env.LOGIN_EMAIL_DOMAIN ||
 	process.env.VITE_LOGIN_EMAIL_DOMAIN ||
 	"vote.local";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY?.trim();
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const OPENAI_BASE_URL = (
+	process.env.OPENAI_BASE_URL || "https://api.openai.com/v1"
+).replace(/\/+$/, "");
 const PORT = Number(process.env.PROVISION_API_PORT || 8787);
 const allowedOrigins = (
 	process.env.PROVISION_ALLOWED_ORIGINS || "http://localhost:5173"
@@ -128,8 +133,344 @@ const BRANCH_STAFF_CREATE_ROLES = new Set([
 	"moderator",
 ]);
 
+const toFiniteNumber = (value) => {
+	const numeric = Number(value);
+	return Number.isFinite(numeric) ? numeric : null;
+};
+
+const sanitizeText = (value, maxLength = 220) =>
+	String(value ?? "")
+		.replace(/\s+/g, " ")
+		.trim()
+		.slice(0, maxLength);
+
+const normalizeTeacherFeedbackPayload = (input) => {
+	const payload = input && typeof input === "object" ? input : {};
+	const teacherName = sanitizeText(payload.teacherName, 120);
+	if (!teacherName) {
+		return { error: "Müəllim adı tələb olunur." };
+	}
+
+	const cycleYearRaw = toFiniteNumber(payload.cycleYear);
+	const cycleYear = cycleYearRaw === null ? null : Math.trunc(cycleYearRaw);
+
+	const overallAvgRaw = toFiniteNumber(payload.overallAvg);
+	const teacherAvgRaw = toFiniteNumber(payload.teacherAvg);
+	const overallAvg =
+		overallAvgRaw === null ? null : Number(overallAvgRaw.toFixed(2));
+	const teacherAvg =
+		teacherAvgRaw === null ? null : Number(teacherAvgRaw.toFixed(2));
+
+	const submissionCountRaw = toFiniteNumber(payload.submissionCount);
+	const submissionCount =
+		submissionCountRaw === null ? 0 : Math.max(0, Math.trunc(submissionCountRaw));
+
+	const scaleQuestions = Array.isArray(payload.scaleQuestions)
+		? payload.scaleQuestions
+				.map((item) => {
+					const text = sanitizeText(item?.text, 220);
+					const avgRaw = toFiniteNumber(item?.avg);
+					const countRaw = toFiniteNumber(item?.count);
+					if (!text || avgRaw === null) return null;
+					const avg = Math.max(0, Math.min(10, Number(avgRaw.toFixed(2))));
+					const count = countRaw === null ? 0 : Math.max(0, Math.trunc(countRaw));
+					return { text, avg, count };
+				})
+				.filter(Boolean)
+				.slice(0, 12)
+		: [];
+
+	const choiceQuestions = Array.isArray(payload.choiceQuestions)
+		? payload.choiceQuestions
+				.map((item) => {
+					const text = sanitizeText(item?.text, 220);
+					if (!text) return null;
+					const distributionRaw = Array.isArray(item?.distribution)
+						? item.distribution
+						: [];
+					const distribution = distributionRaw
+						.map((entry) => {
+							const option = sanitizeText(entry?.option, 120);
+							const countRaw = toFiniteNumber(entry?.count);
+							const count =
+								countRaw === null ? 0 : Math.max(0, Math.trunc(countRaw));
+							if (!option) return null;
+							return { option, count };
+						})
+						.filter(Boolean)
+						.slice(0, 8);
+					return { text, distribution };
+				})
+				.filter(Boolean)
+				.slice(0, 8)
+		: [];
+
+	const comments = Array.isArray(payload.comments)
+		? payload.comments
+				.map((item) => sanitizeText(item, 260))
+				.filter(Boolean)
+				.slice(0, 12)
+		: [];
+
+	return {
+		payload: {
+			teacherName,
+			cycleYear,
+			overallAvg,
+			teacherAvg,
+			submissionCount,
+			scaleQuestions,
+			choiceQuestions,
+			comments,
+		},
+	};
+};
+
+const parseJsonObject = (value) => {
+	if (typeof value !== "string") return null;
+	const start = value.indexOf("{");
+	const end = value.lastIndexOf("}");
+	if (start < 0 || end < 0 || end <= start) return null;
+	try {
+		return JSON.parse(value.slice(start, end + 1));
+	} catch {
+		return null;
+	}
+};
+
+const normalizeList = (value) => {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => sanitizeText(item, 260))
+		.filter(Boolean)
+		.slice(0, 4);
+};
+
+const buildRuleBasedFeedback = (payload) => {
+	const { teacherName, cycleYear, overallAvg, teacherAvg, submissionCount } =
+		payload;
+	const scaleSortedDesc = [...payload.scaleQuestions].sort((a, b) => b.avg - a.avg);
+	const scaleSortedAsc = [...payload.scaleQuestions].sort((a, b) => a.avg - b.avg);
+	const topScale = scaleSortedDesc.slice(0, 3);
+	const lowScale = scaleSortedAsc.slice(0, 3);
+	const commentsCount = payload.comments.length;
+
+	let comparison = "Filial ortalaması ilə müqayisə üçün məlumat kifayət deyil.";
+	if (teacherAvg !== null && overallAvg !== null) {
+		const diff = Number((teacherAvg - overallAvg).toFixed(2));
+		if (diff >= 0.4) {
+			comparison = `Nəticə filial ortalamasından +${diff.toFixed(2)} bal yuxarıdır.`;
+		} else if (diff <= -0.4) {
+			comparison = `Nəticə filial ortalamasından ${diff.toFixed(2)} bal aşağıdır.`;
+		} else {
+			comparison = `Nəticə filial ortalamasına yaxındır (fərq ${diff.toFixed(2)} bal).`;
+		}
+	}
+
+	const strengths = topScale.map(
+		(item) => `${item.text}: orta ${item.avg.toFixed(2)} (n=${item.count})`,
+	);
+	while (strengths.length < 3) {
+		strengths.push("Sabit dərs ritmi və qiymətləndirmə ardıcıllığı müşahidə olunur.");
+	}
+
+	const improvements = lowScale.map(
+		(item) =>
+			`${item.text}: orta ${item.avg.toFixed(2)}. Bu mövzu üzrə əlavə fokus lazımdır.`,
+	);
+	if (payload.choiceQuestions.length > 0) {
+		const choice = payload.choiceQuestions[0];
+		const topChoice = [...choice.distribution].sort((a, b) => b.count - a.count)[0];
+		if (topChoice) {
+			improvements.push(
+				`${choice.text}: ən çox seçilən cavab "${topChoice.option}" (${topChoice.count}).`,
+			);
+		}
+	}
+	while (improvements.length < 3) {
+		improvements.push("Dərsdə iştirak və geribildirim dövrəsini daha sistemli edin.");
+	}
+
+	const actionPlan = [
+		lowScale[0]
+			? `"${lowScale[0].text}" mövzusu üzrə hər həftə 1 ölçülə bilən mini-hədəf qoyun.`
+			: "Hər həftə 1 ölçülə bilən mini-hədəf qoyun və nəticəni qeyd edin.",
+		"2 həftədə bir anonim mini-sorğu aparın və nəticələri əvvəlki dövrlə müqayisə edin.",
+		"30 günün sonunda qısa özünütəhlil yazın: nə işlədi, nə işləmədi, növbəti addım nədir.",
+	];
+
+	const rationale = [
+		cycleYear ? `${cycleYear} sorğu dövrünün nəticələri istifadə olunub.` : "Seçilmiş sorğu dövrü istifadə olunub.",
+		teacherAvg !== null
+			? `Müəllimin ümumi ortalaması: ${teacherAvg.toFixed(2)}.`
+			: "Müəllim üzrə ortalama bal hesablanmayıb.",
+		`Qiymətləndirmə sayı: ${submissionCount}. Yazılı rəy sayı: ${commentsCount}.`,
+	];
+
+	const summary = `${teacherName} üçün nəticə xülasəsi hazırlandı. ${comparison}`;
+	return { summary, strengths, improvements, actionPlan, rationale };
+};
+
+const mergeFeedbackDraft = (candidate, fallback) => {
+	const summary = sanitizeText(candidate?.summary, 900) || fallback.summary;
+	const strengths = normalizeList(candidate?.strengths);
+	const improvements = normalizeList(candidate?.improvements);
+	const actionPlan = normalizeList(candidate?.actionPlan);
+	const rationale = normalizeList(candidate?.rationale);
+
+	return {
+		summary,
+		strengths: strengths.length > 0 ? strengths : fallback.strengths,
+		improvements: improvements.length > 0 ? improvements : fallback.improvements,
+		actionPlan: actionPlan.length > 0 ? actionPlan : fallback.actionPlan,
+		rationale: rationale.length > 0 ? rationale : fallback.rationale,
+	};
+};
+
+const formatFeedbackSummary = (draft) => {
+	const section = (title, items) => [title, ...items.map((item) => `- ${item}`)];
+	return [
+		"Qısa xülasə",
+		draft.summary,
+		"",
+		...section("Güclü tərəflər", draft.strengths),
+		"",
+		...section("İnkişaf sahələri", draft.improvements),
+		"",
+		...section("30 günlük plan", draft.actionPlan),
+		"",
+		...section("Əsaslandırma", draft.rationale),
+	]
+		.join("\n")
+		.trim();
+};
+
+const buildAiFeedbackDraft = async (payload) => {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+	try {
+		const systemPrompt = [
+			"Sən təhsil keyfiyyəti üzrə analitiksən.",
+			"Cavabı yalnız Azərbaycan dilində yaz.",
+			"Cavabı yalnız JSON formatında qaytar:",
+			'{"summary":"","strengths":[],"improvements":[],"actionPlan":[],"rationale":[]}',
+			"summary 2-3 cümlə olsun, digər massivlərdə 3 konkret maddə ver.",
+			"Yalnız verilən dataya əsaslan, heç nə uydurma.",
+		].join(" ");
+
+		const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${OPENAI_API_KEY}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				model: OPENAI_MODEL,
+				temperature: 0.2,
+				messages: [
+					{ role: "system", content: systemPrompt },
+					{ role: "user", content: JSON.stringify(payload) },
+				],
+			}),
+			signal: controller.signal,
+		});
+
+		const body = await response.json().catch(() => null);
+		if (!response.ok) {
+			const message =
+				body &&
+				typeof body === "object" &&
+				"error" in body &&
+				body.error &&
+				typeof body.error.message === "string"
+					? body.error.message
+					: `AI provider HTTP ${response.status}`;
+			throw new Error(message);
+		}
+
+		const content = body?.choices?.[0]?.message?.content;
+		const parsed = parseJsonObject(content);
+		if (!parsed) {
+			throw new Error("AI xidməti JSON cavab qaytarmadı.");
+		}
+		return parsed;
+	} finally {
+		clearTimeout(timeoutId);
+	}
+};
+
+const generateTeacherFeedback = async (payload) => {
+	const fallbackDraft = buildRuleBasedFeedback(payload);
+
+	if (!OPENAI_API_KEY) {
+		return {
+			source: "rule_based",
+			summary: formatFeedbackSummary(fallbackDraft),
+			warning: "OPENAI_API_KEY təyin edilməyib. Qayda əsaslı rəy yaradıldı.",
+		};
+	}
+
+	try {
+		const aiDraft = await buildAiFeedbackDraft(payload);
+		const merged = mergeFeedbackDraft(aiDraft, fallbackDraft);
+		return {
+			source: "ai",
+			summary: formatFeedbackSummary(merged),
+		};
+	} catch (error) {
+		console.error("AI feedback failed:", error);
+		return {
+			source: "rule_based",
+			summary: formatFeedbackSummary(fallbackDraft),
+			warning: "AI xidməti əlçatan olmadı. Qayda əsaslı rəy yaradıldı.",
+		};
+	}
+};
+
 app.get("/health", (_req, res) => {
 	res.json({ ok: true });
+});
+
+app.post("/ai/teacher-feedback", async (req, res) => {
+	try {
+		const authHeader = req.headers.authorization || "";
+		const token = authHeader.replace("Bearer ", "").trim();
+		if (!token) return respondError(res, 401, "Unauthorized");
+
+		const { data: authData, error: authError } =
+			await supabase.auth.getUser(token);
+		if (authError || !authData.user)
+			return respondError(res, 401, "Unauthorized");
+
+		const { data: actor, error: actorError } = await supabase
+			.from("users")
+			.select("id, role, org_id")
+			.eq("id", authData.user.id)
+			.maybeSingle();
+
+		if (actorError || !actor || actor.role !== "superadmin") {
+			return respondError(res, 403, "Forbidden");
+		}
+
+		const normalized = normalizeTeacherFeedbackPayload(req.body);
+		if (normalized.error) {
+			return respondError(res, 400, normalized.error);
+		}
+
+		const feedback = await generateTeacherFeedback(normalized.payload);
+		return res.json({
+			summary: feedback.summary,
+			source: feedback.source,
+			warning: feedback.warning,
+		});
+	} catch (error) {
+		return respondError(
+			res,
+			500,
+			error instanceof Error ? error.message : "Unexpected error",
+		);
+	}
 });
 
 app.post("/provision-user", async (req, res) => {

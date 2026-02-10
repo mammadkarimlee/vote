@@ -4,6 +4,7 @@ import { InfoTip } from "../../components/InfoTip";
 import { downloadCsv } from "../../lib/csv";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
+	mapAiInsightRow,
 	mapAnswerRow,
 	mapGroupRow,
 	mapQuestionRow,
@@ -13,6 +14,7 @@ import {
 	mapTeacherRow,
 } from "../../lib/supabaseMappers";
 import type {
+	AiInsightDoc,
 	AnswerDoc,
 	GroupDoc,
 	QuestionDoc,
@@ -22,6 +24,7 @@ import type {
 	TeacherDoc,
 } from "../../lib/types";
 import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
+import { requestTeacherAiFeedback } from "./aiFeedback";
 import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
 
@@ -51,6 +54,11 @@ export const BranchResultsPage = () => {
 	const [answers, setAnswers] = useState<Array<DocEntry<AnswerDoc>>>([]);
 	const [selectedCycleId, setSelectedCycleId] = useState("");
 	const [selectedTeacherId, setSelectedTeacherId] = useState("");
+	const [insightsByTeacher, setInsightsByTeacher] = useState<
+		Record<string, DocEntry<AiInsightDoc>>
+	>({});
+	const [aiStatus, setAiStatus] = useState("");
+	const [aiLoading, setAiLoading] = useState(false);
 	const { section } = useParams();
 	const activeSection =
 		RESULTS_SECTIONS.find((item) => item.key === section)?.key ?? "teachers";
@@ -186,6 +194,38 @@ export const BranchResultsPage = () => {
 		void loadCycleData();
 	}, [selectedCycleId, branchId, isSuperAdmin]);
 
+	useEffect(() => {
+		const loadInsights = async () => {
+			if (!isSuperAdmin || !selectedCycleId) {
+				setInsightsByTeacher({});
+				return;
+			}
+
+			const { data, error } = await supabase
+				.from("ai_insights")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("cycle_id", selectedCycleId);
+
+			if (error) {
+				setInsightsByTeacher({});
+				return;
+			}
+
+			const next: Record<string, DocEntry<AiInsightDoc>> = {};
+			(data ?? []).forEach((row) => {
+				const insight = mapAiInsightRow(row);
+				next[insight.targetId] = {
+					id: row.id,
+					data: insight,
+				};
+			});
+			setInsightsByTeacher(next);
+		};
+
+		void loadInsights();
+	}, [isSuperAdmin, selectedCycleId]);
+
 	const teacherMap = useMemo(
 		() => Object.fromEntries(teachers.map((t) => [t.id, t.data])),
 		[teachers],
@@ -262,6 +302,10 @@ export const BranchResultsPage = () => {
 			setSelectedTeacherId(teacherRows[0].teacherId);
 		}
 	}, [teacherRows, selectedTeacherId]);
+
+	useEffect(() => {
+		setAiStatus("");
+	}, [selectedCycleId, selectedTeacherId]);
 
 	const selectedTeacherSubmissions = useMemo(() => {
 		if (!selectedTeacherId) return [];
@@ -381,6 +425,42 @@ export const BranchResultsPage = () => {
 		[selectedTeacherQuestionStats],
 	);
 
+	const selectedTeacherScaleStats = useMemo(
+		() =>
+			selectedTeacherQuestionStats
+				.filter(
+					(stat): stat is typeof stat & { avg: number } =>
+						stat.type === "scale" && typeof stat.avg === "number",
+				)
+				.map((stat) => ({
+					text: stat.text,
+					avg: stat.avg,
+					count: stat.count,
+				})),
+		[selectedTeacherQuestionStats],
+	);
+
+	const selectedTeacherChoiceStats = useMemo(
+		() =>
+			selectedTeacherQuestionStats
+				.filter(
+					(stat): stat is typeof stat & { choices: Record<string, number> } =>
+						stat.type === "choice" && Boolean(stat.choices),
+				)
+				.map((stat) => ({
+					text: stat.text,
+					distribution: Object.entries(stat.choices)
+						.sort((a, b) => b[1] - a[1])
+						.map(([option, count]) => ({ option, count })),
+				})),
+		[selectedTeacherQuestionStats],
+	);
+
+	const selectedTeacherInsight = useMemo(
+		() => (selectedTeacherId ? insightsByTeacher[selectedTeacherId] ?? null : null),
+		[insightsByTeacher, selectedTeacherId],
+	);
+
 	const overallSummary = useMemo(() => {
 		const sum = Object.values(teacherStats).reduce(
 			(acc, item) => acc + item.sum,
@@ -455,6 +535,84 @@ export const BranchResultsPage = () => {
 			],
 			rows,
 		);
+	};
+
+	const handleGenerateAiFeedback = async () => {
+		if (!selectedCycleId) {
+			setAiStatus("Əvvəlcə sorğu dövrü seçin.");
+			return;
+		}
+		if (!selectedTeacherId) {
+			setAiStatus("Əvvəlcə müəllim seçin.");
+			return;
+		}
+
+		const teacherName =
+			teacherMap[selectedTeacherId]?.name ?? "Seçilmiş müəllim";
+		const cycleYear =
+			cycles.find((item) => item.id === selectedCycleId)?.data.year ?? null;
+
+		const { data: sessionData, error: sessionError } =
+			await supabase.auth.getSession();
+		if (sessionError || !sessionData.session?.access_token) {
+			setAiStatus("Sessiya bitib. Yenidən daxil olun.");
+			return;
+		}
+
+		setAiLoading(true);
+		setAiStatus("");
+
+		try {
+			const aiResult = await requestTeacherAiFeedback(
+				sessionData.session.access_token,
+				{
+					teacherName,
+					cycleYear,
+					overallAvg: overallSummary.avg,
+					teacherAvg: selectedTeacherSummary.avg,
+					submissionCount: selectedTeacherSummary.submissions,
+					scaleQuestions: selectedTeacherScaleStats,
+					choiceQuestions: selectedTeacherChoiceStats,
+					comments: selectedTeacherTexts.slice(0, 12),
+				},
+			);
+
+			const { data: savedInsight, error: saveError } = await supabase
+				.from("ai_insights")
+				.upsert(
+					{
+						org_id: ORG_ID,
+						cycle_id: selectedCycleId,
+						target_id: selectedTeacherId,
+						summary: aiResult.summary,
+					},
+					{ onConflict: "org_id,cycle_id,target_id" },
+				)
+				.select("*")
+				.single();
+
+			if (saveError || !savedInsight) {
+				throw new Error(saveError?.message || "AI rəyi saxlanmadı.");
+			}
+
+			const mapped = mapAiInsightRow(savedInsight);
+			setInsightsByTeacher((prev) => ({
+				...prev,
+				[mapped.targetId]: { id: savedInsight.id, data: mapped },
+			}));
+
+			setAiStatus(
+				aiResult.source === "ai"
+					? "AI rəyi hazırlandı."
+					: aiResult.warning || "Qayda əsaslı rəy hazırlandı.",
+			);
+		} catch (error) {
+			setAiStatus(
+				error instanceof Error ? error.message : "AI rəy yaradılarkən xəta oldu.",
+			);
+		} finally {
+			setAiLoading(false);
+		}
 	};
 
 	const teacherSelector = (
@@ -650,6 +808,45 @@ export const BranchResultsPage = () => {
 								<div className="empty">Nəticə yoxdur.</div>
 							)}
 						</div>
+						<div className="divider" />
+						<div className="section-header">
+							<div>
+								<h3>AI rəy</h3>
+								<p>Müəllim üçün avtomatik analitik geribildirim.</p>
+							</div>
+							<button
+								className="btn"
+								type="button"
+								onClick={handleGenerateAiFeedback}
+								disabled={!selectedTeacherId || !selectedCycleId || aiLoading}
+							>
+								{aiLoading
+									? "Hazırlanır..."
+									: selectedTeacherInsight
+										? "Rəyi yenilə"
+										: "AI rəy hazırla"}
+							</button>
+						</div>
+						{aiStatus && <div className="notice">{aiStatus}</div>}
+						{selectedTeacherInsight ? (
+							<div className="comment">
+								<div className="comment-text">
+									{selectedTeacherInsight.data.summary}
+								</div>
+								{Boolean(selectedTeacherInsight.data.createdAt) && (
+									<div className="comment-meta">
+										Yaradılıb:{" "}
+										{formatShortDate(
+											toJsDate(selectedTeacherInsight.data.createdAt),
+										)}
+									</div>
+								)}
+							</div>
+						) : (
+							<div className="empty">
+								Bu müəllim üçün AI rəyi hələ yaradılmayıb.
+							</div>
+						)}
 					</div>
 				</div>
 			)}

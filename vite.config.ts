@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
 					target: localProvisionTarget,
 					changeOrigin: true,
 				},
+				"/ai/teacher-feedback": {
+					target: localProvisionTarget,
+					changeOrigin: true,
+				},
 				"/health": {
 					target: localProvisionTarget,
 					changeOrigin: true,
@@ -25,6 +29,11 @@ export default defineConfig(({ mode }) => {
 					rewrite: (path) => path.replace(/^\/api/, ""),
 				},
 				"/api/health": {
+					target: localProvisionTarget,
+					changeOrigin: true,
+					rewrite: (path) => path.replace(/^\/api/, ""),
+				},
+				"/api/ai/teacher-feedback": {
 					target: localProvisionTarget,
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/api/, ""),

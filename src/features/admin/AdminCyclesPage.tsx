@@ -315,7 +315,7 @@ export const AdminCyclesPage = () => {
 		);
 
 		if (error) {
-			setStatus("Sual seti yenilənmədi");
+			setStatus(error.message || "Sual seti yenilənmədi");
 			return;
 		}
 		setStatus("Sual seti yeniləndi");
