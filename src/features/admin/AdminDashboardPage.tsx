@@ -50,8 +50,6 @@ const stdDev = (values: number[]) => {
 const flowFromTask = (task: TaskDoc): TargetFlow => {
 	if (task.raterRole === "student" && task.targetType === "teacher")
 		return "student_teacher";
-	if (task.raterRole === "teacher" && task.targetType === "manager")
-		return "teacher_management";
 	if (task.raterRole === "teacher" && task.targetType === "teacher")
 		return "teacher_self";
 	return "management_teacher";
@@ -112,7 +110,7 @@ export const AdminDashboardPage = () => {
 		subjectId: "",
 		classLevel: "",
 		raterRole: "all" as "all" | "student" | "teacher" | "manager",
-		targetType: "all" as "all" | "teacher" | "manager",
+		targetType: "all" as "all" | "teacher",
 		search: "",
 		minSubmissions: "3",
 	});
@@ -196,12 +194,14 @@ export const AdminDashboardPage = () => {
 		const loadCycleData = async () => {
 			if (!selectedCycleId) return;
 			setLoading(true);
+
 			const [taskRes, submissionRes, setRes] = await Promise.all([
 				supabase
 					.from("tasks")
 					.select("*")
 					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId),
+					.eq("cycle_id", selectedCycleId)
+					.eq("target_type", "teacher"),
 				supabase
 					.from("submissions")
 					.select("*")
@@ -213,14 +213,18 @@ export const AdminDashboardPage = () => {
 					.eq("org_id", ORG_ID)
 					.eq("cycle_id", selectedCycleId),
 			]);
+
 			const taskDocs = (taskRes.data ?? []).map((row) => ({
 				id: row.id,
 				data: mapTaskRow(row),
 			}));
-			const submissionDocs = (submissionRes.data ?? []).map((row) => ({
-				id: row.task_id ?? row.id,
-				data: mapSubmissionRow(row),
-			}));
+			const taskIds = new Set(taskDocs.map((task) => task.id));
+			const submissionDocs = (submissionRes.data ?? [])
+				.filter((row) => taskIds.has(row.task_id ?? row.id))
+				.map((row) => ({
+					id: row.task_id ?? row.id,
+					data: mapSubmissionRow(row),
+				}));
 			const answerDocs = await loadAnswers(submissionDocs.map((item) => item.id));
 			const setMap: Record<TargetFlow, string[]> = {
 				student_teacher: [],
@@ -248,15 +252,26 @@ export const AdminDashboardPage = () => {
 				return;
 			}
 
-			const prevSubmissionRes = await supabase
-				.from("submissions")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.eq("cycle_id", prev.id);
-			const prevSubmissionDocs = (prevSubmissionRes.data ?? []).map((row) => ({
-				id: row.task_id ?? row.id,
-				data: mapSubmissionRow(row),
-			}));
+			const [prevTaskRes, prevSubmissionRes] = await Promise.all([
+				supabase
+					.from("tasks")
+					.select("id")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", prev.id)
+					.eq("target_type", "teacher"),
+				supabase
+					.from("submissions")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", prev.id),
+			]);
+			const prevTaskIds = new Set((prevTaskRes.data ?? []).map((row) => row.id));
+			const prevSubmissionDocs = (prevSubmissionRes.data ?? [])
+				.filter((row) => prevTaskIds.has(row.task_id ?? row.id))
+				.map((row) => ({
+					id: row.task_id ?? row.id,
+					data: mapSubmissionRow(row),
+				}));
 			const prevAnswerDocs = await loadAnswers(
 				prevSubmissionDocs.map((item) => item.id),
 			);
@@ -857,13 +872,12 @@ export const AdminDashboardPage = () => {
 							onChange={(event) =>
 								setFilters((prev) => ({
 									...prev,
-									targetType: event.target.value as "all" | "teacher" | "manager",
+									targetType: event.target.value as "all" | "teacher",
 								}))
 							}
 						>
 							<option value="all">Hamısı</option>
 							<option value="teacher">Müəllim</option>
-							<option value="manager">Rəhbər</option>
 						</select>
 					</label>
 					<label className="field">

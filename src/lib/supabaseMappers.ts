@@ -99,6 +99,7 @@ export const mapManagementAssignmentRow = (
 ): ManagementAssignmentDoc => ({
 	managerUid: row.manager_id,
 	branchId: row.branch_id,
+	departmentId: row.department_id ?? null,
 	year: row.year,
 });
 

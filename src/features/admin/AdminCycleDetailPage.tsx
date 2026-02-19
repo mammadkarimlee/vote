@@ -76,7 +76,7 @@ const aggregateTeachers = (
 };
 
 const formatAvg = (avg: number | null | undefined, count: number) => {
-	if (avg === null || avg === undefined || count === 0) return "â€”";
+	if (avg === null || avg === undefined || count === 0) return "—";
 	return avg.toFixed(2);
 };
 
@@ -409,8 +409,8 @@ export const AdminCycleDetailPage = () => {
 		<div className="panel">
 			<div className="panel-header">
 				<div>
-					<h2>SorÄŸu dÃ¶vrÃ¼ detallarÄ±</h2>
-					<p>SeÃ§ilmiÅŸ sorÄŸu dÃ¶vrÃ¼ Ã¼zrÉ™ nÉ™ticÉ™lÉ™r vÉ™ iÅŸtirak statistikasÄ±.</p>
+					<h2>Sorğu dövrü detalları</h2>
+					<p>Seçilmiş sorğu dövrü üzrə nəticələr və iştirak statistikası.</p>
 				</div>
 				<div className="actions">
 					<Link className="btn ghost" to="/admin/cycles">
@@ -422,7 +422,7 @@ export const AdminCycleDetailPage = () => {
 						onClick={handleExportCsv}
 						disabled={!cycleId}
 					>
-						CSV ixracÄ±
+							CSV ixracı
 					</button>
 				</div>
 			</div>
@@ -430,20 +430,20 @@ export const AdminCycleDetailPage = () => {
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>Ãœmumi xÃ¼lasÉ™</h3>
-						<p>SorÄŸu dÃ¶vrÃ¼ vÉ™ nÉ™ticÉ™ gÃ¶stÉ™ricilÉ™ri.</p>
+							<h3>Ümumi xülasə</h3>
+							<p>Sorğu dövrü və nəticə göstəriciləri.</p>
 					</div>
 					{cycle && (
 						<div className="meta">
-							SorÄŸu dÃ¶vrÃ¼: {cycle.year} â€¢ VÉ™ziyyÉ™t: {cycle.status}
+								Sorğu dövrü: {cycle.year} • Vəziyyət: {cycle.status}
 						</div>
 					)}
 				</div>
 				<div className="grid three">
 					<div className="stat-card">
 						<div className="stat-label">
-							Ãœmumi orta
-							<InfoTip text="Åžkala (1â€“10) suallarÄ± Ã¼zrÉ™ bÃ¼tÃ¼n cavablarÄ±n orta gÃ¶stÉ™ricisi." />
+								Ümumi orta
+								<InfoTip text="Şkala (1–10) sualları üzrə bütün cavabların orta göstəricisi." />
 						</div>
 						<div className="stat-value">
 							{formatAvg(overallSummary.avg, overallSummary.submissions)}
@@ -451,44 +451,44 @@ export const AdminCycleDetailPage = () => {
 						<div className="stat-meta">n={overallSummary.submissions}</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">SÉ™s verÉ™nlÉ™r</div>
+						<div className="stat-label">Səs verənlər</div>
 						<div className="stat-value">{raterStats.doneSet.size}</div>
-						<div className="stat-meta">unikal sÉ™s verÉ™n</div>
+						<div className="stat-meta">unikal səs verən</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">TapÅŸÄ±rÄ±qlar</div>
+						<div className="stat-label">Tapşırıqlar</div>
 						<div className="stat-value">{submissions.length}</div>
-						<div className="stat-meta">Ã¼mumi sÉ™svermÉ™</div>
+						<div className="stat-meta">ümumi səsvermə</div>
 					</div>
 				</div>
 				<div className="divider" />
 				<div className="grid two">
 					<div className="stat-card">
-						<div className="stat-label">Æn yaxÅŸÄ± nÉ™ticÉ™</div>
+						<div className="stat-label">Ən yaxşı nəticə</div>
 						<div className="stat-value">
 							{topTeacher
 								? formatAvg(topTeacher.avg, topTeacher.submissions)
-								: "â€”"}
+									: "—"}
 						</div>
 						<div className="stat-meta">
 							{topTeacher
 								? (teacherMap[topTeacher.teacherId]?.name ??
 									topTeacher.teacherId)
-								: "MÉ™lumat yoxdur"}
+									: "Məlumat yoxdur"}
 						</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">Æn aÅŸaÄŸÄ± nÉ™ticÉ™</div>
+						<div className="stat-label">Ən aşağı nəticə</div>
 						<div className="stat-value">
 							{bottomTeacher
 								? formatAvg(bottomTeacher.avg, bottomTeacher.submissions)
-								: "â€”"}
+									: "—"}
 						</div>
 						<div className="stat-meta">
 							{bottomTeacher
 								? (teacherMap[bottomTeacher.teacherId]?.name ??
 									bottomTeacher.teacherId)
-								: "MÉ™lumat yoxdur"}
+									: "Məlumat yoxdur"}
 						</div>
 					</div>
 				</div>
@@ -497,13 +497,13 @@ export const AdminCycleDetailPage = () => {
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>MÃ¼É™llim nÉ™ticÉ™lÉ™ri</h3>
-						<p>Orta vÉ™ sÉ™svermÉ™ sayÄ±.</p>
+							<h3>Müəllim nəticələri</h3>
+							<p>Orta və səsvermə sayı.</p>
 					</div>
 				</div>
 				<div className="data-table">
 					<div className="data-row header">
-						<div>MÃ¼É™llim</div>
+							<div>Müəllim</div>
 						<div>Orta</div>
 						<div>n</div>
 					</div>
@@ -515,7 +515,7 @@ export const AdminCycleDetailPage = () => {
 						</div>
 					))}
 					{teacherRows.length === 0 && (
-						<div className="empty">MÉ™lumat yoxdur.</div>
+							<div className="empty">Məlumat yoxdur.</div>
 					)}
 				</div>
 				{teacherRows.length > 0 && (
@@ -535,27 +535,27 @@ export const AdminCycleDetailPage = () => {
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>Ä°ÅŸtirak edÉ™nlÉ™r</h3>
-						<p>Anonim nÉ™ticÉ™lÉ™r: yalnÄ±z sÉ™s verib-vermÉ™mÉ™si gÃ¶stÉ™rilir.</p>
+							<h3>İştirak edənlər</h3>
+							<p>Anonim nəticələr: yalnız səs verib-verməməsi göstərilir.</p>
 					</div>
 				</div>
 				<div className="data-table">
 					<div className="data-row header">
 						<div>Ad</div>
 						<div>Rol</div>
-						<div>SÉ™s verib</div>
+							<div>Səs verib</div>
 						<div>n</div>
 					</div>
 					{paginatedRaterRows.map((item) => (
 						<div className="data-row" key={item.id}>
 							<div>{item.name}</div>
 							<div>{item.role}</div>
-							<div>{item.done ? "BÉ™li" : "Xeyr"}</div>
+								<div>{item.done ? "Bəli" : "Xeyr"}</div>
 							<div>{item.submissions}</div>
 						</div>
 					))}
 					{raterRows.length === 0 && (
-						<div className="empty">MÉ™lumat yoxdur.</div>
+							<div className="empty">Məlumat yoxdur.</div>
 					)}
 				</div>
 				{raterRows.length > 0 && (
@@ -576,8 +576,8 @@ export const AdminCycleDetailPage = () => {
 				<div className="card">
 					<div className="section-header">
 						<div>
-							<h3>ÅžÉ™rhlÉ™r</h3>
-							<p>Son yazÄ±lÄ± rÉ™ylÉ™r.</p>
+								<h3>Şərhlər</h3>
+								<p>Son yazılı rəylər.</p>
 						</div>
 					</div>
 					<div className="comment-feed">

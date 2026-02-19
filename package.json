@@ -9,6 +9,8 @@
 		"server": "node server/index.mjs",
 		"seed:stars:logins": "node seed/provision-stars-student-logins.mjs",
 		"seed:stars:teacher-logins": "node seed/provision-stars-teacher-logins.mjs",
+		"seed:teacher-names:export": "node seed/fix-teacher-names.mjs export --branch \"Stars Campusu\" --file seed/teacher-name-fixes.csv",
+		"seed:teacher-names:apply": "node seed/fix-teacher-names.mjs apply --file seed/teacher-name-fixes.csv",
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
 		"test": "vitest run",

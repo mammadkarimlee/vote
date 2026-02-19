@@ -19,8 +19,6 @@ import { useAuth } from "../auth/AuthProvider";
 const flowFromTask = (task: TaskDoc): QuestionSetDoc["targetFlow"] => {
 	if (task.raterRole === "student" && task.targetType === "teacher")
 		return "student_teacher";
-	if (task.raterRole === "teacher" && task.targetType === "manager")
-		return "teacher_management";
 	if (task.raterRole === "teacher" && task.targetType === "teacher")
 		return "teacher_self";
 	return "management_teacher";
@@ -91,6 +89,14 @@ export const TaskVotePage = () => {
 			const taskData = mapTaskRow(taskRes.data);
 			if (taskData.raterUid !== user.id) {
 				setStatus("Bu tapşırığa giriş icazəniz yoxdur.");
+				setTask(null);
+				setQuestions([]);
+				setLoading(false);
+				return;
+			}
+
+			if (taskData.targetType !== "teacher") {
+				setStatus("Bu qiymetlendirme bolmesi deaktiv edilib.");
 				setTask(null);
 				setQuestions([]);
 				setLoading(false);

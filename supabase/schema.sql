@@ -271,15 +271,18 @@ create table if not exists public.management_assignments (
   org_id text not null references public.orgs (id) on delete cascade,
   manager_id text not null references public.users (id) on delete cascade,
   branch_id text not null references public.branches (id) on delete cascade,
+  department_id text references public.departments (id) on delete set null,
   year integer not null,
-  created_at timestamptz not null default now(),
-  unique (org_id, manager_id, branch_id, year)
+  created_at timestamptz not null default now()
 );
 
 alter table public.management_assignments
-  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade,
+  add column if not exists department_id text references public.departments (id) on delete set null;
 
 create index if not exists management_assignments_branch_idx on public.management_assignments (branch_id);
+create index if not exists management_assignments_manager_idx on public.management_assignments (manager_id);
+create index if not exists management_assignments_department_idx on public.management_assignments (department_id);
 
 create table if not exists public.questions (
   id text primary key,
@@ -794,6 +797,14 @@ create unique index if not exists subjects_org_code_uidx on public.subjects (org
 create index if not exists subjects_department_idx on public.subjects (department_id);
 create unique index if not exists groups_org_branch_name_uidx on public.groups (org_id, branch_id, name);
 create unique index if not exists survey_cycles_org_year_uidx on public.survey_cycles (org_id, year);
+alter table public.management_assignments
+  drop constraint if exists management_assignments_org_id_manager_id_branch_id_year_key;
+create unique index if not exists management_assignments_scope_all_uidx
+  on public.management_assignments (org_id, manager_id, branch_id, year)
+  where department_id is null;
+create unique index if not exists management_assignments_scope_department_uidx
+  on public.management_assignments (org_id, manager_id, branch_id, department_id, year)
+  where department_id is not null;
 
 -- Security helpers
 create or replace function public.current_user_profile()
@@ -869,6 +880,49 @@ as $$
 $$;
 
 grant execute on function public.is_branch_staff() to authenticated;
+
+create or replace function public.validate_management_assignment()
+returns trigger
+language plpgsql
+set search_path = public, auth
+as $$
+declare
+  v_role public.user_role;
+begin
+  select role
+    into v_role
+    from public.users
+   where id = new.manager_id
+     and org_id = new.org_id
+     and deleted_at is null;
+
+  if not found then
+    raise exception 'rəhbər istifadəçi tapılmadı';
+  end if;
+
+  if v_role not in ('manager', 'teacher') then
+    raise exception 'yalnız rəhbər və ya müəllim rolu təyin oluna bilər';
+  end if;
+
+  if new.department_id is not null and not exists (
+    select 1
+      from public.departments d
+     where d.id = new.department_id
+       and d.org_id = new.org_id
+       and d.branch_id = new.branch_id
+       and d.deleted_at is null
+  ) then
+    raise exception 'kafedra təyinatı etibarsızdır';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists management_assignments_validate on public.management_assignments;
+create trigger management_assignments_validate
+  before insert or update on public.management_assignments
+  for each row execute function public.validate_management_assignment();
 
 create or replace function public.validate_task_target()
 returns trigger
@@ -1965,6 +2019,17 @@ create policy management_assignments_insert on public.management_assignments
       public.is_branch_staff()
       and public.current_org_id() = org_id
       and public.current_branch_id() = branch_id
+      and (
+        department_id is null
+        or exists (
+          select 1
+            from public.departments d
+           where d.id = department_id
+             and d.org_id = org_id
+             and d.branch_id = branch_id
+             and d.deleted_at is null
+        )
+      )
     )
   );
 
@@ -1984,6 +2049,17 @@ create policy management_assignments_update on public.management_assignments
       public.is_branch_staff()
       and public.current_org_id() = org_id
       and public.current_branch_id() = branch_id
+      and (
+        department_id is null
+        or exists (
+          select 1
+            from public.departments d
+           where d.id = department_id
+             and d.org_id = org_id
+             and d.branch_id = branch_id
+             and d.deleted_at is null
+        )
+      )
     )
   );
 

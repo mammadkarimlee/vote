@@ -125,7 +125,7 @@ select 'ma-001', 'default', u.id,
        2026
   from public.users u
  where u.org_id = 'default' and u.login = 'manager1'
-on conflict (org_id, manager_id, branch_id, year) do nothing;
+on conflict do nothing;
 
 -- Questions
 insert into public.questions (id, org_id, text, type, required, options, scale_min, scale_max, category)
@@ -551,14 +551,14 @@ select 'ma-002', 'default', u.id,
        (select id from public.branches where org_id = 'default' and name = 'Sumqayıt' limit 1), 2026
   from public.users u
  where u.org_id = 'default' and u.login = 'manager2'
-on conflict (org_id, manager_id, branch_id, year) do nothing;
+on conflict do nothing;
 
 insert into public.management_assignments (id, org_id, manager_id, branch_id, year)
 select 'ma-003', 'default', u.id,
        (select id from public.branches where org_id = 'default' and name = 'Gəncə' limit 1), 2026
   from public.users u
  where u.org_id = 'default' and u.login = 'manager3'
-on conflict (org_id, manager_id, branch_id, year) do nothing;
+on conflict do nothing;
 
 -- Extra survey cycle (2025, CLOSED)
 insert into public.survey_cycles (id, org_id, branch_ids, year, start_at, end_at, duration_days, status, threshold_y, threshold_p)

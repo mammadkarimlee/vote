@@ -46,3 +46,17 @@ Nəticə:
 - `auth.users`, `public.users`, `public.usernames` yaradılır (`role=teacher`).
 - `public.teachers.user_id` və `public.teachers.login` doldurulur.
 - Login/parol siyahısı `seed/stars-campus-teacher-logins.csv` faylına yazılır.
+
+## Teacher name fixes (UTF-8)
+
+Muellim adlari yanlis transliterasiya ile dusubse (mes. `Fatime` yerine `Fatimə`), toplu duzeltme ucun:
+
+1. CSV template cixar:
+   - `npm run seed:teacher-names:export`
+2. `seed/teacher-name-fixes.csv` faylinda `new_name`, `new_first_name`, `new_last_name` sutunlarini duzelt.
+3. Duzelisi DB-ye tetbiq et:
+   - `npm run seed:teacher-names:apply`
+
+Qeyd:
+- Fayli UTF-8 saxlayin.
+- Script `teachers` cedvelindeki adlari ve bagli `users.display_name` sahesini yenileyir.

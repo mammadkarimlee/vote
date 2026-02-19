@@ -296,7 +296,7 @@ export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 				},
 				{
 					to: "/branch/management",
-					label: "Rəhbərlik təyinatları",
+					label: "Kafedra rəhbərləri",
 					icon: "management",
 				},
 			],

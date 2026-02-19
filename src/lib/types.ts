@@ -87,6 +87,7 @@ export type TeachingAssignmentDoc = {
 export type ManagementAssignmentDoc = {
 	managerUid: string;
 	branchId: string;
+	departmentId?: string | null;
 	year: number;
 };
 

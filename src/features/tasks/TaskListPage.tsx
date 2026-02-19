@@ -85,9 +85,7 @@ export const TaskListPage = () => {
 	const [statusFilter, setStatusFilter] = useState<"all" | "OPEN" | "DONE">(
 		"all",
 	);
-	const [targetFilter, setTargetFilter] = useState<"all" | "teacher" | "manager">(
-		"all",
-	);
+	const [targetFilter, setTargetFilter] = useState<"all" | "teacher">("all");
 	const [sortBy, setSortBy] = useState<"urgency" | "recent" | "target">(
 		"urgency",
 	);
@@ -118,6 +116,7 @@ export const TaskListPage = () => {
 			.select("*")
 			.eq("org_id", ORG_ID)
 			.eq("rater_id", user.id)
+			.eq("target_type", "teacher")
 			.order("created_at", { ascending: false });
 
 		if (error) {
@@ -335,9 +334,7 @@ export const TaskListPage = () => {
 	const resolveTargetName = useCallback(
 		(task: TaskDoc) => {
 			if (task.targetName) return task.targetName;
-			if (task.targetType === "teacher")
-				return teacherNames[task.targetId] ?? task.targetId;
-			return `Rəhbərlik (${task.targetId})`;
+			return teacherNames[task.targetId] ?? task.targetId;
 		},
 		[teacherNames],
 	);
@@ -968,13 +965,12 @@ export const TaskListPage = () => {
 							value={targetFilter}
 							onChange={(event) =>
 								setTargetFilter(
-									event.target.value as "all" | "teacher" | "manager",
+									event.target.value as "all" | "teacher",
 								)
 							}
 						>
 							<option value="all">Hamısı</option>
 							<option value="teacher">Müəllim</option>
-							<option value="manager">Rəhbərlik</option>
 						</select>
 					</label>
 					<label className="field">
