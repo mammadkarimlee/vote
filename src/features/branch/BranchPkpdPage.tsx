@@ -8,6 +8,7 @@ import {
 	mapPkpdDecisionRow,
 	mapPkpdExamRow,
 	mapPkpdPortfolioRow,
+	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
 	mapSubjectRow,
 	mapSurveyCycleRow,
@@ -24,6 +25,7 @@ import type {
 	PkpdDecisionStatus,
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
+	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	SubjectDoc,
 	SurveyCycleDoc,
@@ -118,6 +120,9 @@ export const BranchPkpdPage = () => {
 	const [biqResults, setBiqResults] = useState<
 		Array<DocEntry<BiqClassResultDoc>>
 	>([]);
+	const [teacherBiqResults, setTeacherBiqResults] = useState<
+		Array<DocEntry<PkpdTeacherBiqResultDoc>>
+	>([]);
 	const [examResults, setExamResults] = useState<Array<DocEntry<PkpdExamDoc>>>(
 		[],
 	);
@@ -136,6 +141,13 @@ export const BranchPkpdPage = () => {
 	const [biqSubjectId, setBiqSubjectId] = useState("");
 	const [biqScore, setBiqScore] = useState("");
 	const [biqImportStatus, setBiqImportStatus] = useState<string | null>(null);
+	const [teacherBiqTeacherId, setTeacherBiqTeacherId] = useState("");
+	const [teacherBiqGroupId, setTeacherBiqGroupId] = useState("");
+	const [teacherBiqSubjectId, setTeacherBiqSubjectId] = useState("");
+	const [teacherBiqScore, setTeacherBiqScore] = useState("");
+	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useState<
+		string | null
+	>(null);
 
 	const [examDrafts, setExamDrafts] = useState<Record<string, string>>({});
 
@@ -244,6 +256,7 @@ export const BranchPkpdPage = () => {
 				questionRes,
 				taskRes,
 				biqRes,
+				teacherBiqRes,
 				examRes,
 				portfolioRes,
 				achievementRes,
@@ -258,6 +271,12 @@ export const BranchPkpdPage = () => {
 					.eq("branch_id", branchId),
 				supabase
 					.from("biq_class_results")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("branch_id", branchId),
+				supabase
+					.from("pkpd_teacher_biq_results")
 					.select("*")
 					.eq("org_id", ORG_ID)
 					.eq("cycle_id", selectedCycleId)
@@ -305,6 +324,11 @@ export const BranchPkpdPage = () => {
 				data: mapBiqClassResultRow(row),
 			}));
 			setBiqResults(biqDocs);
+			const teacherBiqDocs = (teacherBiqRes.data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqResultRow(row),
+			}));
+			setTeacherBiqResults(teacherBiqDocs);
 
 			const examDocs = (examRes.data ?? []).map((row) => ({
 				id: row.id,
@@ -410,6 +434,17 @@ export const BranchPkpdPage = () => {
 		});
 		return map;
 	}, [subjects]);
+	const teacherNameMap = useMemo(() => {
+		const map = new Map<string, string>();
+		teachers.forEach((teacher) => {
+			const normalizedName = teacher.data.name.trim().toLowerCase();
+			map.set(normalizedName, teacher.id);
+			if (teacher.data.login) {
+				map.set(teacher.data.login.trim().toLowerCase(), teacher.id);
+			}
+		});
+		return map;
+	}, [teachers]);
 
 	const biqMap = useMemo(
 		() =>
@@ -420,6 +455,16 @@ export const BranchPkpdPage = () => {
 				]),
 			),
 		[biqResults],
+	);
+	const teacherBiqMap = useMemo(
+		() =>
+			Object.fromEntries(
+				teacherBiqResults.map((item) => [
+					`${item.data.teacherId}_${item.data.groupId}_${item.data.subjectId}`,
+					item.data,
+				]),
+			),
+		[teacherBiqResults],
 	);
 
 	const portfolioMap = useMemo(
@@ -468,6 +513,16 @@ export const BranchPkpdPage = () => {
 			map[assignment.data.teacherId].push(assignment.data);
 		});
 		return map;
+	}, [assignments, cycleYear]);
+	const assignmentKeySet = useMemo(() => {
+		const keys = new Set<string>();
+		assignments.forEach((assignment) => {
+			if (assignment.data.year !== cycleYear) return;
+			keys.add(
+				`${assignment.data.teacherId}_${assignment.data.groupId}_${assignment.data.subjectId}`,
+			);
+		});
+		return keys;
 	}, [assignments, cycleYear]);
 
 	const flowStats = useMemo(() => {
@@ -579,10 +634,12 @@ export const BranchPkpdPage = () => {
 
 			const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
 			const biqScores = assignmentsForTeacher
-				.map(
-					(assignment) =>
-						biqMap[`${assignment.groupId}_${assignment.subjectId}`]?.score,
-				)
+				.map((assignment) => {
+					const teacherBiqKey = `${teacher.id}_${assignment.groupId}_${assignment.subjectId}`;
+					const teacherOverride = teacherBiqMap[teacherBiqKey]?.score;
+					if (typeof teacherOverride === "number") return teacherOverride;
+					return biqMap[`${assignment.groupId}_${assignment.subjectId}`]?.score;
+				})
 				.filter((value): value is number => typeof value === "number");
 			const biqAvg =
 				biqScores.length > 0
@@ -637,6 +694,7 @@ export const BranchPkpdPage = () => {
 		examMap,
 		flowStats,
 		portfolioMap,
+		teacherBiqMap,
 		teachers,
 	]);
 
@@ -792,6 +850,196 @@ export const BranchPkpdPage = () => {
 		setBiqImportStatus(report);
 	};
 
+	const handleSaveTeacherBiq = async () => {
+		if (!branchId || !selectedCycleId) return;
+		if (!teacherBiqTeacherId || !teacherBiqGroupId || !teacherBiqSubjectId) {
+			setStatus("Muellim, qrup ve fenn secin");
+			return;
+		}
+		const assignmentKey = `${teacherBiqTeacherId}_${teacherBiqGroupId}_${teacherBiqSubjectId}`;
+		if (!assignmentKeySet.has(assignmentKey)) {
+			setStatus("Secilen muellim ucun bu qrup/fenn teyinati yoxdur");
+			return;
+		}
+		const scoreValue = Number(teacherBiqScore);
+		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+			setStatus("BIQ bali 0-100 arasi olmalidir");
+			return;
+		}
+
+		const { error } = await supabase.from("pkpd_teacher_biq_results").upsert(
+			{
+				org_id: ORG_ID,
+				branch_id: branchId,
+				cycle_id: selectedCycleId,
+				teacher_id: teacherBiqTeacherId,
+				group_id: teacherBiqGroupId,
+				subject_id: teacherBiqSubjectId,
+				score: scoreValue,
+			},
+			{
+				onConflict:
+					"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
+			},
+		);
+		if (error) {
+			setStatus("Muellim uzre BIQ neticesi saxlanmadi");
+			return;
+		}
+		setTeacherBiqScore("");
+		setStatus("Muellim uzre BIQ neticesi saxlanildi");
+		const { data } = await supabase
+			.from("pkpd_teacher_biq_results")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		setTeacherBiqResults(
+			(data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqResultRow(row),
+			})),
+		);
+	};
+
+	const handleImportTeacherBiq = async (file: File) => {
+		if (!branchId || !selectedCycleId) return;
+		const rows = await parseSpreadsheet(file);
+		const prepared: Array<{
+			org_id: string;
+			branch_id: string;
+			cycle_id: string;
+			teacher_id: string;
+			group_id: string;
+			subject_id: string;
+			score: number;
+		}> = [];
+
+		let missingTeacher = 0;
+		let missingGroup = 0;
+		let missingSubject = 0;
+		let missingAssignment = 0;
+		let invalidScore = 0;
+
+		rows.forEach((row) => {
+			const normalized: Record<string, string> = {};
+			Object.entries(row).forEach(([key, value]) => {
+				normalized[key.trim().toLowerCase()] = String(value ?? "").trim();
+			});
+
+			const teacherRaw =
+				normalized.teacher_id ||
+				normalized.teacher ||
+				normalized.teacher_name ||
+				normalized.muellim ||
+				normalized["müəllim"];
+			const groupRaw =
+				normalized.group_id ||
+				normalized.group ||
+				normalized.group_name ||
+				normalized.qrup ||
+				normalized.sinif ||
+				normalized.class;
+			const subjectRaw =
+				normalized.subject_id ||
+				normalized.subject ||
+				normalized.subject_name ||
+				normalized.fenn ||
+				normalized["fənn"] ||
+				normalized.fen;
+			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
+
+			const teacherId =
+				(teacherRaw && teacherMap[teacherRaw] ? teacherRaw : null) ||
+				(teacherRaw
+					? (teacherNameMap.get(teacherRaw.toLowerCase()) ?? null)
+					: null);
+			if (!teacherId) {
+				missingTeacher += 1;
+				return;
+			}
+
+			const groupId =
+				(groupRaw && groupMap[groupRaw]?.branchId ? groupRaw : null) ||
+				(groupRaw ? (groupNameMap.get(groupRaw.toLowerCase()) ?? null) : null);
+			if (!groupId) {
+				missingGroup += 1;
+				return;
+			}
+
+			const subjectId =
+				(subjectRaw && subjectMap[subjectRaw] ? subjectRaw : null) ||
+				(subjectRaw
+					? (subjectNameMap.get(subjectRaw.toLowerCase()) ?? null)
+					: null);
+			if (!subjectId) {
+				missingSubject += 1;
+				return;
+			}
+
+			const assignmentKey = `${teacherId}_${groupId}_${subjectId}`;
+			if (!assignmentKeySet.has(assignmentKey)) {
+				missingAssignment += 1;
+				return;
+			}
+
+			const numericScore = Number(String(scoreRaw ?? "").replace(",", "."));
+			if (
+				Number.isNaN(numericScore) ||
+				numericScore < 0 ||
+				numericScore > 100
+			) {
+				invalidScore += 1;
+				return;
+			}
+
+			prepared.push({
+				org_id: ORG_ID,
+				branch_id: branchId,
+				cycle_id: selectedCycleId,
+				teacher_id: teacherId,
+				group_id: groupId,
+				subject_id: subjectId,
+				score: numericScore,
+			});
+		});
+
+		if (prepared.length === 0) {
+			setTeacherBiqImportStatus("Yuklenecek duzgun setr tapilmadi");
+			return;
+		}
+
+		const chunks = chunkArray(prepared, 200);
+		for (const chunk of chunks) {
+			const { error } = await supabase
+				.from("pkpd_teacher_biq_results")
+				.upsert(chunk, {
+					onConflict:
+						"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
+				});
+			if (error) {
+				setTeacherBiqImportStatus("Muellim uzre BIQ import zamani xeta oldu");
+				return;
+			}
+		}
+
+		const { data } = await supabase
+			.from("pkpd_teacher_biq_results")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		setTeacherBiqResults(
+			(data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqResultRow(row),
+			})),
+		);
+
+		const report = `Yuklendi: ${prepared.length}. Muellim tapilmadi: ${missingTeacher}. Qrup tapilmadi: ${missingGroup}. Fenn tapilmadi: ${missingSubject}. Teyinat tapilmadi: ${missingAssignment}. Bal sehv: ${invalidScore}.`;
+		setTeacherBiqImportStatus(report);
+	};
+
 	const handleDeleteBiq = async (id: string) => {
 		if (!branchId || !selectedCycleId) return;
 		await supabase
@@ -800,6 +1048,16 @@ export const BranchPkpdPage = () => {
 			.eq("org_id", ORG_ID)
 			.eq("id", id);
 		setBiqResults((prev) => prev.filter((item) => item.id !== id));
+	};
+
+	const handleDeleteTeacherBiq = async (id: string) => {
+		if (!branchId || !selectedCycleId) return;
+		await supabase
+			.from("pkpd_teacher_biq_results")
+			.delete()
+			.eq("org_id", ORG_ID)
+			.eq("id", id);
+		setTeacherBiqResults((prev) => prev.filter((item) => item.id !== id));
 	};
 
 	const handleSaveExam = async (teacherId: string) => {
@@ -1138,6 +1396,117 @@ export const BranchPkpdPage = () => {
 						</div>
 					))}
 					{biqResults.length === 0 && (
+						<div className="empty">Məlumat yoxdur.</div>
+					)}
+				</div>
+			</div>
+
+			<div className="card">
+				<h3>Müəllim üzrə BİQ nəticələri (override)</h3>
+				<div className="form-row">
+					<select
+						className="input"
+						value={teacherBiqTeacherId}
+						onChange={(event) => setTeacherBiqTeacherId(event.target.value)}
+					>
+						<option value="">Müəllim</option>
+						{teachers.map((teacher) => (
+							<option key={teacher.id} value={teacher.id}>
+								{teacher.data.name}
+							</option>
+						))}
+					</select>
+					<select
+						className="input"
+						value={teacherBiqGroupId}
+						onChange={(event) => setTeacherBiqGroupId(event.target.value)}
+					>
+						<option value="">Qrup</option>
+						{groups.map((group) => (
+							<option key={group.id} value={group.id}>
+								{group.data.name} ({group.data.classLevel})
+							</option>
+						))}
+					</select>
+					<select
+						className="input"
+						value={teacherBiqSubjectId}
+						onChange={(event) => setTeacherBiqSubjectId(event.target.value)}
+					>
+						<option value="">Fənn</option>
+						{subjects.map((subject) => (
+							<option key={subject.id} value={subject.id}>
+								{subject.data.name}
+							</option>
+						))}
+					</select>
+				</div>
+				<div className="form-row">
+					<input
+						className="input"
+						type="number"
+						placeholder="BİQ balı (0-100)"
+						value={teacherBiqScore}
+						onChange={(event) => setTeacherBiqScore(event.target.value)}
+					/>
+					<button
+						className="btn primary"
+						type="button"
+						onClick={handleSaveTeacherBiq}
+						disabled={!selectedCycleId}
+					>
+						Saxla
+					</button>
+				</div>
+				<div className="form-row">
+					<input
+						className="input"
+						type="file"
+						accept=".csv,.xlsx"
+						onChange={(event) => {
+							const file = event.target.files?.[0];
+							if (file) void handleImportTeacherBiq(file);
+						}}
+					/>
+					<span className="hint">
+						Şablon: teacher/teacher_id, group/qrup, subject/fənn, score/biq/bal
+					</span>
+				</div>
+				{teacherBiqImportStatus && (
+					<div className="notice">{teacherBiqImportStatus}</div>
+				)}
+				<div className="data-table">
+					<div className="data-row header">
+						<div>Müəllim</div>
+						<div>Qrup</div>
+						<div>Fənn</div>
+						<div>Bal</div>
+						<div></div>
+					</div>
+					{teacherBiqResults.map((item) => (
+						<div className="data-row" key={item.id}>
+							<div>
+								{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}
+							</div>
+							<div>
+								{groupMap[item.data.groupId]?.name ?? item.data.groupId}
+							</div>
+							<div>
+								{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}
+							</div>
+							<div>{item.data.score}</div>
+							<div className="actions">
+								<button
+									className="btn ghost"
+									type="button"
+									onClick={() => void handleDeleteTeacherBiq(item.id)}
+								>
+									Sil
+								</button>
+							</div>
+						</div>
+					))}
+					{teacherBiqResults.length === 0 && (
 						<div className="empty">Məlumat yoxdur.</div>
 					)}
 				</div>

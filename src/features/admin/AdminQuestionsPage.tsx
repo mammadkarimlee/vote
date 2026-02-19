@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapQuestionRow } from "../../lib/supabaseMappers";
 import type { QuestionDoc } from "../../lib/types";
@@ -14,6 +15,8 @@ export const AdminQuestionsPage = () => {
 	const [required, setRequired] = useState(true);
 	const [category, setCategory] = useState("");
 	const [status, setStatus] = useState<string | null>(null);
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
 
 	const loadQuestions = async () => {
 		const { data, error } = await supabase
@@ -31,6 +34,11 @@ export const AdminQuestionsPage = () => {
 	useEffect(() => {
 		void loadQuestions();
 	}, []);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(questions.length / pageSize));
+		if (page > totalPages) setPage(totalPages);
+	}, [page, pageSize, questions.length]);
 
 	const handleCreate = async () => {
 		if (!text.trim()) {
@@ -89,6 +97,10 @@ export const AdminQuestionsPage = () => {
 	};
 
 	const summary = useMemo(() => questions.length, [questions]);
+	const paginatedQuestions = useMemo(() => {
+		const start = (page - 1) * pageSize;
+		return questions.slice(start, start + pageSize);
+	}, [page, pageSize, questions]);
 
 	return (
 		<div className="panel">
@@ -126,9 +138,7 @@ export const AdminQuestionsPage = () => {
 					/>
 				</div>
 				<div className="form-row">
-					<span className="hint">
-						Sual tipi yalnız 1–10 şkala kimi sabitdir.
-					</span>
+					<span className="hint">Sual tipi yalnız 1–10 şkala kimi sabitdir.</span>
 				</div>
 				<div className="actions">
 					<button className="btn primary" type="button" onClick={handleCreate}>
@@ -145,7 +155,7 @@ export const AdminQuestionsPage = () => {
 					<div>Kateqoriya</div>
 					<div></div>
 				</div>
-				{questions.map((question) => (
+				{paginatedQuestions.map((question) => (
 					<div className="data-row" key={question.id}>
 						<div>{question.data.text}</div>
 						<div>{question.data.type}</div>
@@ -162,6 +172,18 @@ export const AdminQuestionsPage = () => {
 					</div>
 				))}
 			</div>
+			{questions.length > 0 && (
+				<PaginationControls
+					totalItems={questions.length}
+					page={page}
+					pageSize={pageSize}
+					onPageChange={setPage}
+					onPageSizeChange={(nextSize) => {
+						setPageSize(nextSize);
+						setPage(1);
+					}}
+				/>
+			)}
 			{dialog}
 		</div>
 	);

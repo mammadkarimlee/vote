@@ -465,6 +465,28 @@ create index if not exists biq_class_results_org_idx on public.biq_class_results
 create index if not exists biq_class_results_branch_idx on public.biq_class_results (branch_id);
 create index if not exists biq_class_results_cycle_idx on public.biq_class_results (cycle_id);
 
+create table if not exists public.pkpd_teacher_biq_results (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  group_id text not null references public.groups (id) on delete cascade,
+  subject_id text not null references public.subjects (id) on delete cascade,
+  score numeric not null,
+  created_at timestamptz not null default now(),
+  check (score >= 0 and score <= 100),
+  unique (org_id, branch_id, cycle_id, teacher_id, group_id, subject_id)
+);
+
+alter table public.pkpd_teacher_biq_results
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+create index if not exists pkpd_teacher_biq_org_idx on public.pkpd_teacher_biq_results (org_id);
+create index if not exists pkpd_teacher_biq_branch_idx on public.pkpd_teacher_biq_results (branch_id);
+create index if not exists pkpd_teacher_biq_cycle_idx on public.pkpd_teacher_biq_results (cycle_id);
+create index if not exists pkpd_teacher_biq_teacher_idx on public.pkpd_teacher_biq_results (teacher_id);
+
 create table if not exists public.pkpd_exam_results (
   id text primary key default gen_random_uuid()::text,
   org_id text not null references public.orgs (id) on delete cascade,
@@ -729,6 +751,11 @@ create trigger audit_management_assignments
 drop trigger if exists audit_biq_class_results on public.biq_class_results;
 create trigger audit_biq_class_results
   after insert or update or delete on public.biq_class_results
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_teacher_biq_results on public.pkpd_teacher_biq_results;
+create trigger audit_pkpd_teacher_biq_results
+  after insert or update or delete on public.pkpd_teacher_biq_results
   for each row execute function public.log_audit();
 
 drop trigger if exists audit_pkpd_exam_results on public.pkpd_exam_results;
@@ -1315,6 +1342,7 @@ alter table public.answers enable row level security;
 alter table public.notifications enable row level security;
 alter table public.ai_insights enable row level security;
 alter table public.biq_class_results enable row level security;
+alter table public.pkpd_teacher_biq_results enable row level security;
 alter table public.pkpd_exam_results enable row level security;
 alter table public.pkpd_portfolios enable row level security;
 alter table public.pkpd_achievements enable row level security;
@@ -1419,6 +1447,11 @@ drop policy if exists biq_class_results_select on public.biq_class_results;
 drop policy if exists biq_class_results_insert on public.biq_class_results;
 drop policy if exists biq_class_results_update on public.biq_class_results;
 drop policy if exists biq_class_results_delete on public.biq_class_results;
+
+drop policy if exists pkpd_teacher_biq_results_select on public.pkpd_teacher_biq_results;
+drop policy if exists pkpd_teacher_biq_results_insert on public.pkpd_teacher_biq_results;
+drop policy if exists pkpd_teacher_biq_results_update on public.pkpd_teacher_biq_results;
+drop policy if exists pkpd_teacher_biq_results_delete on public.pkpd_teacher_biq_results;
 
 drop policy if exists pkpd_exam_results_select on public.pkpd_exam_results;
 drop policy if exists pkpd_exam_results_insert on public.pkpd_exam_results;
@@ -2245,6 +2278,58 @@ create policy biq_class_results_update on public.biq_class_results
   );
 
 create policy biq_class_results_delete on public.biq_class_results
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_results_select on public.pkpd_teacher_biq_results
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_results_insert on public.pkpd_teacher_biq_results
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_results_update on public.pkpd_teacher_biq_results
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_results_delete on public.pkpd_teacher_biq_results
   for delete
   using (
     public.is_superadmin()

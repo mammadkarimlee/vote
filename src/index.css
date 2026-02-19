@@ -503,6 +503,30 @@
     @apply mt-3 grid gap-3;
   }
 
+  .bulk-vote-list {
+    @apply mt-4 grid gap-4;
+  }
+
+  .bulk-vote-card {
+    @apply rounded-2xl border border-border bg-card p-4 shadow-soft;
+  }
+
+  .bulk-meta-list {
+    @apply mt-3 flex flex-wrap gap-2;
+  }
+
+  .bulk-meta-pill {
+    @apply inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground;
+  }
+
+  .bulk-summary {
+    @apply mt-3 grid gap-3 md:grid-cols-2;
+  }
+
+  .bulk-summary__item {
+    @apply rounded-xl border border-border bg-card/80 px-3 py-2;
+  }
+
   .task-card {
     @apply block rounded-2xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:shadow-soft;
   }
@@ -711,6 +735,34 @@
 
   .form-row {
     @apply flex flex-wrap items-center gap-3;
+  }
+
+  .pagination {
+    @apply mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-card p-3;
+  }
+
+  .pagination__info {
+    @apply flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground;
+  }
+
+  .pagination__size {
+    @apply flex items-center gap-2 text-xs uppercase tracking-[0.12em];
+  }
+
+  .pagination__size .input {
+    @apply h-9 w-24 text-sm;
+  }
+
+  .pagination__buttons {
+    @apply flex flex-wrap items-center justify-between gap-2;
+  }
+
+  .pagination__pages {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .pagination__dots {
+    @apply px-2 text-sm text-muted-foreground;
   }
 
   .check-grid {

@@ -1,5 +1,6 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapBranchRow,
@@ -35,6 +36,66 @@ const flowLabels: Record<TargetFlow, string> = {
 	teacher_management: "Müəllim → Rəhbərlik",
 	management_teacher: "Rəhbərlik → Müəllim",
 	teacher_self: "Müəllim → Özünü",
+};
+
+const TEACHER_SELF_PKPD_QUESTIONS = [
+	{
+		id: "pkpd-self-certificates-publications-media",
+		text: "Beynəlxalq və ölkədaxili sertifikatlar, elmi-metodiki nəşrlərdə müəlliflik, TV çıxışları, məqalələr, təlim və konfrans çıxışları (max 9 bal)",
+		scaleMax: 9,
+	},
+	{
+		id: "pkpd-self-olympiad-competition-results",
+		text: "Olimpiada və digər fənn müsabiqə və yarışlarda şagirdlərin nəticəsi (max 20 bal)",
+		scaleMax: 20,
+	},
+	{
+		id: "pkpd-self-projects-and-events",
+		text: "Dövlət və digər təşkilatlarda həyata keçirdiyi və ya iştirak etdiyi layihələr, liseydə təşkil etdiyi tədbirlər və layihələr (max 20 bal)",
+		scaleMax: 20,
+	},
+] as const;
+
+const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
+	const questionRows = TEACHER_SELF_PKPD_QUESTIONS.map((item) => ({
+		id: item.id,
+		org_id: ORG_ID,
+		text: item.text,
+		type: "scale" as const,
+		required: true,
+		options: null,
+		scale_min: 0,
+		scale_max: item.scaleMax,
+		category: "teacher_self_pkpd",
+	}));
+	const { error: questionError } = await supabase.from("questions").upsert(
+		questionRows,
+		{
+			onConflict: "id",
+		},
+	);
+	if (questionError) {
+		return { questionIds: [] as string[], error: questionError.message };
+	}
+
+	const questionIds = TEACHER_SELF_PKPD_QUESTIONS.map((item) => item.id);
+	const { error: questionSetError } = await supabase.from("question_sets").upsert(
+		{
+			org_id: ORG_ID,
+			cycle_id: cycleId,
+			target_flow: "teacher_self",
+			question_ids: questionIds,
+			updated_at: new Date().toISOString(),
+		},
+		{
+			onConflict: "org_id,cycle_id,target_flow",
+		},
+	);
+	if (questionSetError) {
+		return { questionIds: [] as string[], error: questionSetError.message };
+	}
+
+	return { questionIds, error: null as string | null };
 };
 
 const buildTaskId = (task: {
@@ -83,6 +144,8 @@ export const AdminCyclesPage = () => {
 	const [deletePassword, setDeletePassword] = useState("");
 	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
 
 	const loadCycles = async () => {
 		const { data, error } = await supabase
@@ -133,6 +196,32 @@ export const AdminCyclesPage = () => {
 	useEffect(() => {
 		const loadQuestionSet = async () => {
 			if (!selectedCycleId) return;
+			if (selectedFlow === "teacher_self") {
+				const ensured = await ensureTeacherSelfPkpdQuestionSet(selectedCycleId);
+				if (ensured.error) {
+					setSelectedQuestionIds([]);
+					setStatus(
+						`Özünüqiymətləndirmə sualları hazırlanmadı: ${ensured.error}`,
+					);
+					return;
+				}
+				setSelectedQuestionIds(ensured.questionIds);
+
+				const { data: refreshedQuestions, error: refreshedQuestionsError } =
+					await supabase
+						.from("questions")
+						.select("*")
+						.eq("org_id", ORG_ID);
+				if (!refreshedQuestionsError) {
+					const items = (refreshedQuestions ?? []).map((row) => ({
+						id: row.id,
+						data: mapQuestionRow(row),
+					}));
+					setQuestions(items);
+				}
+				return;
+			}
+
 			const { data, error } = await supabase
 				.from("question_sets")
 				.select("*")
@@ -161,6 +250,11 @@ export const AdminCyclesPage = () => {
 			document.body.style.overflow = previous;
 		};
 	}, [deleteCycle]);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(cycles.length / pageSize));
+		if (page > totalPages) setPage(totalPages);
+	}, [cycles.length, page, pageSize]);
 
 	const handleCreate = async () => {
 		if (!year || !startAt || !durationDays) {
@@ -298,8 +392,20 @@ export const AdminCyclesPage = () => {
 
 	const handleSaveQuestionSet = async () => {
 		if (!selectedCycleId) return;
-		if (selectedFlow === "teacher_self" && selectedQuestionIds.length !== 1) {
-			setStatus("Özünü qiymətləndirmə üçün yalnız 1 sual seçilməlidir");
+		if (selectedFlow === "teacher_self") {
+			const ensured = await ensureTeacherSelfPkpdQuestionSet(selectedCycleId);
+			if (ensured.error) {
+				setStatus(
+					`Özünüqiymətləndirmə sualları saxlanmadı: ${ensured.error}`,
+				);
+				return;
+			}
+			setSelectedQuestionIds(ensured.questionIds);
+			setStatus("Özünüqiymətləndirmə sualları avtomatik yeniləndi");
+			return;
+		}
+		if (selectedQuestionIds.length === 0) {
+			setStatus("Ən azı 1 sual seçilməlidir");
 			return;
 		}
 
@@ -376,6 +482,14 @@ export const AdminCyclesPage = () => {
 
 	const generateTasksForCycle = async (cycleId: string) => {
 		setStatus("Tapşırıqlar hazırlanır...");
+		const ensured = await ensureTeacherSelfPkpdQuestionSet(cycleId);
+		if (ensured.error) {
+			setStatus(`Özünüqiymətləndirmə sualları hazırlanmadı: ${ensured.error}`);
+			return;
+		}
+		if (selectedCycleId === cycleId && selectedFlow === "teacher_self") {
+			setSelectedQuestionIds(ensured.questionIds);
+		}
 
 		const [
 			usersRes,
@@ -424,7 +538,7 @@ export const AdminCyclesPage = () => {
 				.is("deleted_at", null),
 			supabase
 				.from("tasks")
-				.select("id")
+				.select("id,rater_id,target_type,target_id,group_id")
 				.eq("org_id", ORG_ID)
 				.eq("cycle_id", cycleId),
 		]);
@@ -487,6 +601,14 @@ export const AdminCyclesPage = () => {
 
 		const existingTaskIds = new Set(
 			(existingTasksRes.data ?? []).map((row) => row.id as string),
+		);
+		const existingStudentTeacherTaskKeys = new Set(
+			(existingTasksRes.data ?? [])
+				.filter((row) => row.target_type === "teacher" && row.group_id)
+				.map(
+					(row) =>
+						`${row.rater_id as string}_${row.target_id as string}_${row.group_id as string}`,
+				),
 		);
 		const cycle = cycles.find((item) => item.id === cycleId)?.data;
 		const cycleYear = cycle?.year ?? new Date().getFullYear();
@@ -609,30 +731,66 @@ export const AdminCyclesPage = () => {
 			const studentAssignments = assignmentsForYear.filter(
 				(assignment) => assignment.data.groupId === student.data.groupId,
 			);
+			const groupedTeacherAssignments = new Map<
+				string,
+				{
+					teacherId: string;
+					groupId: string;
+					branchId: string;
+					subjectNames: string[];
+				}
+			>();
 			studentAssignments.forEach((assignment) => {
+				const dedupKey = `${assignment.data.teacherId}_${assignment.data.groupId}`;
+				const subjectName =
+					subjectMap[assignment.data.subjectId]?.name ??
+					assignment.data.subjectId;
+				const existing = groupedTeacherAssignments.get(dedupKey);
+				if (!existing) {
+					groupedTeacherAssignments.set(dedupKey, {
+						teacherId: assignment.data.teacherId,
+						groupId: assignment.data.groupId,
+						branchId: assignment.data.branchId,
+						subjectNames: subjectName ? [subjectName] : [],
+					});
+					return;
+				}
+				if (subjectName && !existing.subjectNames.includes(subjectName)) {
+					existing.subjectNames.push(subjectName);
+				}
+			});
+
+			groupedTeacherAssignments.forEach((entry) => {
+				const subjectsLabel =
+					entry.subjectNames.length > 0
+						? entry.subjectNames.join(", ")
+						: "Fənn göstərilməyib";
 				const task: TaskDoc = {
 					cycleId,
 					raterUid: user.id,
 					raterRole: "student",
 					targetType: "teacher",
-					targetId: assignment.data.teacherId,
-					targetName: teacherMap[assignment.data.teacherId]?.name ?? null,
-					branchId: assignment.data.branchId,
-					groupId: assignment.data.groupId,
-					subjectId: assignment.data.subjectId,
-					groupName: groupMap[assignment.data.groupId]?.name ?? null,
-					subjectName: subjectMap[assignment.data.subjectId]?.name ?? null,
+					targetId: entry.teacherId,
+					targetName: teacherMap[entry.teacherId]?.name ?? null,
+					branchId: entry.branchId,
+					groupId: entry.groupId,
+					groupName: groupMap[entry.groupId]?.name ?? null,
+					subjectId: null,
+					subjectName: subjectsLabel,
 					status: "OPEN",
 				};
 				const taskId = buildTaskId({
 					cycleId,
 					raterUid: user.id,
 					targetType: "teacher",
-					targetId: assignment.data.teacherId,
-					groupId: assignment.data.groupId,
-					subjectId: assignment.data.subjectId,
+					targetId: entry.teacherId,
+					groupId: entry.groupId,
 				});
-				if (!existingTaskIds.has(taskId)) {
+				const existingStudentTeacherTaskKey = `${user.id}_${entry.teacherId}_${entry.groupId}`;
+				if (
+					!existingTaskIds.has(taskId) &&
+					!existingStudentTeacherTaskKeys.has(existingStudentTeacherTaskKey)
+				) {
 					tasksToCreate.push({ id: taskId, data: task });
 				}
 			});
@@ -806,6 +964,10 @@ export const AdminCyclesPage = () => {
 	const branchMap = Object.fromEntries(
 		branches.map((branch) => [branch.id, branch.data]),
 	);
+	const paginatedCycles = useMemo(() => {
+		const start = (page - 1) * pageSize;
+		return cycles.slice(start, start + pageSize);
+	}, [cycles, page, pageSize]);
 	const summary = cycles.length;
 
 	return (
@@ -907,7 +1069,7 @@ export const AdminCyclesPage = () => {
 					<div>Vəziyyət</div>
 					<div></div>
 				</div>
-				{cycles.map((cycle) => {
+				{paginatedCycles.map((cycle) => {
 					const startDate = toJsDate(cycle.data.startAt);
 					const endDate = toJsDate(cycle.data.endAt);
 					const branchNames =
@@ -966,6 +1128,18 @@ export const AdminCyclesPage = () => {
 					);
 				})}
 			</div>
+			{cycles.length > 0 && (
+				<PaginationControls
+					totalItems={cycles.length}
+					page={page}
+					pageSize={pageSize}
+					onPageChange={setPage}
+					onPageSizeChange={(nextSize) => {
+						setPageSize(nextSize);
+						setPage(1);
+					}}
+				/>
+			)}
 
 			{selectedCycle && (
 				<div className="card">
@@ -991,16 +1165,9 @@ export const AdminCyclesPage = () => {
 							<label key={question.id} className="checkbox-item">
 								<input
 									type="checkbox"
+									disabled={selectedFlow === "teacher_self"}
 									checked={selectedQuestionIds.includes(question.id)}
 									onChange={(event) => {
-										if (selectedFlow === "teacher_self") {
-											if (event.target.checked) {
-												setSelectedQuestionIds([question.id]);
-											} else {
-												setSelectedQuestionIds([]);
-											}
-											return;
-										}
 										if (event.target.checked) {
 											setSelectedQuestionIds((prev) => [...prev, question.id]);
 										} else {
@@ -1014,6 +1181,12 @@ export const AdminCyclesPage = () => {
 							</label>
 						))}
 					</div>
+					{selectedFlow === "teacher_self" && (
+						<div className="hint">
+							Bu axın üçün PKPD özünüqiymətləndirmə sualları avtomatik tətbiq
+							olunur (0-dan maksimum bala qədər seçim).
+						</div>
+					)}
 					<div className="actions">
 						<button
 							className="btn primary"
@@ -1085,4 +1258,10 @@ export const AdminCyclesPage = () => {
 		</div>
 	);
 };
+
+
+
+
+
+
 

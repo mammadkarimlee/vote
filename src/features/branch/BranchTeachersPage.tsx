@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { toErrorMessage } from "../../lib/errorMessage";
 import { ORG_ID, supabase } from "../../lib/supabase";
+import { downloadWorkbook } from "../../lib/xlsx";
 import {
 	mapDepartmentRow,
 	mapGroupRow,
@@ -242,7 +243,6 @@ export const BranchTeachersPage = () => {
 		() => Object.fromEntries(departments.map((d) => [d.id, d.data])),
 		[departments],
 	);
-
 	const assignmentMap = useMemo(() => {
 		const map: Record<string, TeachingAssignmentDoc[]> = {};
 		assignments.forEach((assignment) => {
@@ -673,6 +673,66 @@ export const BranchTeachersPage = () => {
 		await loadLookups();
 	};
 
+	const handleExportTeacherCredentials = async () => {
+		if (!branchId) {
+			setStatus("Filial seçilməyib. Export üçün filial seçin.");
+			return;
+		}
+
+		const entries = teachers
+			.filter((teacher) => teacher.data.login)
+			.map((teacher) => ({
+				departmentName: departmentMap[teacher.data.departmentId ?? ""]?.name ?? "-",
+				teacherName: teacher.data.name,
+				login: teacher.data.login ?? "",
+			}))
+			.sort((a, b) => {
+				const departmentCompare = a.departmentName.localeCompare(
+					b.departmentName,
+					"az",
+				);
+				if (departmentCompare !== 0) return departmentCompare;
+				return a.teacherName.localeCompare(b.teacherName, "az");
+			});
+
+		if (entries.length === 0) {
+			setStatus("Export üçün login-i olan müəllim tapılmadı.");
+			return;
+		}
+
+		const headers = ["Muellim", "Login", "Parol"];
+		const byDepartment = new Map<string, string[][]>();
+		entries.forEach((entry) => {
+			const row = [entry.teacherName, entry.login, entry.login];
+			const existing = byDepartment.get(entry.departmentName) ?? [];
+			existing.push(row);
+			byDepartment.set(entry.departmentName, existing);
+		});
+
+		const sheets = [
+			{
+				name: "Hamisi",
+				headers,
+				rows: entries.map((entry) => [entry.teacherName, entry.login, entry.login]),
+			},
+			...Array.from(byDepartment.entries())
+				.sort(([a], [b]) => a.localeCompare(b, "az"))
+				.map(([departmentName, rows]) => ({
+					name: `Kafedra ${departmentName}`,
+					headers,
+					rows,
+				})),
+		];
+
+		const branchLabel = (branchName || branchId)
+			.replace(/[\\/:*?"<>|]/g, "-")
+			.replace(/\s+/g, "-");
+		await downloadWorkbook(`teachers-logins-${branchLabel}.xlsx`, sheets);
+		setStatus(
+			"Müəllim login/parol export hazırdır. Parol sütunu default olaraq login dəyəridir.",
+		);
+	};
+
 	return (
 		<div className="panel branch-page">
 			<div className="page-hero">
@@ -993,6 +1053,14 @@ export const BranchTeachersPage = () => {
 							<div className="section-title">Müəllimlər</div>
 							<p>Filial: {displayBranchName}</p>
 						</div>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => void handleExportTeacherCredentials()}
+							disabled={!branchId || teachers.length === 0}
+						>
+							Login/parol export (kafedra-kafedra)
+						</button>
 					</div>
 					<div className="filters">
 						<select

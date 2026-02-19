@@ -186,6 +186,16 @@ export type BiqClassResultDoc = {
 	createdAt?: unknown;
 };
 
+export type PkpdTeacherBiqResultDoc = {
+	cycleId: string;
+	branchId: string;
+	teacherId: string;
+	groupId: string;
+	subjectId: string;
+	score: number;
+	createdAt?: unknown;
+};
+
 export type PkpdExamDoc = {
 	cycleId: string;
 	branchId: string;

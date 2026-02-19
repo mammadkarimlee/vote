@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapBranchRow } from "../../lib/supabaseMappers";
 import type { BranchDoc } from "../../lib/types";
@@ -25,6 +26,8 @@ export const AdminBranchesPage = () => {
 	const [editTeacherCount, setEditTeacherCount] = useState("");
 	const [editAdminCount, setEditAdminCount] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
 
 	const loadBranches = async () => {
 		const { data, error } = await supabase
@@ -43,6 +46,11 @@ export const AdminBranchesPage = () => {
 	useEffect(() => {
 		void loadBranches();
 	}, []);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(branches.length / pageSize));
+		if (page > totalPages) setPage(totalPages);
+	}, [branches.length, page, pageSize]);
 
 	const handleCreate = async () => {
 		if (!name.trim()) {
@@ -142,6 +150,10 @@ export const AdminBranchesPage = () => {
 	};
 
 	const summary = useMemo(() => branches.length, [branches]);
+	const paginatedBranches = useMemo(() => {
+		const start = (page - 1) * pageSize;
+		return branches.slice(start, start + pageSize);
+	}, [branches, page, pageSize]);
 
 	return (
 		<div className="panel">
@@ -202,7 +214,7 @@ export const AdminBranchesPage = () => {
 					<div>Admin sayı</div>
 					<div></div>
 				</div>
-				{branches.map((branch) => (
+				{paginatedBranches.map((branch) => (
 					<div className="data-row" key={branch.id}>
 						<div>
 							{editingId === branch.id ? (
@@ -301,6 +313,18 @@ export const AdminBranchesPage = () => {
 					</div>
 				))}
 			</div>
+			{branches.length > 0 && (
+				<PaginationControls
+					totalItems={branches.length}
+					page={page}
+					pageSize={pageSize}
+					onPageChange={setPage}
+					onPageSizeChange={(nextSize) => {
+						setPageSize(nextSize);
+						setPage(1);
+					}}
+				/>
+			)}
 			{dialog}
 		</div>
 	);

@@ -23,7 +23,8 @@ export const Layout = () => {
 	useEffect(() => {
 		if (!role) return;
 		const path = `${location.pathname}${location.search}${location.hash}`;
-		if (path !== "/login") {
+		// "/" is only a redirect entry-point and storing it can create redirect loops.
+		if (path !== "/login" && path !== "/") {
 			localStorage.setItem(`last_path_${role}`, path);
 		}
 	}, [role, location.pathname, location.search, location.hash]);

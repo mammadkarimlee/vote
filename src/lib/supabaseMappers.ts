@@ -12,6 +12,7 @@ import type {
 	PkpdDecisionDoc,
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
+	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	QuestionSetDoc,
 	StudentDoc,
@@ -191,6 +192,18 @@ export const mapAiInsightRow = (row: Row): AiInsightDoc => ({
 export const mapBiqClassResultRow = (row: Row): BiqClassResultDoc => ({
 	cycleId: row.cycle_id,
 	branchId: row.branch_id,
+	groupId: row.group_id,
+	subjectId: row.subject_id,
+	score: Number(row.score ?? 0),
+	createdAt: row.created_at ?? null,
+});
+
+export const mapPkpdTeacherBiqResultRow = (
+	row: Row,
+): PkpdTeacherBiqResultDoc => ({
+	cycleId: row.cycle_id,
+	branchId: row.branch_id,
+	teacherId: row.teacher_id,
 	groupId: row.group_id,
 	subjectId: row.subject_id,
 	score: Number(row.score ?? 0),

@@ -3,6 +3,7 @@ import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapGroupRow, mapStudentRow } from "../../lib/supabaseMappers";
 import type { GroupDoc, StudentDoc } from "../../lib/types";
+import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
 import { parseSpreadsheet } from "./importUtils";
@@ -12,7 +13,8 @@ import { provisionLoginUser } from "./userProvisioning";
 export const BranchStudentsPage = () => {
 	const { user } = useAuth();
 	const { confirm, dialog } = useConfirmDialog();
-	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
+	const { branchId, setBranchId, branches, branchName, isSuperAdmin } =
+		useBranchScope();
 	const [students, setStudents] = useState<
 		Array<{ id: string; data: StudentDoc }>
 	>([]);
@@ -188,6 +190,84 @@ export const BranchStudentsPage = () => {
 
 	const summary = useMemo(() => students.length, [students]);
 	const hasGroups = groups.length > 0;
+	const groupMap = useMemo(
+		() => Object.fromEntries(groups.map((group) => [group.id, group.data])),
+		[groups],
+	);
+
+	const handleExportStudentCredentials = async () => {
+		if (!branchId) {
+			setStatus("Filial seçilməyib. Export üçün filial seçin.");
+			return;
+		}
+
+		const entries = students
+			.filter((student) => student.data.login)
+			.map((student) => ({
+				classLevel: (student.data.classLevel || "").trim() || "-",
+				groupName: groupMap[student.data.groupId]?.name ?? student.data.groupId,
+				studentName: student.data.name,
+				login: student.data.login ?? "",
+			}))
+			.sort((a, b) => {
+				const classCompare = a.classLevel.localeCompare(b.classLevel, "az", {
+					numeric: true,
+				});
+				if (classCompare !== 0) return classCompare;
+				const groupCompare = a.groupName.localeCompare(b.groupName, "az");
+				if (groupCompare !== 0) return groupCompare;
+				return a.studentName.localeCompare(b.studentName, "az");
+			});
+
+		if (entries.length === 0) {
+			setStatus("Export üçün login-i olan şagird tapılmadı.");
+			return;
+		}
+
+		const headers = ["Sinif", "Qrup", "Sagird", "Login", "Parol"];
+		const byClass = new Map<string, string[][]>();
+		entries.forEach((entry) => {
+			const row = [
+				entry.classLevel,
+				entry.groupName,
+				entry.studentName,
+				entry.login,
+				entry.login,
+			];
+			const existing = byClass.get(entry.classLevel) ?? [];
+			existing.push(row);
+			byClass.set(entry.classLevel, existing);
+		});
+
+		const sheets = [
+			{
+				name: "Hamisi",
+				headers,
+				rows: entries.map((entry) => [
+					entry.classLevel,
+					entry.groupName,
+					entry.studentName,
+					entry.login,
+					entry.login,
+				]),
+			},
+			...Array.from(byClass.entries())
+				.sort(([a], [b]) => a.localeCompare(b, "az", { numeric: true }))
+				.map(([classLevel, rows]) => ({
+					name: `Sinif ${classLevel}`,
+					headers,
+					rows,
+				})),
+		];
+
+		const branchLabel = (branchName || branchId)
+			.replace(/[\\/:*?"<>|]/g, "-")
+			.replace(/\s+/g, "-");
+		await downloadWorkbook(`students-logins-${branchLabel}.xlsx`, sheets);
+		setStatus(
+			"Şagird login/parol export hazırdır. Parol sütunu default olaraq login dəyəridir.",
+		);
+	};
 
 	return (
 		<div className="panel branch-page">
@@ -282,6 +362,14 @@ export const BranchStudentsPage = () => {
 							<div className="section-kicker">Siyahı</div>
 							<div className="section-title">Şagirdlər</div>
 						</div>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => void handleExportStudentCredentials()}
+							disabled={!branchId || students.length === 0}
+						>
+							Login/parol export (sinif-sinif)
+						</button>
 					</div>
 					<div className="data-table">
 						<div className="data-row header">
@@ -294,10 +382,7 @@ export const BranchStudentsPage = () => {
 						{students.map((student) => (
 							<div className="data-row" key={student.id}>
 								<div>{student.data.name}</div>
-								<div>
-									{groups.find((group) => group.id === student.data.groupId)
-										?.data.name ?? student.data.groupId}
-								</div>
+								<div>{groupMap[student.data.groupId]?.name ?? student.data.groupId}</div>
 								<div>{student.data.classLevel}</div>
 								<div>{student.data.login ?? "-"}</div>
 								<div>

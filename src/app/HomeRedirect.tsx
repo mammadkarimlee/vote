@@ -4,6 +4,7 @@ import { useAuth } from "../features/auth/AuthProvider";
 const getLastPath = (role: string) => {
 	const stored = localStorage.getItem(`last_path_${role}`);
 	if (!stored) return null;
+	if (stored === "/" || stored === "/login") return null;
 	if (role === "superadmin") {
 		return stored.startsWith("/admin") ||
 			stored.startsWith("/branch") ||

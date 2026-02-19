@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
+import { PaginationControls } from "../../components/PaginationControls";
 import { downloadCsv } from "../../lib/csv";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -75,7 +76,7 @@ const aggregateTeachers = (
 };
 
 const formatAvg = (avg: number | null | undefined, count: number) => {
-	if (avg === null || avg === undefined || count === 0) return "—";
+	if (avg === null || avg === undefined || count === 0) return "â€”";
 	return avg.toFixed(2);
 };
 
@@ -91,6 +92,12 @@ export const AdminCycleDetailPage = () => {
 	>([]);
 	const [answers, setAnswers] = useState<Array<DocEntry<AnswerDoc>>>([]);
 	const [raters, setRaters] = useState<Array<DocEntry<UserDoc>>>([]);
+	const [teacherPage, setTeacherPage] = useState(1);
+	const [teacherPageSize, setTeacherPageSize] = useState(25);
+	const [raterPage, setRaterPage] = useState(1);
+	const [raterPageSize, setRaterPageSize] = useState(25);
+	const [commentPage, setCommentPage] = useState(1);
+	const [commentPageSize, setCommentPageSize] = useState(20);
 
 	useEffect(() => {
 		const loadLookups = async () => {
@@ -305,8 +312,38 @@ export const AdminCycleDetailPage = () => {
 					: 0;
 				return bRaw - aRaw;
 			})
-			.slice(0, 30);
+			;
 	}, [answers, questions, submissions]);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(teacherRows.length / teacherPageSize));
+		if (teacherPage > totalPages) setTeacherPage(totalPages);
+	}, [teacherPage, teacherPageSize, teacherRows.length]);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(raterRows.length / raterPageSize));
+		if (raterPage > totalPages) setRaterPage(totalPages);
+	}, [raterPage, raterPageSize, raterRows.length]);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(comments.length / commentPageSize));
+		if (commentPage > totalPages) setCommentPage(totalPages);
+	}, [commentPage, commentPageSize, comments.length]);
+
+	const paginatedTeacherRows = useMemo(() => {
+		const start = (teacherPage - 1) * teacherPageSize;
+		return teacherRows.slice(start, start + teacherPageSize);
+	}, [teacherPage, teacherPageSize, teacherRows]);
+
+	const paginatedRaterRows = useMemo(() => {
+		const start = (raterPage - 1) * raterPageSize;
+		return raterRows.slice(start, start + raterPageSize);
+	}, [raterPage, raterPageSize, raterRows]);
+
+	const paginatedComments = useMemo(() => {
+		const start = (commentPage - 1) * commentPageSize;
+		return comments.slice(start, start + commentPageSize);
+	}, [commentPage, commentPageSize, comments]);
 
 	const handleExportCsv = () => {
 		if (!cycleId) return;
@@ -372,8 +409,8 @@ export const AdminCycleDetailPage = () => {
 		<div className="panel">
 			<div className="panel-header">
 				<div>
-					<h2>Sorğu dövrü detalları</h2>
-					<p>Seçilmiş sorğu dövrü üzrə nəticələr və iştirak statistikası.</p>
+					<h2>SorÄŸu dÃ¶vrÃ¼ detallarÄ±</h2>
+					<p>SeÃ§ilmiÅŸ sorÄŸu dÃ¶vrÃ¼ Ã¼zrÉ™ nÉ™ticÉ™lÉ™r vÉ™ iÅŸtirak statistikasÄ±.</p>
 				</div>
 				<div className="actions">
 					<Link className="btn ghost" to="/admin/cycles">
@@ -385,7 +422,7 @@ export const AdminCycleDetailPage = () => {
 						onClick={handleExportCsv}
 						disabled={!cycleId}
 					>
-						CSV ixracı
+						CSV ixracÄ±
 					</button>
 				</div>
 			</div>
@@ -393,20 +430,20 @@ export const AdminCycleDetailPage = () => {
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>Ümumi xülasə</h3>
-						<p>Sorğu dövrü və nəticə göstəriciləri.</p>
+						<h3>Ãœmumi xÃ¼lasÉ™</h3>
+						<p>SorÄŸu dÃ¶vrÃ¼ vÉ™ nÉ™ticÉ™ gÃ¶stÉ™ricilÉ™ri.</p>
 					</div>
 					{cycle && (
 						<div className="meta">
-							Sorğu dövrü: {cycle.year} • Vəziyyət: {cycle.status}
+							SorÄŸu dÃ¶vrÃ¼: {cycle.year} â€¢ VÉ™ziyyÉ™t: {cycle.status}
 						</div>
 					)}
 				</div>
 				<div className="grid three">
 					<div className="stat-card">
 						<div className="stat-label">
-							Ümumi orta
-							<InfoTip text="Şkala (1–10) sualları üzrə bütün cavabların orta göstəricisi." />
+							Ãœmumi orta
+							<InfoTip text="Åžkala (1â€“10) suallarÄ± Ã¼zrÉ™ bÃ¼tÃ¼n cavablarÄ±n orta gÃ¶stÉ™ricisi." />
 						</div>
 						<div className="stat-value">
 							{formatAvg(overallSummary.avg, overallSummary.submissions)}
@@ -414,44 +451,44 @@ export const AdminCycleDetailPage = () => {
 						<div className="stat-meta">n={overallSummary.submissions}</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">Səs verənlər</div>
+						<div className="stat-label">SÉ™s verÉ™nlÉ™r</div>
 						<div className="stat-value">{raterStats.doneSet.size}</div>
-						<div className="stat-meta">unikal səs verən</div>
+						<div className="stat-meta">unikal sÉ™s verÉ™n</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">Tapşırıqlar</div>
+						<div className="stat-label">TapÅŸÄ±rÄ±qlar</div>
 						<div className="stat-value">{submissions.length}</div>
-						<div className="stat-meta">ümumi səsvermə</div>
+						<div className="stat-meta">Ã¼mumi sÉ™svermÉ™</div>
 					</div>
 				</div>
 				<div className="divider" />
 				<div className="grid two">
 					<div className="stat-card">
-						<div className="stat-label">Ən yaxşı nəticə</div>
+						<div className="stat-label">Æn yaxÅŸÄ± nÉ™ticÉ™</div>
 						<div className="stat-value">
 							{topTeacher
 								? formatAvg(topTeacher.avg, topTeacher.submissions)
-								: "—"}
+								: "â€”"}
 						</div>
 						<div className="stat-meta">
 							{topTeacher
 								? (teacherMap[topTeacher.teacherId]?.name ??
 									topTeacher.teacherId)
-								: "Məlumat yoxdur"}
+								: "MÉ™lumat yoxdur"}
 						</div>
 					</div>
 					<div className="stat-card">
-						<div className="stat-label">Ən aşağı nəticə</div>
+						<div className="stat-label">Æn aÅŸaÄŸÄ± nÉ™ticÉ™</div>
 						<div className="stat-value">
 							{bottomTeacher
 								? formatAvg(bottomTeacher.avg, bottomTeacher.submissions)
-								: "—"}
+								: "â€”"}
 						</div>
 						<div className="stat-meta">
 							{bottomTeacher
 								? (teacherMap[bottomTeacher.teacherId]?.name ??
 									bottomTeacher.teacherId)
-								: "Məlumat yoxdur"}
+								: "MÉ™lumat yoxdur"}
 						</div>
 					</div>
 				</div>
@@ -460,17 +497,17 @@ export const AdminCycleDetailPage = () => {
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>Müəllim nəticələri</h3>
-						<p>Orta və səsvermə sayı.</p>
+						<h3>MÃ¼É™llim nÉ™ticÉ™lÉ™ri</h3>
+						<p>Orta vÉ™ sÉ™svermÉ™ sayÄ±.</p>
 					</div>
 				</div>
 				<div className="data-table">
 					<div className="data-row header">
-						<div>Müəllim</div>
+						<div>MÃ¼É™llim</div>
 						<div>Orta</div>
 						<div>n</div>
 					</div>
-					{teacherRows.map((item) => (
+					{paginatedTeacherRows.map((item) => (
 						<div className="data-row" key={item.teacherId}>
 							<div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
 							<div>{formatAvg(item.avg, item.submissions)}</div>
@@ -478,49 +515,73 @@ export const AdminCycleDetailPage = () => {
 						</div>
 					))}
 					{teacherRows.length === 0 && (
-						<div className="empty">Məlumat yoxdur.</div>
+						<div className="empty">MÉ™lumat yoxdur.</div>
 					)}
 				</div>
+				{teacherRows.length > 0 && (
+					<PaginationControls
+						totalItems={teacherRows.length}
+						page={teacherPage}
+						pageSize={teacherPageSize}
+						onPageChange={setTeacherPage}
+						onPageSizeChange={(nextSize) => {
+							setTeacherPageSize(nextSize);
+							setTeacherPage(1);
+						}}
+					/>
+				)}
 			</div>
 
 			<div className="card">
 				<div className="section-header">
 					<div>
-						<h3>İştirak edənlər</h3>
-						<p>Anonim nəticələr: yalnız səs verib-verməməsi göstərilir.</p>
+						<h3>Ä°ÅŸtirak edÉ™nlÉ™r</h3>
+						<p>Anonim nÉ™ticÉ™lÉ™r: yalnÄ±z sÉ™s verib-vermÉ™mÉ™si gÃ¶stÉ™rilir.</p>
 					</div>
 				</div>
 				<div className="data-table">
 					<div className="data-row header">
 						<div>Ad</div>
 						<div>Rol</div>
-						<div>Səs verib</div>
+						<div>SÉ™s verib</div>
 						<div>n</div>
 					</div>
-					{raterRows.map((item) => (
+					{paginatedRaterRows.map((item) => (
 						<div className="data-row" key={item.id}>
 							<div>{item.name}</div>
 							<div>{item.role}</div>
-							<div>{item.done ? "Bəli" : "Xeyr"}</div>
+							<div>{item.done ? "BÉ™li" : "Xeyr"}</div>
 							<div>{item.submissions}</div>
 						</div>
 					))}
 					{raterRows.length === 0 && (
-						<div className="empty">Məlumat yoxdur.</div>
+						<div className="empty">MÉ™lumat yoxdur.</div>
 					)}
 				</div>
+				{raterRows.length > 0 && (
+					<PaginationControls
+						totalItems={raterRows.length}
+						page={raterPage}
+						pageSize={raterPageSize}
+						onPageChange={setRaterPage}
+						onPageSizeChange={(nextSize) => {
+							setRaterPageSize(nextSize);
+							setRaterPage(1);
+						}}
+					/>
+				)}
 			</div>
 
 			{comments.length > 0 && (
 				<div className="card">
 					<div className="section-header">
 						<div>
-							<h3>Şərhlər</h3>
-							<p>Son yazılı rəylər.</p>
+							<h3>ÅžÉ™rhlÉ™r</h3>
+							<p>Son yazÄ±lÄ± rÉ™ylÉ™r.</p>
 						</div>
 					</div>
 					<div className="comment-feed">
-						{comments.map((comment, index) => (
+						{paginatedComments.map((comment, index) => (
 							<div className="comment" key={`${comment.teacherId}_${index}`}>
 								<div className="comment-title">
 									{teacherMap[comment.teacherId]?.name ?? comment.teacherId}
@@ -529,8 +590,22 @@ export const AdminCycleDetailPage = () => {
 							</div>
 						))}
 					</div>
+					<PaginationControls
+						totalItems={comments.length}
+						page={commentPage}
+						pageSize={commentPageSize}
+						onPageChange={setCommentPage}
+						onPageSizeChange={(nextSize) => {
+							setCommentPageSize(nextSize);
+							setCommentPage(1);
+						}}
+					/>
 				</div>
 			)}
 		</div>
 	);
 };
+
+
+
+

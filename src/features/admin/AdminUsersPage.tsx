@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapBranchRow, mapUserRow } from "../../lib/supabaseMappers";
 import type { BranchDoc, Role, UserDoc } from "../../lib/types";
@@ -36,6 +37,8 @@ export const AdminUsersPage = () => {
 	const [editBranchId, setEditBranchId] = useState("");
 	const [editRole, setEditRole] = useState<Role>("branch_admin");
 	const [savingEdit, setSavingEdit] = useState(false);
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
 
 	const loadData = async () => {
 		const [branchesRes, adminsRes] = await Promise.all([
@@ -73,6 +76,11 @@ export const AdminUsersPage = () => {
 	useEffect(() => {
 		void loadData();
 	}, []);
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(admins.length / pageSize));
+		if (page > totalPages) setPage(totalPages);
+	}, [admins.length, page, pageSize]);
 
 	const handleCreate = async () => {
 		if (!name.trim() || !email.trim() || !password.trim() || !branchId) {
@@ -166,6 +174,10 @@ export const AdminUsersPage = () => {
 	};
 
 	const summary = useMemo(() => admins.length, [admins]);
+	const paginatedAdmins = useMemo(() => {
+		const start = (page - 1) * pageSize;
+		return admins.slice(start, start + pageSize);
+	}, [admins, page, pageSize]);
 
 	return (
 		<div className="panel">
@@ -226,7 +238,7 @@ export const AdminUsersPage = () => {
 					<div>Rol</div>
 					<div></div>
 				</div>
-				{admins.map((admin) => (
+				{paginatedAdmins.map((admin) => (
 					<div className="data-row" key={admin.id}>
 						<div>
 							{editingId === admin.id ? (
@@ -328,6 +340,18 @@ export const AdminUsersPage = () => {
 					</div>
 				))}
 			</div>
+			{admins.length > 0 && (
+				<PaginationControls
+					totalItems={admins.length}
+					page={page}
+					pageSize={pageSize}
+					onPageChange={setPage}
+					onPageSizeChange={(nextSize) => {
+						setPageSize(nextSize);
+						setPage(1);
+					}}
+				/>
+			)}
 			<div className="hint">
 				Email dəyişikliyi yalnız profile tabelində yenilənir, auth email ayrıca
 				yenilənmir.

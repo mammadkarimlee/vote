@@ -7,6 +7,8 @@
 		"dev": "vite",
 		"dev:server": "node --watch server/index.mjs",
 		"server": "node server/index.mjs",
+		"seed:stars:logins": "node seed/provision-stars-student-logins.mjs",
+		"seed:stars:teacher-logins": "node seed/provision-stars-teacher-logins.mjs",
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
 		"test": "vitest run",
