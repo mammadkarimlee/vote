@@ -60,3 +60,17 @@ Muellim adlari yanlis transliterasiya ile dusubse (mes. `Fatime` yerine `Fatimə
 Qeyd:
 - Fayli UTF-8 saxlayin.
 - Script `teachers` cedvelindeki adlari ve bagli `users.display_name` sahesini yenileyir.
+
+## Teacher -> department bulk assignment
+
+Muellimleri kafedralara toplu sekilde yerlestirmek ucun:
+
+1. Template cixar:
+   - `npm run seed:teacher-departments:export`
+2. `seed/teacher-department-assignments.csv` faylinda `new_department` sutununu doldur.
+3. DB-ye tetbiq et:
+   - `npm run seed:teacher-departments:apply`
+
+Qeyd:
+- `new_department` adina uygun kafedra yoxdursa script onu avtomatik yaradir.
+- Eyni filial daxilinde `teachers.department_id` sahesi toplu yenilenir.
