@@ -187,6 +187,15 @@ export const BranchAssignmentsPage = () => {
 			return;
 		}
 		const rows = await parseSpreadsheet(file);
+		const teacherIdByName = Object.fromEntries(
+			teachers.map((teacher) => [teacher.data.name.trim().toLowerCase(), teacher.id]),
+		);
+		const groupIdByName = Object.fromEntries(
+			groups.map((group) => [group.data.name.trim().toLowerCase(), group.id]),
+		);
+		const subjectIdByName = Object.fromEntries(
+			subjects.map((subject) => [subject.data.name.trim().toLowerCase(), subject.id]),
+		);
 		const existingKeys = new Set(
 			assignments.map(
 				(assignment) =>
@@ -199,22 +208,53 @@ export const BranchAssignmentsPage = () => {
 		let duplicates = 0;
 		let mismatch = 0;
 
-		const cleaned = rows.filter((row) => {
-			if (!row.teacherId || !row.groupId || !row.subjectId || !row.year) {
+		const cleaned: Array<{
+			teacherId: string;
+			groupId: string;
+			subjectId: string;
+			year: number;
+		}> = [];
+
+		rows.forEach((row) => {
+			const resolvedTeacherId =
+				row.teacherId?.trim() ||
+				teacherIdByName[(row.teacherName || row.teacher || "").trim().toLowerCase()] ||
+				"";
+			const resolvedGroupId =
+				row.groupId?.trim() ||
+				groupIdByName[(row.groupName || row.group || "").trim().toLowerCase()] ||
+				"";
+			const resolvedSubjectId =
+				row.subjectId?.trim() ||
+				subjectIdByName[(row.subjectName || row.subject || "").trim().toLowerCase()] ||
+				"";
+			const yearNumber = Number(row.year);
+
+			if (
+				!resolvedTeacherId ||
+				!resolvedGroupId ||
+				!resolvedSubjectId ||
+				!Number.isInteger(yearNumber)
+			) {
 				missing += 1;
-				return false;
+				return;
 			}
 			if (row.branchId && row.branchId !== branchId) {
 				mismatch += 1;
-				return false;
+				return;
 			}
-			const key = `${row.teacherId}|${row.groupId}|${row.subjectId}|${row.year}`;
+			const key = `${resolvedTeacherId}|${resolvedGroupId}|${resolvedSubjectId}|${yearNumber}`;
 			if (seen.has(key) || existingKeys.has(key)) {
 				duplicates += 1;
-				return false;
+				return;
 			}
 			seen.add(key);
-			return true;
+			cleaned.push({
+				teacherId: resolvedTeacherId,
+				groupId: resolvedGroupId,
+				subjectId: resolvedSubjectId,
+				year: yearNumber,
+			});
 		});
 
 		if (cleaned.length === 0) {
@@ -231,7 +271,7 @@ export const BranchAssignmentsPage = () => {
 				group_id: row.groupId,
 				subject_id: row.subjectId,
 				branch_id: branchId,
-				year: Number(row.year),
+				year: row.year,
 			})),
 		);
 
@@ -375,8 +415,7 @@ export const BranchAssignmentsPage = () => {
 							}}
 						/>
 						<span className="hint">
-							Şablon sütunları: teacherId, groupId, subjectId, year, branchId
-							(istəyə bağlı)
+							Şablon sütunları: teacherId/teacherName, groupId/groupName, subjectId/subjectName, year, branchId (istəyə bağlı)
 						</span>
 					</div>
 					{status && <div className="notice">{status}</div>}

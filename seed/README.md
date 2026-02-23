@@ -7,6 +7,42 @@ Bu qovluq demo məlumatlar və import şablonları üçündür.
 
 CSV-ləri UI-də müvafiq paneldə yükləyə bilərsiniz. Login və şifrə avtomatik yaradılır.
 
+## Yeni filial ucun bulk import ardicilligi
+
+Qarisigliq olmasin deye yeni filial acilanda bu ardicilliqla import edin:
+
+1. **Kafedralar** yaradilir (UI: Branch > Kafedralar, manual).
+2. **Fennler** import edilir (UI: Branch > Fennler).
+3. **Qruplar** import edilir (UI: Branch > Qruplar).
+4. **Muellimler** import edilir (UI: Branch > Muellimler).
+5. **Sagirdler** import edilir (UI: Branch > Sagirdler).
+6. **Ders teyinatlari** import edilir (UI: Branch > Ders teyinatlari).
+7. Lazimdirsa **Kafedra rehberi teyinatlari** el ile elave edilir (UI: Branch > Kafedra rehberi teyinatlari).
+
+Qeyd:
+- Importlar **filial secilmis halda** isleyir.
+- `branchId` sutunu faylda olsa, secili filialla eyni olmalidir.
+- Cox filial ucun eyni prosesi her filialda ayriliqda tekrar edin.
+
+## Import template formatlari
+
+`seed/import-templates/` qovlugunda hazir fayllar var:
+
+- `groups.csv`
+  - Sutunlar: `name`, `classLevel`, `branchId`
+- `subjects.csv`
+  - Sutunlar: `name`, `code`
+  - Kafedra secimi UI-den verilir.
+- `teachers.csv`
+  - Sutunlar: `name`, `category`, `branchId`
+  - `category`: `standard` | `drama_gym` | `chess` (isteye bagli, default `standard`)
+- `students.csv`
+  - Sutunlar: `name`, `groupName`, `classLevel`, `branchId`
+  - `groupId` de qebul olunur; `classLevel` bosdursa qrupdan goturulur.
+- `assignments.csv`
+  - Sutunlar: `teacherName`, `groupName`, `subjectName`, `year`, `branchId`
+  - `teacherId/groupId/subjectId` de qebul olunur.
+
 ## Stars students login provisioning
 
 Stars Excel seed-i ilə əlavə olunan şagirdlər üçün login/parol yaratmaq:

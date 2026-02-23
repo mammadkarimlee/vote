@@ -125,6 +125,10 @@ export const BranchStudentsPage = () => {
 			return;
 		}
 		const rows = await parseSpreadsheet(file);
+		const groupById = Object.fromEntries(groups.map((group) => [group.id, group.data]));
+		const groupIdByName = Object.fromEntries(
+			groups.map((group) => [group.data.name.trim().toLowerCase(), group.id]),
+		);
 		const existingKeys = new Set(
 			students.map(
 				(student) =>
@@ -139,22 +143,40 @@ export const BranchStudentsPage = () => {
 		let created = 0;
 		let failed = 0;
 
-		const cleaned = rows.filter((row) => {
-			if (!row.name || !row.groupId || !row.classLevel) {
+		const cleaned: Array<{
+			name: string;
+			groupId: string;
+			classLevel: string;
+		}> = [];
+
+		rows.forEach((row) => {
+			const resolvedGroupId =
+				row.groupId?.trim() ||
+				groupIdByName[(row.groupName || row.group || "").trim().toLowerCase()] ||
+				"";
+			const resolvedClassLevel =
+				row.classLevel?.trim() || groupById[resolvedGroupId]?.classLevel || "";
+			const resolvedName = row.name?.trim() || "";
+
+			if (!resolvedName || !resolvedGroupId || !resolvedClassLevel) {
 				missing += 1;
-				return false;
+				return;
 			}
 			if (row.branchId && row.branchId !== branchId) {
 				mismatch += 1;
-				return false;
+				return;
 			}
-			const key = `${row.name.toLowerCase()}|${row.groupId}`;
+			const key = `${resolvedName.toLowerCase()}|${resolvedGroupId}`;
 			if (seen.has(key) || existingKeys.has(key)) {
 				duplicates += 1;
-				return false;
+				return;
 			}
 			seen.add(key);
-			return true;
+			cleaned.push({
+				name: resolvedName,
+				groupId: resolvedGroupId,
+				classLevel: resolvedClassLevel,
+			});
 		});
 
 		if (cleaned.length === 0) {
@@ -349,7 +371,7 @@ export const BranchStudentsPage = () => {
 							}}
 						/>
 						<span className="hint">
-							Şablon sütunları: name, groupId, classLevel, branchId (istəyə bağlı)
+							Şablon sütunları: name, groupId/groupName, classLevel (istəyə bağlı), branchId (istəyə bağlı)
 						</span>
 					</div>
 					<div className="hint">Şifrə default olaraq login ilə eynidir.</div>

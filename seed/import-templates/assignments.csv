@@ -1,2 +1,2 @@
-﻿teacherId,groupId,subjectId,year,branchId
-TEACHER01,grp-9a,math,2025,branch-1
+﻿teacherName,groupName,subjectName,year,branchId
+"Aygun Mammadova","9A","Riyaziyyat",2026,branch-1
