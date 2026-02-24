@@ -1,0 +1,401 @@
+student_id,name,branch_id,login,password,email,user_id,status
+qurtulus-campusu-student-10a3-allahverdiyeva-omer,Allahverdiyeva Ömər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allom0,allom0,allom0@vote.local,4bcdba4b-3e6c-45c6-8e69-b9214e3c647b,fixed-short-login
+qurtulus-campusu-student-10a3-bedelova-nermin,Bədəlova Nərmin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bedne0,bedne0,bedne0@vote.local,3127d4ff-1ac7-4eaa-96c5-7d51f45e1562,fixed-short-login
+qurtulus-campusu-student-10a3-besirli-saleh,Bəşirli Saleh,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bessa0,bessa0,bessa0@vote.local,34607b40-e48f-4da6-974d-079e6ae95646,fixed-short-login
+qurtulus-campusu-student-10a3-cahangir-nilay,Cahangir Nilay,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cahni0,cahni0,cahni0@vote.local,35272fad-6963-49e9-9c2d-9fd5a370634b,fixed-short-login
+qurtulus-campusu-student-10a3-ceferi-sadiq-esgerov,Cəfəri Sadiq Əsgərov,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cefes0,cefes0,cefes0@vote.local,7754f302-732d-4ad1-b66e-835966b5dac4,fixed-short-login
+qurtulus-campusu-student-10a3-ehmedzade-zinyet,Əhmədzadə Zinyət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ehmzi0,ehmzi0,ehmzi0@vote.local,e8077997-cb79-427d-8913-069d68cad885,fixed-short-login
+qurtulus-campusu-student-10a3-huseynli-aynisan,Hüseynli Aynişan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husay0,husay0,husay0@vote.local,315f3481-772a-42d9-a96b-5a8e552825a9,fixed-short-login
+qurtulus-campusu-student-10a3-ibrahimli-sefer,İbrahimli Səfər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibrse0,ibrse0,ibrse0@vote.local,3c78478e-2452-4276-ba03-b2059b04dc66,fixed-short-login
+qurtulus-campusu-student-10a3-kerimov-nihad,Kərimov Nihad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kerni0,kerni0,kerni0@vote.local,4cdd3a2c-0229-4f9e-9aa7-a56e9cee3b25,fixed-short-login
+qurtulus-campusu-student-10a3-memmedov-elviz,Məmmədov Elviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memel4,memel4,memel4@vote.local,6ffa0465-76cb-468c-aaac-c59871326d0b,skipped-existing
+qurtulus-campusu-student-10a3-mirzeliyev-eli,Mirzəliyev Əli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mirel0,mirel0,mirel0@vote.local,eb205c78-ef36-459a-8b0f-80ca5ac92669,fixed-short-login
+qurtulus-campusu-student-10a3-nesirov-sadiq,Nəsirov Sadiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nessa0,nessa0,nessa0@vote.local,1f2c8f4e-fd73-422d-94a0-122c354579f5,fixed-short-login
+qurtulus-campusu-student-10a3-qasimli-cesur,Qasımlı Cəsur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qasce0,qasce0,qasce0@vote.local,16213d5a-c964-4e62-97f8-fa637947c1c2,fixed-short-login
+qurtulus-campusu-student-10a3-qelenderli-cavid,Qələndərli Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qelca0,qelca0,qelca0@vote.local,13a118b4-726d-4ffb-b6a9-d1811d9cff82,fixed-short-login
+qurtulus-campusu-student-10a3-qenberov-eli,Qənbərov Əli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qenel0,qenel0,qenel0@vote.local,2865c23b-097e-4ef7-a5fa-47d5d49585c1,fixed-short-login
+qurtulus-campusu-student-10a3-quliyeva-esmanur,Quliyeva Əsmanur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qules0,qules0,qules0@vote.local,28d76884-dc74-4c32-8805-8fc9b42b4f7f,fixed-short-login
+qurtulus-campusu-student-10a3-quluzade-nazli,Quluzadə Nazlı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulna0,qulna0,qulna0@vote.local,de24bdec-57ea-4889-9ac4-7de2ca2e36e9,fixed-short-login
+qurtulus-campusu-student-10a3-suleymanli-seadet,Süleymanlı Səadət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sulse0,sulse0,sulse0@vote.local,ede55a3b-409a-4ebe-9cdd-a9542303f1b9,fixed-short-login
+qurtulus-campusu-student-10a3-xelilzade-ayan,Xəlilzadə Ayan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xelay0,xelay0,xelay0@vote.local,6068b14a-f492-417b-a8f7-bfd874ee9d1a,fixed-short-login
+qurtulus-campusu-student-10a3-zulfeliyeva-esmer,Zülfəliyeva Əsmər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zules0,zules0,zules0@vote.local,907cf33a-3952-4f34-ae34-e61fed40b916,fixed-short-login
+qurtulus-campusu-student-10a3-zulfeliyeva-xumar,Zülfəliyeva Xumar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zulxu0,zulxu0,zulxu0@vote.local,d7486098-3d33-4131-8c92-3634ad8096b9,fixed-short-login
+qurtulus-campusu-student-11a3-eliyeva-nubarxanim,Əliyeva Nübarxanım,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elinu0,elinu0,elinu0@vote.local,07244073-4795-4487-aeef-5b94c104a546,fixed-short-login
+qurtulus-campusu-student-11a3-esedli-nilufer,Əsədli Nilufər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eseni0,eseni0,eseni0@vote.local,e32fd358-2e9c-4508-bb99-20274129819c,fixed-short-login
+qurtulus-campusu-student-11a3-hesenli-ferhad,Həsənli Fərhad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesfe2,hesfe2,hesfe2@vote.local,72d0c966-1af5-4480-bb91-47db36e93c01,skipped-existing
+qurtulus-campusu-student-11a3-huseynli-fidan,Hüseynli Fidan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husfi0,husfi0,husfi0@vote.local,81ebced0-2ab7-4026-9a74-1137ac3f6dcb,fixed-short-login
+qurtulus-campusu-student-11a3-huseynzade-reside,Hüseynzadə Rəşidə,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husre3,husre3,husre3@vote.local,c8eccc6e-a225-40c9-b1c4-90fa222f43e7,skipped-existing
+qurtulus-campusu-student-11a3-ismayilov-eli,İsmayılov Əli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismel2,ismel2,ismel2@vote.local,b9f91d64-0e07-4e97-9241-bc3ff93d6bb8,skipped-existing
+qurtulus-campusu-student-11a3-ismayilov-omer,İsmayılov Ömər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismom0,ismom0,ismom0@vote.local,df3d551b-945f-4e98-98d4-5288ad6a5204,fixed-short-login
+qurtulus-campusu-student-11a3-memmedli-fidan,Məmmədli Fidan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memfi0,memfi0,memfi0@vote.local,52f53a89-ea74-4eed-a44d-55eb1339f021,fixed-short-login
+qurtulus-campusu-student-11a3-memmedli-nuray,Məmmədli Nuray,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memnu0,memnu0,memnu0@vote.local,eaa07260-9915-4247-a8d8-9f36b3dc831f,fixed-short-login
+qurtulus-campusu-student-11a3-memmedli-omer,Məmmədli Ömər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memom0,memom0,memom0@vote.local,6ceaa06d-29aa-46c7-9ba9-7adf5e967b3b,fixed-short-login
+qurtulus-campusu-student-11a3-memmedli-sveta,Məmmədli Sveta,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memsv0,memsv0,memsv0@vote.local,85c3b0be-28e3-4f49-9d8b-0bd04872b7a2,fixed-short-login
+qurtulus-campusu-student-11a3-qasimov-saleh,Qasımov Saleh,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qassa0,qassa0,qassa0@vote.local,b194958d-e988-4992-b8ed-0d95ec5f54e2,fixed-short-login
+qurtulus-campusu-student-11a3-rehimli-inci,Rəhimli İnci,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rehin0,rehin0,rehin0@vote.local,fa5242c8-b67e-4e7c-ad86-d842d7db480f,fixed-short-login
+qurtulus-campusu-student-11a3-resulzade-zehra,Rəsulzadə Zəhra,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,resze0,resze0,resze0@vote.local,34f2437d-0f49-4627-85e7-1f1691ba768c,fixed-short-login
+qurtulus-campusu-student-11a3-sadiqova-sema,Sadıqova Səma,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadse1,sadse1,sadse1@vote.local,4043c5a6-4eab-4c6f-9270-f31e54b761ee,skipped-existing
+qurtulus-campusu-student-11a3-sadiqova-sona,Sadıqova Sona,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadso0,sadso0,sadso0@vote.local,c2e56fb7-afa2-4e18-a7f0-7a064b2541e5,fixed-short-login
+qurtulus-campusu-student-11a3-selimzade-ugur,Səlimzadə Uğur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,selug0,selug0,selug0@vote.local,cb9b2331-b714-4860-8dc2-8fc4882ab136,fixed-short-login
+qurtulus-campusu-student-11a3-yusifov-huseyn,Yusifov Hüseyn,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yushu0,yushu0,yushu0@vote.local,b1f3f0b2-b901-42fe-a795-32d5510a7e11,fixed-short-login
+qurtulus-campusu-student-1a2-abbasova-safiya-ismayil,Abbasova Safiya İsmayıl,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abbis0,abbis0,abbis0@vote.local,17b2ef93-3b2b-40c3-aa83-a51ff772836d,fixed-short-login
+qurtulus-campusu-student-1a2-alisli-nazli-rufet,Alışlı Nazlı Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aliru0,aliru0,aliru0@vote.local,68160389-4994-4baf-9dcf-99e7b005495f,fixed-short-login
+qurtulus-campusu-student-1a2-besirli-aras-celal,Bəşirli Aras Cəlal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,besce0,besce0,besce0@vote.local,f7bc6bda-33ba-454a-b318-21c84ed15661,fixed-short-login
+qurtulus-campusu-student-1a2-ekberli-nilay-vusal,Əkbərli Nilay Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ekbvu0,ekbvu0,ekbvu0@vote.local,2d837e82-88a4-4d61-a020-2351baeb68c3,fixed-short-login
+qurtulus-campusu-student-1a2-ekberov-malik-mahir,Əkbərov Malik Mahir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ekbma0,ekbma0,ekbma0@vote.local,f737dbfb-b074-4261-a801-32e91021faf2,fixed-short-login
+qurtulus-campusu-student-1a2-eliyev-umut-cavid,Əliyev Umut Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elica1,elica1,elica1@vote.local,42edc32f-9090-4570-9046-04cdfb314bf1,skipped-existing
+qurtulus-campusu-student-1a2-hesenii-nurgul-bahadir,Həsəniİ Nurgül Bahadır,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesba0,hesba0,hesba0@vote.local,ad0cb6e9-cec0-44db-95e4-8dc4a9cb55d5,fixed-short-login
+qurtulus-campusu-student-1a2-heyatullayev-murad-perviz,Həyatullayev Murad Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,heype2,heype2,heype2@vote.local,c6f29130-5ad7-424f-a574-be800a0e665d,skipped-existing
+qurtulus-campusu-student-1a2-huseynli-baris-sadiq,Hüseynli Barış Sadiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hussa0,hussa0,hussa0@vote.local,6120c6da-7d8b-4ca2-ab8c-440d8c059f45,fixed-short-login
+qurtulus-campusu-student-1a2-isgenderova-medine-ceyhun,İsgəndərova Mədinə Ceyhun,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,isgce0,isgce0,isgce0@vote.local,35ddcce3-57b2-47c7-a3f9-52386d50f3a2,fixed-short-login
+qurtulus-campusu-student-1a2-mesedibeov-celal-xaliq,Məşədibəov Cəlal Xaliq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mesxa0,mesxa0,mesxa0@vote.local,1a0248b1-ade0-4596-9fec-3f6d30a1edc1,fixed-short-login
+qurtulus-campusu-student-1a2-mustafayev-usa-ilkin,Mustafayev Usa İlkin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,musil0,musil0,musil0@vote.local,b708d198-b9fb-46a8-b5a7-64c0bcbe39eb,fixed-short-login
+qurtulus-campusu-student-1a2-rustemov-yaqub-namazeli,Rüstəmov Yaqub Namazəli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rusna0,rusna0,rusna0@vote.local,fa5806b3-989d-49d3-84b4-4844061f6613,fixed-short-login
+qurtulus-campusu-student-1a2-yusubova-banu-anar,Yusubova Banu Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yusan0,yusan0,yusan0@vote.local,7020800d-6098-4600-80be-23eea319b5c9,fixed-short-login
+qurtulus-campusu-student-1a3-allahverdiyeva-deniz-rehman,Allahverdiyeva Dəniz Rəhman,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allre0,allre0,allre0@vote.local,74b43139-15c9-404a-894e-f84e726ecba6,fixed-short-login
+qurtulus-campusu-student-1a3-bedelzade-amin-zamin,Bədəlzadə Amin Zamin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bedza0,bedza0,bedza0@vote.local,146c4421-586b-4daa-8dba-ab0e93f13056,fixed-short-login
+qurtulus-campusu-student-1a3-elisoy-nur-rahib,Əlisoy Nur Rahib,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elira2,elira2,elira2@vote.local,4a35e1cf-bcc5-443f-96f0-d2c78c6fe7d7,skipped-existing
+qurtulus-campusu-student-1a3-eliyev-cavad-rahid,Əliyev Cavad Rahid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elira3,elira3,elira3@vote.local,d6932b89-bb75-425b-a34e-a75b83284255,skipped-existing
+qurtulus-campusu-student-1a3-ezizli-sevgi,Əzizli Sevgi,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ezise0,ezise0,ezise0@vote.local,a93521ba-e976-46da-9863-6c6530ec0448,fixed-short-login
+qurtulus-campusu-student-1a3-gozelli-rezzaq-telatum,Gözəlli Rəzzaq Təlatüm,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gozte0,gozte0,gozte0@vote.local,4b7e8f8b-37c0-4c9e-b230-f74d375bab23,fixed-short-login
+qurtulus-campusu-student-1a3-hesenii-nurgul-bahadir,Həsəniİ Nurgül Bahadır,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesba1,hesba1,hesba1@vote.local,9bf5d0de-5568-4230-b47c-db902ccbc8e6,skipped-existing
+qurtulus-campusu-student-1a3-hesenov-atilla-hesim,Həsənov Atilla Həşim,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,heshe1,heshe1,heshe1@vote.local,e0620c58-de51-44ea-b0a4-ce65eaaefe9c,skipped-existing
+qurtulus-campusu-student-1a3-huseyn-eli-rustem,Hüseyn Əli Rüstəm,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husru1,husru1,husru1@vote.local,38b11f96-3342-485a-a00b-09d863987741,skipped-existing
+qurtulus-campusu-student-1a3-iskenderli-mahmud-ehmed,İskəndərli Mahmud Əhməd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,iskeh0,iskeh0,iskeh0@vote.local,fdcf0ae7-f42e-46bb-8a13-ee6d4300933a,fixed-short-login
+qurtulus-campusu-student-1a3-memmedli-mehemmed-sahil,Məmmədli Məhəmməd Sahil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memsa0,memsa0,memsa0@vote.local,cb258f9a-e61a-4737-a79c-cfbb417c3b49,fixed-short-login
+qurtulus-campusu-student-1a3-memmedli-meryem-saiq,Məmmədli Məryəm Şaiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memsa1,memsa1,memsa1@vote.local,3a0d7fae-c4b4-432d-90ee-ed0510c4254e,skipped-existing
+qurtulus-campusu-student-1a3-nifteliyeva-fatime-taleh,Niftəliyeva Fatimə Taleh,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nifta0,nifta0,nifta0@vote.local,f3bdf0a1-c5a5-4b79-a307-fdf13f4323eb,fixed-short-login
+qurtulus-campusu-student-1a3-nuruslu-melek-merhemet,Nuruşlu Mələk Mərhəmət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurme0,nurme0,nurme0@vote.local,7ee441de-f758-42f1-a7af-26fbc1a91f6d,fixed-short-login
+qurtulus-campusu-student-1a3-sireliyeva-zeyneb-niyyet,Şirəliyeva Zeynəb Niyyət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sirni0,sirni0,sirni0@vote.local,12dd875b-a0e5-49be-9bb5-29952b998e76,fixed-short-login
+qurtulus-campusu-student-1e4-esedullayeva-omur-mehdi,Əsədullayeva Ömür Mehdi,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eseme0,eseme0,eseme0@vote.local,f217370c-2604-4f3a-944e-11c8751c5449,fixed-short-login
+qurtulus-campusu-student-1e4-hesimli-ilayda-eliaga,Həşimli İlayda Əliağa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesel3,hesel3,hesel3@vote.local,9e6d0841-05e0-4366-8264-8751f63eb220,skipped-existing
+qurtulus-campusu-student-1e4-hesimova-sukufe-firudin,Həşimova Şükufə Firudin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesfi0,hesfi0,hesfi0@vote.local,10a53d32-32f0-4aba-8894-6791ca6f7290,fixed-short-login
+qurtulus-campusu-student-1e4-mollayev-davud-memmed,Mollayev Davud Məmməd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,molme0,molme0,molme0@vote.local,fe2f44c3-e3a3-4405-95c1-13f25d9a9581,fixed-short-login
+qurtulus-campusu-student-1e4-mollayev-ehmed-memmed,Mollayev Əhməd Məmməd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,molme1,molme1,molme1@vote.local,f17fe0a3-db59-49aa-8faa-43bd17494829,skipped-existing
+qurtulus-campusu-student-1e4-novruzeliyev-mirze-elvin,Novruzəliyev Mirzə Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novel0,novel0,novel0@vote.local,47244782-cdf2-4cc6-bae9-b216c46d9db3,fixed-short-login
+qurtulus-campusu-student-1e4-qasimov-ugur-nicat,Qasımov Uğur Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qasni0,qasni0,qasni0@vote.local,76e69be2-dcd3-4415-8efa-7f43e7d245cd,fixed-short-login
+qurtulus-campusu-student-1e4-qurbansoy-aysu-fazil,Qurbansoy Aysu Fazil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qurfa0,qurfa0,qurfa0@vote.local,254c8228-503b-458d-9831-b022dca79751,fixed-short-login
+qurtulus-campusu-student-1e4-rzayev-roman-ruslan,Rzayev Roman Ruslan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rzaru0,rzaru0,rzaru0@vote.local,dedc2d95-36e3-405b-964b-d5bf1a56ce54,fixed-short-login
+qurtulus-campusu-student-1e4-xudiyeva-hira-tural,Xudiyeva Hira Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xudtu0,xudtu0,xudtu0@vote.local,07fa2125-87c1-49c1-b57b-4b476279624e,fixed-short-login
+qurtulus-campusu-student-1e5-abbasquliyeva-nilay-nemet,Abbasquliyeva Nilay Nemət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abbne0,abbne0,abbne0@vote.local,130f73ca-14d9-4dc5-8c87-5f70c00ddada,fixed-short-login
+qurtulus-campusu-student-1e5-abdulelizade-sibel-abdul,Abduləlizadə Sibel Abdul,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdab0,abdab0,abdab0@vote.local,ce1b9ba2-9662-4758-addb-2c6201eadf33,fixed-short-login
+qurtulus-campusu-student-1e5-esedli-rovsen-mubariz,Əsədli Rövşən Mübariz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esemu0,esemu0,esemu0@vote.local,f2ad449c-0a91-4699-9d2c-e37d077b669f,fixed-short-login
+qurtulus-campusu-student-1e5-hesenzade-maqsud-rufet,Həsənzadə Maqsud Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesru0,hesru0,hesru0@vote.local,4af4275f-7f21-4e14-b210-01faa6b79803,fixed-short-login
+qurtulus-campusu-student-1e5-isgenderov-raul-tural,İsgəndərov Raul Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,isgtu0,isgtu0,isgtu0@vote.local,b38a8ae7-7df5-4699-bbf2-87bb93e29065,fixed-short-login
+qurtulus-campusu-student-1e5-mahmudzade-bahar-samir,Mahmudzadə Bahar Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mahsa0,mahsa0,mahsa0@vote.local,d04f8565-0965-4f76-8fbd-26cbe9f0595b,fixed-short-login
+qurtulus-campusu-student-1e5-mustafayev-isa-ilkin,Mustafayev İsa İlkin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,musil1,musil1,musil1@vote.local,11bdba0c-d06a-4c85-8136-a3cfc59cfbb9,skipped-existing
+qurtulus-campusu-student-1e5-rzayev-cinar-vusal,Rzayev Çinar Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rzavu0,rzavu0,rzavu0@vote.local,c2ec097b-a402-4db0-9c7c-fa2ca9acfd93,fixed-short-login
+qurtulus-campusu-student-1e5-talibli-yaqub-zeka,Talıblı Yaqub Zəka,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,talze0,talze0,talze0@vote.local,33de88e5-37b4-47d1-b1e6-540ddf81b83f,fixed-short-login
+qurtulus-campusu-student-1e5-valehli-fateh-elmir,Valehli Fateh Elmir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,valel0,valel0,valel0@vote.local,1b2b4602-ce55-4de8-8a87-57289759afa5,fixed-short-login
+qurtulus-campusu-student-1e5-velizade-selin-vuqar,Vəlizadə Selin Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,velvu0,velvu0,velvu0@vote.local,c328aab4-73da-4196-8ccd-b5f4d1afc37c,fixed-short-login
+qurtulus-campusu-student-1r2-ceferli-alisa-oxran,Cəfərli Alisa Oxran,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cefox0,cefox0,cefox0@vote.local,7211c7b7-97e7-4770-9797-9c74ac3dd297,fixed-short-login
+qurtulus-campusu-student-1r2-dadasov-musteceb-musa,Dadaşov Müstəcəb Musa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,dadmu0,dadmu0,dadmu0@vote.local,9fbe6233-93a5-4fd7-a031-2c20107f04f0,fixed-short-login
+qurtulus-campusu-student-1r2-hamletzade-medine-elgun,Hamletzadə Mədinə Elgün,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hamel0,hamel0,hamel0@vote.local,fce72cc9-cb8e-4cd3-a36c-8845a2b41f48,fixed-short-login
+qurtulus-campusu-student-1r2-kerimov-onur-tehmiraz,Kərimov Onur Təhmiraz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kerte0,kerte0,kerte0@vote.local,730fbcc1-02db-4074-ac92-ba999d416787,fixed-short-login
+qurtulus-campusu-student-1r2-memmedov-elcan-eziz,Məmmədov Elcan Əziz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memez0,memez0,memez0@vote.local,95c1adaa-d904-4ecd-ad7a-e4aa87129276,fixed-short-login
+qurtulus-campusu-student-1r2-niftaliyeva-almaz-ferhadovna,Niftalıyeva Almaz Fərhadovna,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,niffe0,niffe0,niffe0@vote.local,005f38a7-388c-45d8-b525-ea65345140c8,fixed-short-login
+qurtulus-campusu-student-1r2-quliyev-eldar-ehed,Quliyev Eldar Əhəd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,quleh0,quleh0,quleh0@vote.local,1a0f32c1-3f02-4302-a896-6ee2ed3a5db6,fixed-short-login
+qurtulus-campusu-student-1r2-sahmuradov-refail-suleyman,Şahmuradov Rəfail Süleyman,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sahsu0,sahsu0,sahsu0@vote.local,96c3dcd1-8c25-4a6e-97a1-68578f7498fc,fixed-short-login
+qurtulus-campusu-student-1r2-xanalizade-esnad-xezer,Xanalizadə Əsnad Xəzər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xanxe0,xanxe0,xanxe0@vote.local,f485bd07-17d0-475f-bd7c-1fb39186bd07,fixed-short-login
+qurtulus-campusu-student-2a2-atilla-tagizade-samir,Atilla Tağızadə Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,atisa0,atisa0,atisa0@vote.local,d7ae3fed-7680-4e29-9450-80362acd1cae,fixed-short-login
+qurtulus-campusu-student-2a2-ayla-huseyn-sakir,Ayla Hüseyn Şakir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aylsa0,aylsa0,aylsa0@vote.local,cef8a25d-a7c0-4772-9740-c579ebfac835,fixed-short-login
+qurtulus-campusu-student-2a2-aynar-eli-samir,Aynar Əli Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aynsa0,aynsa0,aynsa0@vote.local,ed612358-a003-408c-8906-36df6704e882,fixed-short-login
+qurtulus-campusu-student-2a2-bayris-bayrisov-sahin,Bayrış Bayrışov Şahin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,baysa0,baysa0,baysa0@vote.local,6147a1b7-d563-4246-a64f-6ecd009d90c5,fixed-short-login
+qurtulus-campusu-student-2a2-celal-abdullazade-samil,Cəlal Abdullazadə Şamil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,celsa0,celsa0,celsa0@vote.local,8bd0e1f8-ee29-4dc1-b559-2746a6dca886,fixed-short-login
+qurtulus-campusu-student-2a2-ebulfez-eyvazli-mirzeaga,Əbülfəz Eyvazlı Mirzəağa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ebumi0,ebumi0,ebumi0@vote.local,07768ac6-7a30-443d-8905-1fe811d6a1a7,fixed-short-login
+qurtulus-campusu-student-2a2-esma-nifteliyeva-serxan,Əsma Niftəliyeva Sərxan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esmse0,esmse0,esmse0@vote.local,3a5f3321-5fd7-44c5-9014-cb77e428dafb,fixed-short-login
+qurtulus-campusu-student-2a2-fereh-aydinli-ferhad,Fərəh Aydınlı Fərhad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ferfe0,ferfe0,ferfe0@vote.local,c57d0e0b-0189-4694-8390-3621d964c8a7,fixed-short-login
+qurtulus-campusu-student-2a2-humay-ibrahimova-rauf,Humay İbrahimova Rauf,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,humra0,humra0,humra0@vote.local,f10f55f4-cf3e-49e6-bee2-0ce87bcfda04,fixed-short-login
+qurtulus-campusu-student-2a2-huseyn-seliyev-elcin,Hüseyn Şəliyev Elçin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husel3,husel3,husel3@vote.local,ad6bcc31-8f7c-4b81-b3dc-6df34eb3065a,skipped-existing
+qurtulus-campusu-student-2a2-jasmin-velizade-vuqar,Jasmin Vəlizadə Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,jasvu0,jasvu0,jasvu0@vote.local,44422ad8-380f-4c44-9b8c-cdc8342cfacc,fixed-short-login
+qurtulus-campusu-student-2a2-kenan-novruzzade-kamal,Kənan Novruzzadə Kamal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kenka0,kenka0,kenka0@vote.local,f724bc5e-358a-4d41-8168-1becbdb76123,fixed-short-login
+qurtulus-campusu-student-2a2-nergiz-meherremli-edqar,Nərgiz Məhərrəmli Edqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nered0,nered0,nered0@vote.local,32bf1597-6f4c-423d-a52e-5ac734055620,fixed-short-login
+qurtulus-campusu-student-2a2-nermine-ehmedzade-ruhin,Nərminə Əhmədzadə Ruhin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nerru0,nerru0,nerru0@vote.local,71708afd-f1c4-4713-b194-4d714c2d6a23,fixed-short-login
+qurtulus-campusu-student-2a2-nesimi-ekberli-vusal,Nəsimi Əkbərli Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nesvu0,nesvu0,nesvu0@vote.local,b745f08c-3642-4e6b-976f-45a4b3e67cd8,fixed-short-login
+qurtulus-campusu-student-2a2-sevil-huseynova-mehebbet,Sevil Hüseynova Məhəbbət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevme0,sevme0,sevme0@vote.local,eb3c58ee-3e61-45f2-8ede-2d8cbf9a3faa,fixed-short-login
+qurtulus-campusu-student-2a2-tuncay-elisefazade-ilkin,Tuncay Əlisəfazadə İlkin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tunil0,tunil0,tunil0@vote.local,52f246ac-7378-4694-a81c-33551ab847b7,fixed-short-login
+qurtulus-campusu-student-2a2-turqut-besirli-subhan,Turqut Bəşirli Sübhan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tursu0,tursu0,tursu0@vote.local,85352776-0c1f-4293-ae6b-be6aceea416c,fixed-short-login
+qurtulus-campusu-student-2a2-yusif-meherremli-edqar,Yusif Məhərrəmli Edqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yused0,yused0,yused0@vote.local,1bbbe8c9-ed0e-4db0-a2e5-baab506c9796,fixed-short-login
+qurtulus-campusu-student-2a2-zeka-memmedov-ramiz,Zəka Məmmədov Ramiz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zekra0,zekra0,zekra0@vote.local,da64eba5-131d-4dac-b691-1afa5687f031,fixed-short-login
+qurtulus-campusu-student-2a3-alper-qulizade-nicat,Alpər Qulizadə Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,alpni0,alpni0,alpni0@vote.local,3cda3000-a400-45ff-abaf-414e8167e4cb,fixed-short-login
+qurtulus-campusu-student-2a3-amin-abdullayev-elsen,Amin Abdullayev Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,amiel0,amiel0,amiel0@vote.local,2611c906-4ce0-4a7f-bf4d-e66513dc0959,fixed-short-login
+qurtulus-campusu-student-2a3-asif-nuruslu-merhemet,Asif Nuruşlu Mərhəmət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,asime0,asime0,asime0@vote.local,25da504b-8abd-40d4-bb8c-a0f7a5d43c7a,fixed-short-login
+qurtulus-campusu-student-2a3-cavidan-eliyev-resad,Cavidan Əliyev Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cavre0,cavre0,cavre0@vote.local,d7563f39-744d-494f-ba90-165fd5ca6e9b,fixed-short-login
+qurtulus-campusu-student-2a3-cingiz-abbasov-sirvan,Çingiz Abbasov Şirvan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cinsi0,cinsi0,cinsi0@vote.local,847f8380-3568-4018-9cc3-dc2498f46120,fixed-short-login
+qurtulus-campusu-student-2a3-elmin-hemidli-elvin,Elmin Həmidli Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elmel0,elmel0,elmel0@vote.local,eb87ca4e-75a6-4fa7-889a-9b63abea8682,fixed-short-login
+qurtulus-campusu-student-2a3-meryem-mehdizade-behruz,Məryəm Mehdizadə Bəhruz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,merbe0,merbe0,merbe0@vote.local,2c516ea3-1075-4a91-afc9-aaa490284b8d,fixed-short-login
+qurtulus-campusu-student-2a3-musa-sixeliyev-zaur,Musa Şıxəliyev Zaur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,musza0,musza0,musza0@vote.local,39b354b7-0774-4d11-825a-e7d545f85473,fixed-short-login
+qurtulus-campusu-student-2a3-nergiz-namazli-elmeddin,Nərgiz Namazlı Elməddin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nerel0,nerel0,nerel0@vote.local,29cf4458-1477-4e61-a3c6-cab67a7f7b85,fixed-short-login
+qurtulus-campusu-student-2a3-omer-abdullayev-elnur,Ömər Abdullayev Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,omeel0,omeel0,omeel0@vote.local,df4314bd-07b4-4dfd-ba7e-d89b490df048,fixed-short-login
+qurtulus-campusu-student-2a3-suleyman-mensu-emin,Süleyman Mənsu Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sulem0,sulem0,sulem0@vote.local,492e3f9b-55e6-458a-a3a5-a105c8f413ab,fixed-short-login
+qurtulus-campusu-student-2a3-xizir-memmedli-museyib,Xızır Məmmədli Müseyib,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xizmu0,xizmu0,xizmu0@vote.local,c0437ce0-7b85-413a-89f1-96c6d8d33f9e,fixed-short-login
+qurtulus-campusu-student-2a3-zerife-tagisoy-saiq,Zərifə Tağısoy Şaiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zersa0,zersa0,zersa0@vote.local,1e0f874d-b6ab-4050-b43e-a2781e7ad4e8,fixed-short-login
+qurtulus-campusu-student-2e2-allahverdili-omer-samir,Allahverdili Ömər Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allsa1,allsa1,allsa1@vote.local,2bfb8fea-faa6-450d-9413-80fd99955c1a,skipped-existing
+qurtulus-campusu-student-2e2-allahverdiyev-maqsud-niyameddin,Allahverdiyev Maqsud Niyaməddin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allni0,allni0,allni0@vote.local,b86d391f-cf0b-416b-8d9d-25fb5f277708,fixed-short-login
+qurtulus-campusu-student-2e2-beylerova-nur-vuqar,Bəylərova Nur Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,beyvu0,beyvu0,beyvu0@vote.local,a2ccfd79-c5a9-4551-b683-8fc15388064c,fixed-short-login
+qurtulus-campusu-student-2e2-ehmed-raul-tural,Əhməd Raul Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ehmtu0,ehmtu0,ehmtu0@vote.local,1e01e2e1-1bcf-4686-8816-47b706db2d35,fixed-short-login
+qurtulus-campusu-student-2e2-hacibeyli-omer-emin,Hacıbəyli Ömər Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hacem1,hacem1,hacem1@vote.local,e24e19c1-834a-46fd-93c7-0d216fc8063d,skipped-existing
+qurtulus-campusu-student-2e2-hesenli-etibar-emin,Həsənli Etibar Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesem1,hesem1,hesem1@vote.local,9c1bccf3-a0bf-42f1-9579-62ca5e2a2dfc,skipped-existing
+qurtulus-campusu-student-2e2-imanli-nil-marlen,İmanlı Nil Marlen,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,imama0,imama0,imama0@vote.local,b85da1a1-8279-409b-b522-99c6d70fd6c2,fixed-short-login
+qurtulus-campusu-student-2e2-ismayil-cahandar-tural,İsmayıl Cahandar Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismtu1,ismtu1,ismtu1@vote.local,9556204c-672b-4c00-87f3-24b4d7eb0bd8,skipped-existing
+qurtulus-campusu-student-2e2-ismayilov-amil-emil,İsmayılov Amil Emil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismem1,ismem1,ismem1@vote.local,42ae5c9f-c331-4719-9fbf-864f61294459,skipped-existing
+qurtulus-campusu-student-2e2-ismayilov-tunar-orxan,İsmayılov Tunar Orxan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismor0,ismor0,ismor0@vote.local,2bae7bc5-9ae3-4c4c-ac9d-a497dcc21e2f,fixed-short-login
+qurtulus-campusu-student-2e2-mamontov-savva-ruslan,Mamontov Savva Ruslan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mamru0,mamru0,mamru0@vote.local,6410b8fb-51ce-4a77-92ef-ef85d82adbb2,fixed-short-login
+qurtulus-campusu-student-2e2-novruzeliyeva-deniz-elvin,Novruzəliyeva Dəniz Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novel1,novel1,novel1@vote.local,57ae816c-fcae-4e16-b2aa-e89ca6a1c55e,skipped-existing
+qurtulus-campusu-student-2e2-ozcan-meryem-necat,Özcan Meryem Necat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ozcne0,ozcne0,ozcne0@vote.local,0806b0f0-f4c4-432b-b99a-f242674069ee,fixed-short-login
+qurtulus-campusu-student-2e2-rzazade-ebilfez-orxan,Rzazadə Əbilfəz Orxan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rzaor1,rzaor1,rzaor1@vote.local,4eea5cc8-708a-4efe-8d9d-2b3babe406e4,skipped-existing
+qurtulus-campusu-student-2e2-sadayli-namiq-cavid,Sadaylı Namiq Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadca0,sadca0,sadca0@vote.local,5dbe256a-e54f-487a-b58d-9ffa1f89bf37,fixed-short-login
+qurtulus-campusu-student-2e2-sirafilov-eli-namiq,Sırafilov Əli Namiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sirna0,sirna0,sirna0@vote.local,fc02037e-8350-42c1-9479-22e6a1d13b01,fixed-short-login
+qurtulus-campusu-student-2r2-amina-memmedli-elburus,Amina Məmmədli Elburus,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,amiel1,amiel1,amiel1@vote.local,327bceac-b21e-4434-b25d-e9f826452847,skipped-existing
+qurtulus-campusu-student-2r2-deniz-eliyeva-elvin,Dəniz Əliyeva Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,denel0,denel0,denel0@vote.local,69025235-fb79-48d4-8f2b-3e690682aac2,fixed-short-login
+qurtulus-campusu-student-2r2-emilay-quluzade-vusal,Emilay Quluzadə Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,emivu0,emivu0,emivu0@vote.local,e212b6fa-0674-4226-b151-0b40e54f84c1,fixed-short-login
+qurtulus-campusu-student-2r2-eynur-ejderzade-elsever,Eynur Əjdərzadə Elsəvər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eynel0,eynel0,eynel0@vote.local,dacbf202-bf9c-489d-a7b0-b21b31b51e03,fixed-short-login
+qurtulus-campusu-student-2r2-ezize-nebizade-elcin,Əzizə Nəbizadə Elçin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eziel1,eziel1,eziel1@vote.local,15aed941-ecc7-4bfb-9a8b-c9b6b0e4c123,skipped-existing
+qurtulus-campusu-student-2r2-heyder-abasov-elgiz,Heydər Abasov Elgiz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,heyel0,heyel0,heyel0@vote.local,839fddfd-684a-4480-8876-9400a26cbd97,fixed-short-login
+qurtulus-campusu-student-2r2-huri-ibrahimzade-fuzuli,Huri İbrahimzadə Füzuli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hurfu0,hurfu0,hurfu0@vote.local,737d1d45-ace6-4635-a8d8-31e52ad9b575,fixed-short-login
+qurtulus-campusu-student-2r2-nuray-ceferova-elnur,Nuray Cəfərova Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurel0,nurel0,nurel0@vote.local,fa9e5359-30ef-42ed-9392-c0e7a2484c9e,fixed-short-login
+qurtulus-campusu-student-2r2-nurlan-emrastanov-nicat,Nurlan Əmrastanov Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurni0,nurni0,nurni0@vote.local,e3afc25a-3fbb-4bb3-b047-7e6834ea2afe,fixed-short-login
+qurtulus-campusu-student-2r2-ofeliya-qarazade-ferhad,Ofeliya Qarazadə Fərhad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ofefe0,ofefe0,ofefe0@vote.local,9eb9a62c-e979-40d8-8420-9320ea1480bd,fixed-short-login
+qurtulus-campusu-student-2r2-resul-muzefferov-raul,Rəsul Müzəffərov Raul,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,resra0,resra0,resra0@vote.local,1028824e-5171-4e0c-a153-a709a675ebfe,fixed-short-login
+qurtulus-campusu-student-2r2-serdar-ezimli-ferid,Sərdar Əzimli Fərid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,serfe0,serfe0,serfe0@vote.local,392e9cc8-2d2c-424f-b51a-633d73c28973,fixed-short-login
+qurtulus-campusu-student-2r2-sevinc-allahverdili-umud,Sevinc Allahverdili Ümüd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevum0,sevum0,sevum0@vote.local,28b95e86-9f5f-4398-97a2-f3491d465d71,fixed-short-login
+qurtulus-campusu-student-3a2-amira-abbasova-ismayil,Amira Abbasova İsmayıl,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,amiis0,amiis0,amiis0@vote.local,3389d35c-faf4-40f7-aa39-3e2212fb1404,fixed-short-login
+qurtulus-campusu-student-3a2-bahar-hesenli-bahadir,Bahar Həsənli Bahadır,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bahba0,bahba0,bahba0@vote.local,4c147093-dadf-463f-ac22-c2c9289dddfc,fixed-short-login
+qurtulus-campusu-student-3a2-eli-eyyubov-elvin,Əli Eyyubov Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eliel9,eliel9,eliel9@vote.local,4e03a89b-29e3-4b0a-9325-17e821cca415,skipped-existing
+qurtulus-campusu-student-3a2-elmir-xelilov-resad,Elmir Xəlilov Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elmre0,elmre0,elmre0@vote.local,f29b2499-79fb-4c87-a789-48a548a92be6,fixed-short-login
+qurtulus-campusu-student-3a2-mehdi-eliyev-mensur,Mehdi Əliyev Mənsur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehme1,mehme1,mehme1@vote.local,3026a689-a2cf-4f95-9416-5371ce6f6928,skipped-existing
+qurtulus-campusu-student-3a2-miray-allahverdiyeva-cavid,Miray Allahverdiyeva Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mirca0,mirca0,mirca0@vote.local,5feb3e34-21c8-4292-bc12-7e0a15a6c818,fixed-short-login
+qurtulus-campusu-student-3a2-qabil-kerimli-musa,Qabil Kərimli Musa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qabmu0,qabmu0,qabmu0@vote.local,59be3695-f727-4bb5-bee0-b4703af917a7,fixed-short-login
+qurtulus-campusu-student-3a2-telman-ezizov-ramil,Telman Əzizov Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,telra0,telra0,telra0@vote.local,e026f496-a74d-4c9b-9203-527bcd0926f2,fixed-short-login
+qurtulus-campusu-student-3a2-xalide-tagisoy-saiq,Xalidə Tağısoy Şaiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xalsa0,xalsa0,xalsa0@vote.local,275e879d-01e2-4a6e-8b19-cb3b5bd552a6,fixed-short-login
+qurtulus-campusu-student-3a2-yusif-nesibli-resad,Yusif Nəsibli Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yusre0,yusre0,yusre0@vote.local,4dcaca89-49da-4686-b2fe-ee6185fae15e,fixed-short-login
+qurtulus-campusu-student-3a2-zennur-eliyeva-elnur,Zənnur Əliyeva Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zenel0,zenel0,zenel0@vote.local,46f6ccb9-5440-475d-a303-2c2cb5dac90c,fixed-short-login
+qurtulus-campusu-student-3a2-ziya-zeynalli-behruz,Ziya Zeynallı Bəhruz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ziybe0,ziybe0,ziybe0@vote.local,90247d01-c4b0-4a85-a457-5cfd707f2860,fixed-short-login
+qurtulus-campusu-student-3a3-ayxan-sadiq-ramiz,Ayxan Sadiq Ramiz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ayxra0,ayxra0,ayxra0@vote.local,c671d929-dad0-4b17-ab5f-65eee3675b88,fixed-short-login
+qurtulus-campusu-student-3a3-cesur-sirinli-adem,Cəsur Şirinli Adəm,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cesad0,cesad0,cesad0@vote.local,a2e8bbf6-4c63-40cb-954d-bd0803b890cc,fixed-short-login
+qurtulus-campusu-student-3a3-elgun-memmedli-elmeddin,Elgün Məmmədli Elməddin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elgel0,elgel0,elgel0@vote.local,678f2145-ef8f-4397-a3ad-9b42d8cf6f5c,fixed-short-login
+qurtulus-campusu-student-3a3-fatime-ceferli-aqil,Fatimə Cəfərli Aqil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,fataq0,fataq0,fataq0@vote.local,e34b9b89-da83-4792-8fc6-f2ccc4297b1e,fixed-short-login
+qurtulus-campusu-student-3a3-jasmin-nagizade-anar,Jasmin Nağızadə Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,jasan0,jasan0,jasan0@vote.local,bcf30af2-a6f1-48c0-a565-a77178bfa82b,fixed-short-login
+qurtulus-campusu-student-3a3-melek-bedelzade-zamin,Mələk Bədəlzadə Zamin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,melza0,melza0,melza0@vote.local,c0d7b832-4657-4445-9a78-3b19aa1c6b62,fixed-short-login
+qurtulus-campusu-student-3a3-mira-bayramova-perviz,Mira Bayramova Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mirpe0,mirpe0,mirpe0@vote.local,cc8aeded-add4-4d6d-b9cd-b2551cf2a27d,fixed-short-login
+qurtulus-campusu-student-3a3-nicat-sireliyev-niyet,Nicat Şirəliyev Niyət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nicni0,nicni0,nicni0@vote.local,7d485987-ca4d-464f-9f23-a7196e4aabb7,fixed-short-login
+qurtulus-campusu-student-3a3-nilay-bayramova-vuqar,Nilay Bayramova Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nilvu0,nilvu0,nilvu0@vote.local,371bd5ec-e5f6-4a66-a6c5-da1701ac435a,fixed-short-login
+qurtulus-campusu-student-3a3-resul-ibrahimli-kenan,Rəsul İbrahimli Kənan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,reske0,reske0,reske0@vote.local,236ab5bc-1793-48bc-8e06-f292142c0591,fixed-short-login
+qurtulus-campusu-student-3a3-tunar-hesenov-tofiq,Tunar Həsənov Tofiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tunto0,tunto0,tunto0@vote.local,213c3067-076a-4464-a374-09aba5d67ff7,fixed-short-login
+qurtulus-campusu-student-3e2-agamuradli-omer-sarvan,Ağamuradlı Ömər Sarvan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,agasa2,agasa2,agasa2@vote.local,ea3d8d6b-54a7-47a0-94eb-1241cd90c800,skipped-existing
+qurtulus-campusu-student-3e2-bedelli-oguzxan-emil,Bədəlli Oğuzxan Emil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bedem0,bedem0,bedem0@vote.local,a70bd6ce-7f7c-4bcb-9d5e-ca85b993cbc3,fixed-short-login
+qurtulus-campusu-student-3e2-elili-iman-temraz,Əlili İman Təmraz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elite0,elite0,elite0@vote.local,d7e0b2e6-09a0-4e82-9209-68c7e0e53f21,fixed-short-login
+qurtulus-campusu-student-3e2-eliyeva-mehin-elsad,Əliyeva Mehin Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eliel10,eliel10,eliel10@vote.local,d9c41d6c-02fe-4971-bffd-b1124be28709,skipped-existing
+qurtulus-campusu-student-3e2-hacisoy-daniel-elsen,Hacısoy Daniel Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hacel2,hacel2,hacel2@vote.local,023edb98-65b7-410e-86a1-bc827365bf3f,skipped-existing
+qurtulus-campusu-student-3e2-imanli-nur-emil,İmanlı Nur Emil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,imaem0,imaem0,imaem0@vote.local,bba54b3b-a407-44a2-887b-331b15fecad0,fixed-short-login
+qurtulus-campusu-student-3e2-oruc-raul-teymur,Oruc Raul Teymur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,orute0,orute0,orute0@vote.local,38415d6f-bb92-4d57-ab35-bfe28475420f,fixed-short-login
+qurtulus-campusu-student-3e2-sadayli-ferhad-cavid,Sadaylı Fərhad Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadca1,sadca1,sadca1@vote.local,c8998719-69f2-4071-aa0b-eb3ce8169a2c,skipped-existing
+qurtulus-campusu-student-3r2-ayla-isazade-xeyal,Ayla İsazadə Xəyal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aylxe0,aylxe0,aylxe0@vote.local,92f8693b-4c07-459d-8d2f-404629fe337c,fixed-short-login
+qurtulus-campusu-student-3r2-ayxan-abdurahmanli-perviz,Ayxan Abdurahmanlı Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ayxpe0,ayxpe0,ayxpe0@vote.local,41dea447-ae00-4ccf-b39a-2659c069a20e,fixed-short-login
+qurtulus-campusu-student-3r2-dinara-quliyeva-hilal,Dinara Quliyeva Hilal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,dinhi0,dinhi0,dinhi0@vote.local,88d6fd58-cbb2-45a5-bdb9-5a70c4d17cd8,fixed-short-login
+qurtulus-campusu-student-3r2-esmer-hacibeyova-mubarez,Əsmər Hacıbəyova Mübarəz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esmmu0,esmmu0,esmmu0@vote.local,fb756d3f-5994-447d-8981-5156a179f116,fixed-short-login
+qurtulus-campusu-student-3r2-ferid-niftaliyev-ferhad,Fərid Niftalıyev Fərhad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ferfe1,ferfe1,ferfe1@vote.local,defb35ec-b2eb-4394-8743-f9e90fa2ed32,skipped-existing
+qurtulus-campusu-student-3r2-melisa-ramazanli-ramil,Melisa Ramazanlı Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,melra0,melra0,melra0@vote.local,9a047c35-db28-4a72-b266-7b1da662c653,fixed-short-login
+qurtulus-campusu-student-3r2-natiq-elizade-namiq,Natiq Əlizadə Namiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,natna0,natna0,natna0@vote.local,a2e8b0d5-d5d7-402a-9e93-24a2205b3dd5,fixed-short-login
+qurtulus-campusu-student-3r2-renat-xanalizade-xezer,Renat Xanalizadə Xəzər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,renxe0,renxe0,renxe0@vote.local,a7955ea4-df1b-4cb5-93dc-1f0f8370abe1,fixed-short-login
+qurtulus-campusu-student-3r2-siyavus-beydullayev-ulvi,Siyavuş Beydullayev Ülvi,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,siyul0,siyul0,siyul0@vote.local,cc667b14-26e7-4b53-974e-026ec7035186,fixed-short-login
+qurtulus-campusu-student-3r2-yagmur-edilova-xeyyam,Yağmur Ədilova Xəyyam,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yagxe0,yagxe0,yagxe0@vote.local,e6ea4368-1b68-4473-894f-058719e2a5e9,fixed-short-login
+qurtulus-campusu-student-4a2-ayxan-bayramov-elsen,Ayxan Bayramov Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ayxel0,ayxel0,ayxel0@vote.local,c415b2c2-ba27-4bdf-a7ae-1f09479f91bb,fixed-short-login
+qurtulus-campusu-student-4a2-banu-zubahirli-mehmmed,Banu Zubahirli Məhmməd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,banme0,banme0,banme0@vote.local,e3670acd-5da9-4194-a23e-27d5ec886c10,fixed-short-login
+qurtulus-campusu-student-4a2-fexri-hesenli-valeh,Fəxri Həsənli Valeh,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,fexva0,fexva0,fexva0@vote.local,8359014e-4e8a-47a6-8477-b4e24414c74d,fixed-short-login
+qurtulus-campusu-student-4a2-mehemmed-memmedov-sahil,Məhəmməd Məmmədov Sahil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehsa0,mehsa0,mehsa0@vote.local,1bd7aad8-18f9-4d43-8b9d-a64f0fd8b4da,fixed-short-login
+qurtulus-campusu-student-4a2-meryem-memmedli-senan,Məryəm Məmmədli Sənan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,merse2,merse2,merse2@vote.local,35275cb4-45fe-4d69-ba98-7e0e8c6e77b4,skipped-existing
+qurtulus-campusu-student-4a2-nurlan-mehdizade-natiq,Nurlan Mehdizadə Natiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurna0,nurna0,nurna0@vote.local,ef265858-b62d-4505-87c2-553ff7d539eb,fixed-short-login
+qurtulus-campusu-student-4a2-seid-qubatli-nicat,Səid Qubatlı Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,seini0,seini0,seini0@vote.local,5f26fadc-5be8-4794-bb76-3ef444f9f2c4,fixed-short-login
+qurtulus-campusu-student-4a2-serxan-hesenli-hesim,Sərxan Həsənli Həşim,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,serhe0,serhe0,serhe0@vote.local,8618872d-64fa-496e-bba0-55bbea36c569,fixed-short-login
+qurtulus-campusu-student-4a2-sima-ezizli-elsad,Sima Əzizli Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,simel0,simel0,simel0@vote.local,f6dc2aa9-49c7-47c4-a6fe-c4da1226da5b,fixed-short-login
+qurtulus-campusu-student-4a2-ugur-abdullayev-emin,Uğur Abdullayev Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,uguem0,uguem0,uguem0@vote.local,83c6a88f-6cc8-4b24-a72b-52ca4bbf0dc8,fixed-short-login
+qurtulus-campusu-student-4a2-umid-hesenli-nisat,Ümid Həsənli Nişat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,umini0,umini0,umini0@vote.local,2e975ec7-252b-40ef-89c8-b9c99985dd66,fixed-short-login
+qurtulus-campusu-student-4a3-ayla-muzefferova-raul,Ayla Müzəffərova Raul,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aylra0,aylra0,aylra0@vote.local,eaf603f7-9173-48b0-8f01-6e89eb0ba865,fixed-short-login
+qurtulus-campusu-student-4a3-cavid-esgerov-elvin,Cavid Əsgərov Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cavel2,cavel2,cavel2@vote.local,3d88947b-f6f1-4a8c-b3f2-700f2be32894,skipped-existing
+qurtulus-campusu-student-4a3-cavidan-besirli-celal,Cavidan Bəşirli Cəlal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cavce0,cavce0,cavce0@vote.local,b8fb2ebb-9080-4a7a-a135-4143e74ad9ec,fixed-short-login
+qurtulus-campusu-student-4a3-deniz-abdullazade-samil,Dəniz Abdullazadə Şamil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,densa0,densa0,densa0@vote.local,f8365933-03f2-4e71-b139-e9c115bee56c,fixed-short-login
+qurtulus-campusu-student-4a3-eli-resulzade-bextiyar,Əli Rəsulzadə Bəxtiyar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elibe0,elibe0,elibe0@vote.local,bfa356dc-51e8-40b8-88ee-c55c7c6fef3e,fixed-short-login
+qurtulus-campusu-student-4a3-mahir-ezizli-murad,Mahir Əzizli Murad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mahmu0,mahmu0,mahmu0@vote.local,fbd42912-5fec-48ad-a640-21594be8fa20,fixed-short-login
+qurtulus-campusu-student-4a3-mehdi-memmedov-huseyn,Mehdi Məmmədov Hüseyn,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehhu0,mehhu0,mehhu0@vote.local,658f3add-31fd-401d-83a9-aa72e397ef14,fixed-short-login
+qurtulus-campusu-student-4a3-mehemmed-abdullayev-elsen,Məhəmməd Abdullayev Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehel2,mehel2,mehel2@vote.local,be7d2dca-5b40-400e-a7d4-02f210b6bb69,skipped-existing
+qurtulus-campusu-student-4a3-mehemmed-resulzade-bextiyar,Məhəmməd Rəsulzadə Bəxtiyar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehbe0,mehbe0,mehbe0@vote.local,9ac13484-6a3c-4402-a6d8-3a9af2ffbc08,fixed-short-login
+qurtulus-campusu-student-4a3-metin-ezizli-murad,Mətin Əzizli Murad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,metmu0,metmu0,metmu0@vote.local,ac88aee8-172a-4b32-a093-857179a91020,fixed-short-login
+qurtulus-campusu-student-4a3-rovsen-elisoy-rahib,Rövşən Əlisoy Rahib,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rovra0,rovra0,rovra0@vote.local,11867a3f-5887-4ffc-9261-7217189e206f,fixed-short-login
+qurtulus-campusu-student-4a3-zeyneb-talibzade-zeka,Zeynəb Talıbzadə Zəka,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zeyze0,zeyze0,zeyze0@vote.local,07a033ea-ce25-40ae-bf78-ebd622767998,fixed-short-login
+qurtulus-campusu-student-4e2-allahverdili-oruc-samir,Allahverdili Oruc Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allsa2,allsa2,allsa2@vote.local,4639482b-fe9f-4390-b2fa-69ced1b8037b,skipped-existing
+qurtulus-campusu-student-4e2-bedelova-medine-ramil,Bədəlova Mədinə Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bedra0,bedra0,bedra0@vote.local,9e3a7366-be74-4db3-83ff-dc02d83d5e21,fixed-short-login
+qurtulus-campusu-student-4e2-beylerov-ugur-vuqar,Bəylərov Uğur Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,beyvu1,beyvu1,beyvu1@vote.local,3a4bd70f-992b-4999-b0a7-cee4f5102431,skipped-existing
+qurtulus-campusu-student-4e2-cavadov-zulfuqar-rauf,Cavadov Zülfüqar Rauf,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cavra0,cavra0,cavra0@vote.local,dcba3ed9-4695-42bf-9fd5-1e70501fd1d7,fixed-short-login
+qurtulus-campusu-student-4e2-cumayeva-mehriban-cavid,Cumayeva Mehriban Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cumca0,cumca0,cumca0@vote.local,7f8024df-301f-4e81-972a-4f8dc8ae0d04,fixed-short-login
+qurtulus-campusu-student-4e2-nesirli-nur-anar,Nəsirli Nur Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nesan0,nesan0,nesan0@vote.local,cdf23457-552e-40cf-9d38-b9a9da317a45,fixed-short-login
+qurtulus-campusu-student-4e2-osmanli-omer-rovsen,Osmanlı Ömər Rövşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,osmro0,osmro0,osmro0@vote.local,ac5cf5ae-9aa7-4acd-a447-aed88ae4c076,fixed-short-login
+qurtulus-campusu-student-4e2-qasimova-zeyneb-bextiyar,Qasımova Zeynəb Bəxtiyar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qasbe0,qasbe0,qasbe0@vote.local,6c4231a8-dc78-4ac7-9c65-bc99eecf866c,fixed-short-login
+qurtulus-campusu-student-4e2-quliyev-musa-remis,Quliyev Musa Rəmiş,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulre2,qulre2,qulre2@vote.local,fdca7a71-f692-488a-8417-187d70834dbe,skipped-existing
+qurtulus-campusu-student-4e2-quliyeva-zeyneb-ziya,Quliyeva Zeynəb Ziya,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulzi0,qulzi0,qulzi0@vote.local,115fa5cb-24e1-46e8-98bd-66e6fc64564a,fixed-short-login
+qurtulus-campusu-student-4e2-sahverdi-mikayil-elsen,Şahverdi Mikayıl Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sahel0,sahel0,sahel0@vote.local,ad14d2e7-204a-4cc0-aa4c-ad1ce15a8b82,fixed-short-login
+qurtulus-campusu-student-4e2-zeynalli-emil-feqan,Zeynallı Emil Fəqan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zeyfe0,zeyfe0,zeyfe0@vote.local,97a538ec-f37f-44bd-9be6-57e1ef7828b2,fixed-short-login
+qurtulus-campusu-student-4r3-esmer-emrastanova-anar,Əsmər Əmrastanova Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esman0,esman0,esman0@vote.local,0cc8a41b-1e0c-4242-9c33-13fb8d8971a5,fixed-short-login
+qurtulus-campusu-student-4r3-esra-isgenderova-tural,Əsra İsgəndərova Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esrtu0,esrtu0,esrtu0@vote.local,5ab69d09-a1bc-4b5a-8f5e-8b10dea293f3,fixed-short-login
+qurtulus-campusu-student-4r3-fexri-yusubov-ramin,Fəxri Yusubov Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,fexra0,fexra0,fexra0@vote.local,d748e95d-30a0-4abc-91cc-a1fcf0b9eece,fixed-short-login
+qurtulus-campusu-student-4r3-huseyn-eliyev-ramin,Hüseyn Əliyev Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husra2,husra2,husra2@vote.local,d76cb3de-e7ee-4135-bf08-10f4c0c60ecd,skipped-existing
+qurtulus-campusu-student-4r3-mehriban-abbaszade-elnur,Mehriban Abbaszadə Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehel3,mehel3,mehel3@vote.local,3c4779b8-353c-4234-926d-ca3a47cd8c27,skipped-existing
+qurtulus-campusu-student-4r3-nilay-hesenli-ilham,Nilay Həsənli İlham,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nilil0,nilil0,nilil0@vote.local,066f8c9e-aee3-4f38-b053-fa7c1e8c284b,fixed-short-login
+qurtulus-campusu-student-4r3-semaye-emrastanova-nicat,Səmayə Əmrastanova Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,semni0,semni0,semni0@vote.local,f67bd7d0-7403-477b-94e6-eb494b88114e,fixed-short-login
+qurtulus-campusu-student-4r3-turxan-huseyn-ramil,Turxan Hüseyn Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,turra0,turra0,turra0@vote.local,30c2a427-2e3a-4796-aec4-3b261300c66a,fixed-short-login
+qurtulus-campusu-student-4r3-ugur-elizade-namiq,Uğur Əlizadə Namiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,uguna0,uguna0,uguna0@vote.local,cec8e31d-5520-47dc-bfd4-18e1e7eb62f6,fixed-short-login
+qurtulus-campusu-student-4r3-xezer-novruzlu-meherrem-nicat,Xəzər Novruzlu Məhərrəm Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xezni0,xezni0,xezni0@vote.local,f99b9f18-d590-4efd-9ea2-6c2f4a2a4ea3,fixed-short-login
+qurtulus-campusu-student-4r3-yusif-quliyev-nicat,Yusif Quliyev Nicat,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yusni0,yusni0,yusni0@vote.local,701ff379-d448-4b67-ac47-6ad982860041,fixed-short-login
+qurtulus-campusu-student-5a2-allahverdiyeva-duygu-elsad,Allahverdiyeva Duyğu Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allel0,allel0,allel0@vote.local,c3bf6d4b-1c18-4aeb-9abf-7f9f381b5dc6,fixed-short-login
+qurtulus-campusu-student-5a2-bayramli-nuray-faiq,Bayramlı Nuray Faiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bayfa0,bayfa0,bayfa0@vote.local,3d9ee4ac-9769-4c53-af06-311463606de7,fixed-short-login
+qurtulus-campusu-student-5a2-bayramli-nurgul-faiq,Bayramlı Nurgül Faiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bayfa1,bayfa1,bayfa1@vote.local,aff03d49-123d-482f-846f-565960aafebe,skipped-existing
+qurtulus-campusu-student-5a2-bayramova-fidan-elsen,Bayramova Fidan Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bayel1,bayel1,bayel1@vote.local,006b16c6-7de8-4a39-a706-11ea2cbd06bf,skipped-existing
+qurtulus-campusu-student-5a2-bayrisova-melek-sahin,Bayrışova Mələk Şahin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,baysa1,baysa1,baysa1@vote.local,c9c449b2-d8e1-4849-b413-d9c92c2e8197,skipped-existing
+qurtulus-campusu-student-5a2-eliyeva-nezrin-kamal,Əliyeva Nəzrin Kamal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elika0,elika0,elika0@vote.local,2b8be3e4-c3a4-4d04-b566-696501b128a4,fixed-short-login
+qurtulus-campusu-student-5a2-hasimov-kamil-elsad,Haşımov Kamil Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hasel0,hasel0,hasel0@vote.local,71a6dbac-ea53-4f7b-ad7e-1276a2054f0f,fixed-short-login
+qurtulus-campusu-student-5a2-hesenov-yusif-bahadir,Həsənov Yusif Bahadır,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesba2,hesba2,hesba2@vote.local,b606959c-45b4-4d0e-8a37-0399131c3f33,skipped-existing
+qurtulus-campusu-student-5a2-hesenzade-azer-sahib,Həsənzadə Azər Sahib,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hessa0,hessa0,hessa0@vote.local,f999b06f-427f-49a6-b155-cb11a01f1bc8,fixed-short-login
+qurtulus-campusu-student-5a2-humbetli-aylin-zahir,Hümbətli Aylin Zahir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,humza0,humza0,humza0@vote.local,68714548-f59a-477c-bb20-74b3b06f0997,fixed-short-login
+qurtulus-campusu-student-5a2-ismayilov-atilla-tural,İsmayılov Atilla Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismtu2,ismtu2,ismtu2@vote.local,9fcac876-6206-40c7-8a9f-ba84de4f9897,skipped-existing
+qurtulus-campusu-student-5a2-kerimzade-yusif-asif,Kərimzadə Yusif Asif,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,keras0,keras0,keras0@vote.local,0298c37f-5e00-4bb5-a6dc-650b6ddc6c13,fixed-short-login
+qurtulus-campusu-student-5a2-memedzade-duygu-qurban,Məmədzadə Duyğu Qurban,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memqu0,memqu0,memqu0@vote.local,19e6e6b2-91a7-427e-9bbd-fed64815a561,fixed-short-login
+qurtulus-campusu-student-5a2-muradov-demir-azer,Muradov Dəmir Azər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,muraz0,muraz0,muraz0@vote.local,7fa1f033-0970-449a-a53d-d3f58542e6a3,fixed-short-login
+qurtulus-campusu-student-5a2-novruzov-seid-arzuman,Novruzov Səid Arzuman,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novar0,novar0,novar0@vote.local,f24bfa93-e089-47a0-b6f3-5e46dc54ff80,fixed-short-login
+qurtulus-campusu-student-5a2-orucova-ayla-elsen,Orucova Ayla Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,oruel2,oruel2,oruel2@vote.local,503fa9cf-28bd-4402-9ae4-df20bd3c7944,skipped-existing
+qurtulus-campusu-student-5a2-quliyev-murad-rufet,Quliyev Murad Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulru0,qulru0,qulru0@vote.local,524e1f7d-4806-42b7-98bf-a10d23b5d031,fixed-short-login
+qurtulus-campusu-student-5a2-sevdimeliyev-resul-ramin,Sevdiməliyev Rəsul Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevra0,sevra0,sevra0@vote.local,9bd917c2-6e51-44b2-bc2c-1203bc604eab,fixed-short-login
+qurtulus-campusu-student-5a2-tehmezli-nergiz-vusal,Təhməzli Nərgiz Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tehvu0,tehvu0,tehvu0@vote.local,aec6b1c7-ed3d-45f3-a226-e86e9c6d0639,fixed-short-login
+qurtulus-campusu-student-5a3-allahverdiyeva-duygu-elsad,Allahverdiyeva Duyğu Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allel1,allel1,allel1@vote.local,8a9d64ae-05e1-488d-b2c3-e5f3bfffabe0,skipped-existing
+qurtulus-campusu-student-5a3-bayramova-fidan-elsen,Bayramova Fidan Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bayel2,bayel2,bayel2@vote.local,9b3756a8-9512-476c-b75b-abe5850ddd40,skipped-existing
+qurtulus-campusu-student-5a3-bayrisova-melek-sahin,Bayrışova Mələk Şahin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,baysa2,baysa2,baysa2@vote.local,2c08d088-e496-4499-a56b-9795b02a1823,skipped-existing
+qurtulus-campusu-student-5a3-eliyeva-nezrin-kamal,Əliyeva Nəzrin Kamal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elika1,elika1,elika1@vote.local,259ef81e-c416-4f75-ba50-776ca17e56af,skipped-existing
+qurtulus-campusu-student-5a3-hasimov-kamil-elsad,Haşımov Kamil Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hasel1,hasel1,hasel1@vote.local,b5221158-0b2a-4bf6-bc13-55e1ed037345,skipped-existing
+qurtulus-campusu-student-5a3-hesenov-yusif-bahadir,Həsənov Yusif Bahadır,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesba3,hesba3,hesba3@vote.local,75bfb36a-2ead-4593-96df-e6968d9afd44,skipped-existing
+qurtulus-campusu-student-5a3-hesenzade-azer-sahib,Həsənzadə Azər Sahib,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hessa1,hessa1,hessa1@vote.local,a269cbb0-d35b-4ad6-a437-65d91cedc7e7,skipped-existing
+qurtulus-campusu-student-5a3-humbetli-aylin-zahir,Hümbətli Aylin Zahir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,humza1,humza1,humza1@vote.local,f2d20c1f-dc5e-45f0-852f-b5e355a7ad90,skipped-existing
+qurtulus-campusu-student-5a3-ismayilov-atilla-tural,İsmayılov Atilla Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismtu3,ismtu3,ismtu3@vote.local,04e91da1-6d3d-4331-a210-d7ebc65abd35,skipped-existing
+qurtulus-campusu-student-5a3-kerimzade-yusif-asif,Kərimzadə Yusif Asif,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,keras1,keras1,keras1@vote.local,acc3251c-6059-44dd-99ca-da81965fcbfd,skipped-existing
+qurtulus-campusu-student-5a3-memedzade-duygu-qurban,Məmədzadə Duyğu Qurban,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memqu1,memqu1,memqu1@vote.local,4d2f4e8b-fbcb-4e20-88ac-1a1914739a9e,skipped-existing
+qurtulus-campusu-student-5a3-muradov-demir-azer,Muradov Dəmir Azər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,muraz1,muraz1,muraz1@vote.local,4a1e64ff-a2e6-44a0-9f56-5c3971eea77f,skipped-existing
+qurtulus-campusu-student-5a3-novruzov-seid-arzuman,Novruzov Səid Arzuman,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novar1,novar1,novar1@vote.local,e0c8227a-e831-476a-87da-da80bd60f81a,skipped-existing
+qurtulus-campusu-student-5a3-orucova-ayla-elsen,Orucova Ayla Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,oruel3,oruel3,oruel3@vote.local,67d8f05f-32d7-4bc9-8c23-00386b5023ed,skipped-existing
+qurtulus-campusu-student-5a3-quliyev-murad-rufet,Quliyev Murad Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulru1,qulru1,qulru1@vote.local,7211f7ca-71a6-4cb4-be94-83bb980deee2,skipped-existing
+qurtulus-campusu-student-5a3-sevdimeliyev-resul-ramin,Sevdiməliyev Rəsul Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevra1,sevra1,sevra1@vote.local,0aa868d0-c850-4410-8097-572b762e2519,skipped-existing
+qurtulus-campusu-student-5a3-tehmezli-nergiz-vusal,Təhməzli Nərgiz Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tehvu1,tehvu1,tehvu1@vote.local,8b3fcfde-d3e5-48d9-aee2-7cab9b30fe55,skipped-existing
+qurtulus-campusu-student-5e1-agamuradli-ibrahim-servan,Ağamuradlı İbrahim Sərvan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,agase1,agase1,agase1@vote.local,00bfa416-cdc9-4f6b-af13-6ccab2300b47,skipped-existing
+qurtulus-campusu-student-5e1-hesimzade-zeyneb-firudin,Həşimzadə Zeynəb Firudin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesfi1,hesfi1,hesfi1@vote.local,140ef732-527f-415e-8fee-5433bc37a441,skipped-existing
+qurtulus-campusu-student-5e1-imanli-yusif-marlen,İmanlı Yusif Marlen,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,imama1,imama1,imama1@vote.local,d5a22aea-8381-471c-8bf5-e677b410cf1b,skipped-existing
+qurtulus-campusu-student-5e1-kelbeli-elman-elsad,Kəlbəli Elman Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kelel0,kelel0,kelel0@vote.local,df6d9765-8dd1-4f6a-981e-c0349c746e66,fixed-short-login
+qurtulus-campusu-student-5e1-nesirli-aliye-anar,Nəsirli Aliyə Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nesan1,nesan1,nesan1@vote.local,74ce1986-ec1e-4ceb-9ef3-5a8aaf09c049,skipped-existing
+qurtulus-campusu-student-5e1-qulizade-miray-muslum,Qulizadə Miray Müslüm,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulmu0,qulmu0,qulmu0@vote.local,3b9e1bd4-6ad6-48aa-966b-b48da68befa4,fixed-short-login
+qurtulus-campusu-student-5r2-abdullayev-cahid-vuqar,Abdullayev Cahid Vüqar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdvu0,abdvu0,abdvu0@vote.local,7c54a2ed-bdae-4ae4-bfd9-abba669d0c12,fixed-short-login
+qurtulus-campusu-student-5r2-adigozelli-resul-mayil,Adıgözəlli Rəsul Mayıl,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,adima0,adima0,adima0@vote.local,461541ed-6274-4cb1-a839-c1e174511fc7,fixed-short-login
+qurtulus-campusu-student-5r2-alxazzade-deniz-tural,Alxazzadə Dəniz Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,alxtu0,alxtu0,alxtu0@vote.local,1b2bf667-1960-4aeb-9a8c-10ee7dac0b8c,fixed-short-login
+qurtulus-campusu-student-5r2-eliyev-omer-elvin,Əliyev Ömər Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eliel11,eliel11,eliel11@vote.local,fc3060c5-d3b9-497d-b520-aa76abd074a3,skipped-existing
+qurtulus-campusu-student-5r2-ezimli-ferhad-ferid,Əzimli Fərhad Fərid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ezife0,ezife0,ezife0@vote.local,73ea4cfd-ad26-4144-a610-017db16d7b33,fixed-short-login
+qurtulus-campusu-student-5r2-heyatullayeva-aysu-perviz,Həyatullayeva Aysu Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,heype3,heype3,heype3@vote.local,499ea6a8-1899-4bb9-8cb5-677e2e57041a,skipped-existing
+qurtulus-campusu-student-5r2-kalbaliyev-murad-nizami,Kalbaliyev Murad Nizami,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kalni0,kalni0,kalni0@vote.local,e9f027b0-73f1-4317-975f-40a21c3426f1,fixed-short-login
+qurtulus-campusu-student-5r2-kerimli-yusif-aga,Kərimli Yusif Ağa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kerag0,kerag0,kerag0@vote.local,8ef0d4ac-6f01-4279-b9b8-59e7d52b2e5b,fixed-short-login
+qurtulus-campusu-student-5r2-kerimova-selcan-aqsin,Kərimova Selcan Aqşin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,keraq0,keraq0,keraq0@vote.local,340ace8d-3aff-4262-88d6-dfaa4adf3090,fixed-short-login
+qurtulus-campusu-student-5r2-mehtiyev-turan-tural,Mehtiyev Turan Tural,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehtu0,mehtu0,mehtu0@vote.local,66da2fcd-4f33-4e3d-b638-1c8b5d662f84,fixed-short-login
+qurtulus-campusu-student-5r2-memmedli-telman-elburus,Məmmədli Telman Elburus,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memel5,memel5,memel5@vote.local,284d1089-ece7-440b-a56a-c3f7e709aa1b,skipped-existing
+qurtulus-campusu-student-5r2-misirzade-rinat-namidar,Misirzadə Rinat Namidar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,misna0,misna0,misna0@vote.local,45912b22-041c-4918-9b29-386b98dbec5a,fixed-short-login
+qurtulus-campusu-student-5r2-oruc-sofiya-zabil,Oruc Sofiya Zabil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,oruza0,oruza0,oruza0@vote.local,9d162c7e-8a6e-4ee8-9cc9-0e67888c46cb,fixed-short-login
+qurtulus-campusu-student-5r2-ramazanli-yusif-ramil,Ramazanlı Yusif Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ramra0,ramra0,ramra0@vote.local,49e1d5ae-a38c-4e53-9b76-a990dbded3ed,fixed-short-login
+qurtulus-campusu-student-5r2-rustemli-tamerlan-terlan,Rüstəmli Tamerlan Tərlan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ruste0,ruste0,ruste0@vote.local,25418deb-3c25-4c63-8590-9ab634ce34f2,fixed-short-login
+qurtulus-campusu-student-6a2-abdullayeva-aylin-elif,Abdullayeva Aylin Əlif,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdel0,abdel0,abdel0@vote.local,2991c6e8-ab6c-465b-95db-e57c2abca82e,fixed-short-login
+qurtulus-campusu-student-6a2-ali-ziya-aqil,Alı Ziya Aqil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aliaq0,aliaq0,aliaq0@vote.local,ffaaf99f-bb15-400a-be94-e951c01cb0a5,fixed-short-login
+qurtulus-campusu-student-6a2-allahverdiyev-huseyn-cavid,Allahverdiyev Hüseyn Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,allca0,allca0,allca0@vote.local,3db3e776-1f10-4c97-aff3-59b97e09ec5d,fixed-short-login
+qurtulus-campusu-student-6a2-bagirli-orxan-kenan,Bağırlı Orxan Kənan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bagke0,bagke0,bagke0@vote.local,aac449e4-7eed-4c52-921f-82994811ce6a,fixed-short-login
+qurtulus-campusu-student-6a2-eliyev-togrul-elcin,Əliyev Toğrul Elçin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eliel12,eliel12,eliel12@vote.local,ec8fab35-86fa-4978-9627-04199f265baa,skipped-existing
+qurtulus-campusu-student-6a2-esedli-valeh-ramin,Əsədli Valeh Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esera0,esera0,esera0@vote.local,1d6fd257-820c-42a6-8df3-fb8a5257121c,fixed-short-login
+qurtulus-campusu-student-6a2-hesenli-melek-elnur,Həsənli Mələk Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesel4,hesel4,hesel4@vote.local,6098fe18-793b-41e3-b112-64812e43e07b,skipped-existing
+qurtulus-campusu-student-6a2-ibayev-ilkin-perviz,İbayev İlkin Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibape0,ibape0,ibape0@vote.local,7b4c6f16-ebf3-4587-b955-f4842f627275,fixed-short-login
+qurtulus-campusu-student-6a2-ibayev-onur,İbayev Onur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibaon0,ibaon0,ibaon0@vote.local,b6a1ee1d-f0ee-4373-82cb-64cd7bd3f045,fixed-short-login
+qurtulus-campusu-student-6a2-imanli-rufet-emil,İmanlı Rüfət Emil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,imaem1,imaem1,imaem1@vote.local,5a2cf569-fd49-4b5c-972c-8a9387abd962,skipped-existing
+qurtulus-campusu-student-6a2-mehdizade-melek-natiq,Mehdizadə Mələk Natiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehna0,mehna0,mehna0@vote.local,7555a6d7-f926-422c-96d8-a6ed54524dda,fixed-short-login
+qurtulus-campusu-student-6a2-memmedli-ozlem-cingiz,Məmmədli Özləm Çingiz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memci0,memci0,memci0@vote.local,df8a686a-2457-4f79-a35d-a317dac9aa36,fixed-short-login
+qurtulus-campusu-student-6a2-mestaliyev-nihat-ismayil,Məstalıyev Nihat İsmayıl,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mesis0,mesis0,mesis0@vote.local,878bb591-1a41-40a6-8fda-6c85e8282f1f,fixed-short-login
+qurtulus-campusu-student-6a2-mirzezade-fateh-rufet,Mirzəzadə Fateh Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mirru1,mirru1,mirru1@vote.local,5e5b7d9a-28ff-4a75-a444-1c43bc7f620b,skipped-existing
+qurtulus-campusu-student-6a2-nifteliyeva-nezrin-serxan,Niftəliyeva Nəzrin Sərxan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nifse0,nifse0,nifse0@vote.local,948029b9-a0c6-4577-8a5a-f86ae2eba943,fixed-short-login
+qurtulus-campusu-student-6a2-novruzov-yunus-anar,Novruzov Yunus Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novan0,novan0,novan0@vote.local,cc7ac30e-1903-49ba-b1f8-ded18e18ba44,fixed-short-login
+qurtulus-campusu-student-6a2-talibzade-meryem-zeka,Talıbzadə Məryəm Zəka,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,talze1,talze1,talze1@vote.local,1cec34c5-e615-4f19-acfb-8d565650a32b,skipped-existing
+qurtulus-campusu-student-6a2-yusifli-huseyn-adil,Yusifli Hüseyn Adil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yusad0,yusad0,yusad0@vote.local,119b82b0-f6ee-42e8-afda-2ffa7542c81a,fixed-short-login
+qurtulus-campusu-student-6a3-abdulla-huseyn-fuad,Abdulla Hüseyn Fuad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdfu0,abdfu0,abdfu0@vote.local,27cf1d6e-6153-428f-aa88-541ffa5245b1,fixed-short-login
+qurtulus-campusu-student-6a3-abdullazade-esma-esqin,Abdullazadə Əsma Eşqin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdes0,abdes0,abdes0@vote.local,a7ee70b3-7bb1-4979-85f2-9f86b01bd385,fixed-short-login
+qurtulus-campusu-student-6a3-camalzade-cemile-emin,Camalzadə Cəmilə Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,camem0,camem0,camem0@vote.local,578af597-b145-41ef-9c4e-c3b75c06c7ee,fixed-short-login
+qurtulus-campusu-student-6a3-cebrayilov-yilmaz-orxan,Cəbrayılov Yılmaz Orxan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cebor0,cebor0,cebor0@vote.local,54d74c36-4c75-458b-af48-53c498d59765,fixed-short-login
+qurtulus-campusu-student-6a3-cunayev-turan-samir,Çunayev Turan Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cunsa0,cunsa0,cunsa0@vote.local,f997d745-5b71-4145-84a9-92f514aadd5b,fixed-short-login
+qurtulus-campusu-student-6a3-huseynli-yusif-sadiq,Hüseynli Yusif Sadiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hussa1,hussa1,hussa1@vote.local,bdef6a81-7b0a-48df-ae22-b2b3e0c18608,skipped-existing
+qurtulus-campusu-student-6a3-huseynli-zehra-sadiq,Hüseynli Zəhra Sadiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hussa2,hussa2,hussa2@vote.local,01fd7aed-29c5-4af5-8d26-4ec5eb7cc8bf,skipped-existing
+qurtulus-campusu-student-6a3-huseynzade-xedice-resad,Hüseynzadə Xədicə Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husre4,husre4,husre4@vote.local,3dc9b1b7-a66d-4058-977a-a098eee11d37,skipped-existing
+qurtulus-campusu-student-6a3-ibayev-onur-perviz,İbayev Onur Pərviz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibape1,ibape1,ibape1@vote.local,2b4abe2a-9e21-4799-9aa2-c56e0b3e73c9,skipped-existing
+qurtulus-campusu-student-6a3-ibrahimova-meryem-rauf,İbrahimova Məryəm Rauf,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibrra0,ibrra0,ibrra0@vote.local,1137d8cf-c318-426e-9d41-8eaff03af3f9,fixed-short-login
+qurtulus-campusu-student-6a3-ismayilov-resul-rauf,İsmayılov Rəsul Rauf,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismra2,ismra2,ismra2@vote.local,a0203de9-c7e6-4398-b64a-12d67a33dd53,skipped-existing
+qurtulus-campusu-student-6a3-memmedli-nuray-resad,Məmmədli Nuray Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memre2,memre2,memre2@vote.local,f2f5e877-1115-4c65-bd24-037c27e9e9d7,skipped-existing
+qurtulus-campusu-student-6a3-niyazli-omer-vaqif,Niyazlı Ömər Vaqif,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,niyva0,niyva0,niyva0@vote.local,3a34a414-2ec4-4423-8368-4873d0104c62,fixed-short-login
+qurtulus-campusu-student-6a3-novruzov-irfan-anar,Novruzov İrfan Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novan1,novan1,novan1@vote.local,a0b8e5ff-4126-4651-b10a-d833c3264cca,skipped-existing
+qurtulus-campusu-student-6a3-quluzade-umid-kamran,Quluzadə Ümid Kamran,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulka1,qulka1,qulka1@vote.local,28cf80cf-ba72-468e-a38a-6e6408f18139,skipped-existing
+qurtulus-campusu-student-6a3-talibzade-meryem-zeka,Talıbzadə Məryəm Zəka,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,talze2,talze2,talze2@vote.local,8f8ca577-fde4-4e5f-9d44-03dbab901fe5,skipped-existing
+qurtulus-campusu-student-6e2-biberoglu-huseyin-nadir-dursun,Biberoğlu Hüseyin Nadir Dursun,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bibdu0,bibdu0,bibdu0@vote.local,01503afc-c254-4761-9949-3536e98c16c7,fixed-short-login
+qurtulus-campusu-student-6e2-huseyn-zehra-canbaxis,Hüseyn Zəhra Canbaxış,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husca0,husca0,husca0@vote.local,f35642f2-c22e-4bfe-8c73-893a5305a215,fixed-short-login
+qurtulus-campusu-student-6e2-huseyn-zeyneb-canbaxis,Hüseyn Zeynəb Canbaxış,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husca1,husca1,husca1@vote.local,4dbe3792-e165-40a8-ac10-4635925e46d6,skipped-existing
+qurtulus-campusu-student-6e2-imanzade-nilufer-ulvi,İmanzadə Nilufər Ülvi,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,imaul0,imaul0,imaul0@vote.local,80d8cb1b-2265-4376-bedb-8894eba6a6bd,fixed-short-login
+qurtulus-campusu-student-6e2-mamantov-ruslan-ruslan,Mamantov Ruslan Ruslan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mamru1,mamru1,mamru1@vote.local,b7ae7b9e-5d89-4c3e-86e8-4336f05ca9ae,skipped-existing
+qurtulus-campusu-student-6e2-novruzlu-uzra-elnur,Novruzlu Uzra Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novel2,novel2,novel2@vote.local,d0201a71-c23f-4b30-8dd8-b91263da8adc,skipped-existing
+qurtulus-campusu-student-6e2-quliyeva-zehra,Quliyeva Zəhra,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,qulze0,qulze0,qulze0@vote.local,17f423e7-7023-4f42-abb6-cca6072ee3fe,fixed-short-login
+qurtulus-campusu-student-6e2-sadiqova-nilay-emin,Sadıqova Nilay Emin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadem0,sadem0,sadem0@vote.local,43cabe51-77b4-468e-b935-fd2679ee7c89,fixed-short-login
+qurtulus-campusu-student-6e2-semedov-ugur-semed,Səmədov Uğur Səməd,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,semse1,semse1,semse1@vote.local,fb49ef62-ccaf-42d9-948c-2374ae067fa4,skipped-existing
+qurtulus-campusu-student-6e2-xelilzade-maya-cavid,Xəlilzadə Maya Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xelca0,xelca0,xelca0@vote.local,e27deccf-91e3-43a9-9308-38519d6379e9,fixed-short-login
+qurtulus-campusu-student-6r2-almemmedli-safiyye-behruz,Alməmmədli Safiyyə Bəhruz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,almbe0,almbe0,almbe0@vote.local,a5c47526-f753-40bb-96e0-2c9d547966f8,fixed-short-login
+qurtulus-campusu-student-6r2-aslanli-arif-resad,Aslanlı Arif Rəşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aslre1,aslre1,aslre1@vote.local,89454644-50c3-4a19-88cd-a408cb5ede74,skipped-existing
+qurtulus-campusu-student-6r2-eliyeva-efruz-ramin,Əliyeva Əfruz Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,elira4,elira4,elira4@vote.local,36b38d96-2775-445f-8bd9-803299d390eb,skipped-existing
+qurtulus-campusu-student-6r2-ezizli-seid-murad,Əzizli Səid Murad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ezimu0,ezimu0,ezimu0@vote.local,8277c21b-acd7-4439-9045-a421877483ac,fixed-short-login
+qurtulus-campusu-student-6r2-hacibeyova-esnad-mubariz,Hacıbəyova Əsnad Mübariz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hacmu0,hacmu0,hacmu0@vote.local,dfd7abb5-598e-46a4-87a0-6cba33b90b2c,fixed-short-login
+qurtulus-campusu-student-6r2-nebizade-emine-elcin,Nəbizadə Əminə Elçin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nebel0,nebel0,nebel0@vote.local,26141a64-40a5-4dc6-8b65-8880b4aa0453,fixed-short-login
+qurtulus-campusu-student-6r2-salmanli-leyli-ferid,Salmanlı Leyli Fərid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,salfe1,salfe1,salfe1@vote.local,e43f1695-2292-416d-974c-13cc89c3e75a,skipped-existing
+qurtulus-campusu-student-7a2-abbasova-nilufer-neman,Abbasova Nilufər Neman,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abbne1,abbne1,abbne1@vote.local,d8ebced5-8f7a-4c87-b35a-60f66068e620,skipped-existing
+qurtulus-campusu-student-7a2-besirli-ibrahim-subhan,Bəşirli İbrahim Sübhan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bessu0,bessu0,bessu0@vote.local,cb66bd0a-0881-4d20-8ad3-e3f03b2b8aab,fixed-short-login
+qurtulus-campusu-student-7a2-besirli-kamal-ramil,Bəşirli Kamal Ramil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,besra0,besra0,besra0@vote.local,f604de54-5436-4a1f-ae0d-7b9da41ea93b,fixed-short-login
+qurtulus-campusu-student-7a2-cavadov-ayxan-xudaqulu,Cavadov Ayxan Xudaqulu,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cavxu0,cavxu0,cavxu0@vote.local,53f948e4-ce11-4abe-8c33-fbdf54be3721,fixed-short-login
+qurtulus-campusu-student-7a2-ceferli-nuray-cefer,Cəfərli Nuray Cəfər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cefce0,cefce0,cefce0@vote.local,6a2724e0-a944-4c5e-84a7-63bd7a96360f,fixed-short-login
+qurtulus-campusu-student-7a2-esedli-nizami-resid,Əsədli Nizami Rəşid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esere0,esere0,esere0@vote.local,98075167-0826-4946-9aae-3c5d86e1b599,fixed-short-login
+qurtulus-campusu-student-7a2-hesenzade-inci-rufet,Həsənzadə İnci Rüfət,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesru1,hesru1,hesru1@vote.local,13ef20c9-069a-4c68-892d-8a860ba56d79,skipped-existing
+qurtulus-campusu-student-7a2-huseynzade-meryem-elmeddin,Hüseynzadə Məryəm Elməddin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,husel4,husel4,husel4@vote.local,c1b8b541-9b53-4598-8282-99ad81b39895,skipped-existing
+qurtulus-campusu-student-7a2-kerimsoy-gulay-asif,Kərimsoy Gülay Asif,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,keras2,keras2,keras2@vote.local,c82ef492-7d1b-4b4c-9c94-80d18d7852b4,skipped-existing
+qurtulus-campusu-student-7a2-memmedli-eli-musa,Məmmədli Əli Musa,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memmu0,memmu0,memmu0@vote.local,b363325a-cdcd-4de8-aec0-f69c1cb8c597,fixed-short-login
+qurtulus-campusu-student-7a2-namazli-murad-tofiq,Namazlı Murad Tofiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,namto0,namto0,namto0@vote.local,68fcf087-5c0e-464d-ab28-34b97ec197e2,fixed-short-login
+qurtulus-campusu-student-7a2-orucov-ehtiram-elsen,Orucov Ehtiram Elşən,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,oruel4,oruel4,oruel4@vote.local,f04023f3-1087-4155-8dc3-60fc4cfffe13,skipped-existing
+qurtulus-campusu-student-7a2-sadiqov-sadiq-sehriyar,Sadıqov Sadıq Şəhriyar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sadse2,sadse2,sadse2@vote.local,213f2795-ee66-4a86-8f46-dc148ec41a41,skipped-existing
+qurtulus-campusu-student-7a2-tehmezli-anar-vusal,Təhməzli Anar Vüsal,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tehvu2,tehvu2,tehvu2@vote.local,6959b8b5-cda7-4e57-9dfa-dd95823ceb12,skipped-existing
+qurtulus-campusu-student-7a2-xelilzade-duygu-anar,Xəlilzadə Duyğu Anar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xelan0,xelan0,xelan0@vote.local,84839eb0-8bdf-401b-9d6d-ffd9137600da,fixed-short-login
+qurtulus-campusu-student-7a2-yusifova-ilahe-famil,Yusifova İlahə Famil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,yusfa0,yusfa0,yusfa0@vote.local,bdf53f80-55f8-495c-8b3f-854f8d24afcb,fixed-short-login
+qurtulus-campusu-student-7a2-zulfeliyeva-sunay-rahil,Zülfəliyeva Sunay Rahil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zulra0,zulra0,zulra0@vote.local,b74a9513-40cb-4186-b43e-e7eb12953258,fixed-short-login
+qurtulus-campusu-student-8a2-dadasov-ayxan-subhan,Dadaşov Ayxan Sübhan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,dadsu0,dadsu0,dadsu0@vote.local,fbd2d8f1-fada-4ed1-982c-b4a5ca1c82da,fixed-short-login
+qurtulus-campusu-student-8a2-eliyeva-melek-elsad,Əliyeva Mələk Elşad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,eliel13,eliel13,eliel13@vote.local,3285a878-a496-4031-b067-1fd2bdf25380,skipped-existing
+qurtulus-campusu-student-8a2-emiraslanli-aysu-elvin,Əmiraslanlı Aysu Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,emiel3,emiel3,emiel3@vote.local,18bc84ce-a77e-41fc-9946-861b1e17a3f8,skipped-existing
+qurtulus-campusu-student-8a2-hesenli-elbrus-elnur,Həsənli Elbrus Elnur,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hesel5,hesel5,hesel5@vote.local,9dcf75ed-830b-4197-b5b8-d8bf2fd8a2d1,skipped-existing
+qurtulus-campusu-student-8a2-ibrahimli-muhammedeli-ibrahim,İbrahimli Muhammədəli İbrahim,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ibrib0,ibrib0,ibrib0@vote.local,a52db492-2ce8-4e43-bc15-c7d258e2dce6,fixed-short-login
+qurtulus-campusu-student-8a2-ismayilov-eli-rauf,İsmayılov Əli Rauf,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,ismra3,ismra3,ismra3@vote.local,1a118125-e0b9-48ca-8c4f-041bdc987630,skipped-existing
+qurtulus-campusu-student-8a2-kerimli-gunel-elmeddin,Kərimli Günel Elməddin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,kerel1,kerel1,kerel1@vote.local,dc9597ca-e690-4c65-ab4d-e1b765b1a7e9,skipped-existing
+qurtulus-campusu-student-8a2-mahmudlu-cemil-saleh,Mahmudlu Cəmil Saleh,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mahsa1,mahsa1,mahsa1@vote.local,735aef31-1ed9-41bc-826a-bcdd032e23f0,skipped-existing
+qurtulus-campusu-student-8a2-manafov-nadir-nazim,Manafov Nadir Nazim,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,manna0,manna0,manna0@vote.local,89986263-7171-4674-ab76-bd44dcab590b,fixed-short-login
+qurtulus-campusu-student-8a2-memmedova-gunay-huseyn,Məmmədova Günay Hüseyn,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memhu0,memhu0,memhu0@vote.local,8da80bd6-d3b8-4e0c-a10f-47d35dcc7044,fixed-short-login
+qurtulus-campusu-student-8a2-novruzlu-ilknur-ilkin,Novruzlu İlknur İlkin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,novil0,novil0,novil0@vote.local,400505cf-ce0f-4fd0-abef-8b325be3ea4f,fixed-short-login
+qurtulus-campusu-student-8a2-sixverdiyeva-aylin-azad,Şıxverdiyeva Aylin Azad,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sixaz0,sixaz0,sixaz0@vote.local,7a8e8d0a-d3c3-4cea-8948-7582fa0787b2,fixed-short-login
+qurtulus-campusu-student-9a3-abdulezizov-elekber,Abduləzizov Ələkbər,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,abdel1,abdel1,abdel1@vote.local,e68e10d0-ae58-4513-9040-371a80e5d109,skipped-existing
+qurtulus-campusu-student-9a3-balakisiyev-tahir-ramin,Balakişiyev Tahir Ramin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,balra0,balra0,balra0@vote.local,365c70af-a033-4278-bfb5-f9c3041b6869,fixed-short-login
+qurtulus-campusu-student-9a3-bayramova-nigar-ravil,Bayramova Nigar Ravil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,bayra2,bayra2,bayra2@vote.local,33eea704-e611-4c14-9b41-ab6c164ad32f,skipped-existing
+qurtulus-campusu-student-9a3-dadasov-mirzaga-subhan,Dadaşov Mirzağa Sübhan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,dadsu1,dadsu1,dadsu1@vote.local,ff494c47-7648-4b01-ba45-09f36ad642d8,skipped-existing
+qurtulus-campusu-student-9a3-emiraslanli-ayla,Əmiraslanlı Ayla,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,emiay0,emiay0,emiay0@vote.local,1fd655a4-9f1d-475b-be08-9085be379c04,fixed-short-login
+qurtulus-campusu-student-9a3-esgerli-ekbereli-vahid,Əsgərli Əkbərəli Vahid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,esgva0,esgva0,esgva0@vote.local,afa466c5-737f-40be-86ce-ba26ab966901,fixed-short-login
+qurtulus-campusu-student-9a3-haci-serdar-behruz,Hacı Sərdar Bəhruz,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,hacbe0,hacbe0,hacbe0@vote.local,d94e3543-11e5-47ca-9e5f-6f79cfc5373f,fixed-short-login
+qurtulus-campusu-student-9a3-humbetli-umud-samir,Hümbətli Umud Samir,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,humsa0,humsa0,humsa0@vote.local,cfb82b3c-c09f-43b1-b641-c1161f1d6a58,fixed-short-login
+qurtulus-campusu-student-9a3-mehdizade-ugur-natiq,Mehdizadə Uğur Natiq,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,mehna1,mehna1,mehna1@vote.local,ec918537-6c6c-47b2-b8ad-a9d3579b2f60,skipped-existing
+qurtulus-campusu-student-9a3-memmedli-arzu-kenan,Məmmədli Arzu Kənan,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memke1,memke1,memke1@vote.local,c8541727-5a1d-4fe8-93e2-81d9786b7781,skipped-existing
+qurtulus-campusu-student-9a3-memmedli-yadigar-kamran,Məmmədli Yadigar Kamran,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,memka2,memka2,memka2@vote.local,9a23f2d4-8831-429b-9631-844d243e70af,skipped-existing
+qurtulus-campusu-student-9a3-resulzade-resul-bextiyar,Rəsulzadə Rəsul Bəxtiyar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,resbe0,resbe0,resbe0@vote.local,cf4f65c7-cbd0-44d1-b2c9-46898f779c87,fixed-short-login
+qurtulus-campusu-student-9a3-rzali-rza-elvin,Rzalı Rza Elvin,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,rzael0,rzael0,rzael0@vote.local,42fefab8-bb9d-4b4d-a124-7a40870198b3,fixed-short-login
+qurtulus-campusu-student-9a3-tagiyeva-aydan-eldar,Tağıyeva Aydan Eldar,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,tagel0,tagel0,tagel0@vote.local,220b2e64-3d78-44b1-bcd2-4fafb96c1d62,fixed-short-login
+qurtulus-campusu-student-9a3-talibov-fateh-adil,Talıbov Fateh Adil,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,talad0,talad0,talad0@vote.local,d5f75360-225f-4b7e-9a44-9f34296aa01e,fixed-short-login
+qurtulus-campusu-student-9a3-zulfeliyev-zulfuqar-cavid,Zülfəliyev Zülfüqar Cavid,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zulca0,zulca0,zulca0@vote.local,cefb2118-91f5-413c-851a-65ae8e56242e,fixed-short-login

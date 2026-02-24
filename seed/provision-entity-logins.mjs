@@ -28,12 +28,23 @@ const BRANCH_NAME = getArg("branch", "").trim();
 const INCLUDE_EXISTING = args.includes("--include-existing");
 const SET_PASSWORD = (getArg("set-password", "") || "").toLowerCase();
 
-if (SET_PASSWORD && SET_PASSWORD !== "login") {
-	console.error("Invalid --set-password. Use: login");
+if (
+	SET_PASSWORD &&
+	SET_PASSWORD !== "login" &&
+	SET_PASSWORD !== "login-exact" &&
+	SET_PASSWORD !== "exact-login"
+) {
+	console.error("Invalid --set-password. Use: login | login-exact");
 	process.exit(1);
 }
 
-const SHOULD_SET_PASSWORD = SET_PASSWORD === "login";
+const SHOULD_SET_PASSWORD = Boolean(SET_PASSWORD);
+const PASSWORD_MODE =
+	SET_PASSWORD === "login-exact" || SET_PASSWORD === "exact-login"
+		? "login-exact"
+		: SET_PASSWORD === "login"
+			? "login"
+			: "";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,6 +79,8 @@ const OUTPUT_CSV_PATH = path.resolve(
 const SOURCE_TABLE = ENTITY === "teacher" ? "teachers" : "students";
 const ENTITY_ROLE = ENTITY === "teacher" ? "teacher" : "student";
 const ENTITY_ID_COL = ENTITY === "teacher" ? "teacher_id" : "student_id";
+const MIN_LOGIN_LENGTH = 6;
+const MAX_LOGIN_BASE_LENGTH = 16;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 	auth: { persistSession: false, autoRefreshToken: false },
@@ -116,10 +129,23 @@ const buildLoginFromName = (fullName) => {
 	return firstPart + lastPart || fallback || "user";
 };
 
+const normalizeStoredLogin = (value) => String(value || "").trim().toLowerCase();
+const buildLoginBase = (loginLike, fullName) =>
+	normalizeLoginPart(loginLike || "").slice(0, MAX_LOGIN_BASE_LENGTH) ||
+	buildLoginFromName(fullName);
+const withMinLoginLength = (login) => {
+	const normalized = normalizeStoredLogin(login);
+	if (!normalized) return "";
+	return normalized.length >= MIN_LOGIN_LENGTH
+		? normalized
+		: normalized.padEnd(MIN_LOGIN_LENGTH, "0");
+};
+
 const toLoginEmail = (login) => `${login.toLowerCase()}@${LOGIN_EMAIL_DOMAIN}`;
 const passwordForLogin = (login) => {
 	const base = String(login || "").trim();
 	if (!base) return "change123";
+	if (PASSWORD_MODE === "login-exact") return base;
 	return base.length >= 6 ? base : `${base}123`;
 };
 
@@ -246,15 +272,21 @@ const rememberAuthUserEmail = (email, uid) => {
 	authUsersByEmail.set(String(email).trim().toLowerCase(), uid);
 };
 
-const loginExists = async (login) => {
+const forgetAuthUserEmail = (email) => {
+	if (!authUsersByEmail || !email) return;
+	authUsersByEmail.delete(String(email).trim().toLowerCase());
+};
+
+const loginExists = async (login, options = {}) => {
+	const { ignoreUserId = null } = options;
 	const usernameRow = await supabase
 		.from("usernames")
-		.select("login")
+		.select("login, user_id")
 		.eq("org_id", ORG_ID)
 		.eq("login", login)
 		.maybeSingle();
 	if (usernameRow.error) throw new Error(usernameRow.error.message);
-	if (usernameRow.data) return true;
+	if (usernameRow.data && usernameRow.data.user_id !== ignoreUserId) return true;
 
 	const userRow = await supabase
 		.from("users")
@@ -263,15 +295,19 @@ const loginExists = async (login) => {
 		.eq("login", login)
 		.maybeSingle();
 	if (userRow.error) throw new Error(userRow.error.message);
-	return Boolean(userRow.data);
+	if (userRow.data && userRow.data.id !== ignoreUserId) return true;
+	return false;
 };
 
-const ensureUniqueLogin = async (base) => {
+const ensureUniqueLogin = async (base, options = {}) => {
+	const normalizedBase = buildLoginBase(base, "");
 	let counter = 0;
 	while (counter < 1000) {
-		const candidate = counter === 0 ? base : `${base}${counter}`;
+		const rawCandidate =
+			counter === 0 ? normalizedBase : `${normalizedBase}${counter}`;
+		const candidate = withMinLoginLength(rawCandidate);
 		// eslint-disable-next-line no-await-in-loop
-		const exists = await loginExists(candidate);
+		const exists = await loginExists(candidate, options);
 		if (!exists) return candidate;
 		counter += 1;
 	}
@@ -316,7 +352,7 @@ const getUserById = async (id) => {
 	if (!id) return null;
 	const result = await supabase
 		.from("users")
-		.select("id, login")
+		.select("id, login, auth_user_id")
 		.eq("org_id", ORG_ID)
 		.eq("id", id)
 		.maybeSingle();
@@ -328,12 +364,44 @@ const getUserByLogin = async (login) => {
 	if (!login) return null;
 	const result = await supabase
 		.from("users")
-		.select("id, login")
+		.select("id, login, auth_user_id")
 		.eq("org_id", ORG_ID)
 		.eq("login", login)
 		.maybeSingle();
 	if (result.error) throw new Error(result.error.message);
 	return result.data;
+};
+
+const syncAuthUserForLogin = async (uid, login, previousEmail = "") => {
+	const email = toLoginEmail(login);
+	const password = SHOULD_SET_PASSWORD ? passwordForLogin(login) : "";
+	const payload = {
+		email,
+		email_confirm: true,
+	};
+	if (SHOULD_SET_PASSWORD) payload.password = password;
+
+	const updated = await withRetry(
+		async () => {
+			const response = await supabase.auth.admin.updateUserById(uid, payload);
+			if (response.error && isRetryableError(response.error.message)) {
+				throw new Error(response.error.message);
+			}
+			return response;
+		},
+		`sync auth user for ${uid}`,
+	);
+
+	if (updated.error) {
+		throw new Error(`Auth user update failed for '${uid}': ${updated.error.message}`);
+	}
+
+	if (previousEmail && previousEmail.toLowerCase() !== email.toLowerCase()) {
+		forgetAuthUserEmail(previousEmail);
+	}
+	rememberAuthUserEmail(email, uid);
+
+	return { email, password };
 };
 
 const setAuthPassword = async (uid, password) => {
@@ -356,12 +424,19 @@ const setAuthPassword = async (uid, password) => {
 const ensureUsernameRow = async (login, userId, branchId) => {
 	const existing = await supabase
 		.from("usernames")
-		.select("login")
+		.select("login, user_id")
 		.eq("org_id", ORG_ID)
 		.eq("login", login)
 		.maybeSingle();
 	if (existing.error) throw new Error(existing.error.message);
-	if (existing.data) return;
+	if (existing.data) {
+		if (existing.data.user_id !== userId) {
+			throw new Error(
+				`Username '${login}' is already linked to another user (${existing.data.user_id})`,
+			);
+		}
+		return;
+	}
 
 	const insert = await supabase.from("usernames").insert({
 		org_id: ORG_ID,
@@ -371,6 +446,64 @@ const ensureUsernameRow = async (login, userId, branchId) => {
 		branch_id: branchId,
 	});
 	ensureOk(insert, `usernames insert failed for login '${login}'`);
+};
+
+const deleteUsernameRow = async (login, userId = null) => {
+	if (!login) return;
+	let query = supabase
+		.from("usernames")
+		.delete()
+		.eq("org_id", ORG_ID)
+		.eq("login", login);
+	if (userId) {
+		query = query.eq("user_id", userId);
+	}
+	const deleted = await query;
+	ensureOk(deleted, `usernames delete failed for login '${login}'`);
+};
+
+const updateUserLogin = async (userId, login, name, branchId) => {
+	const updateUser = await supabase
+		.from("users")
+		.update({
+			login,
+			email: toLoginEmail(login),
+			display_name: name,
+			role: ENTITY_ROLE,
+			branch_id: branchId,
+			auth_user_id: userId,
+			deleted_at: null,
+			archived_at: null,
+		})
+		.eq("org_id", ORG_ID)
+		.eq("id", userId);
+	ensureOk(updateUser, `users update failed for '${userId}'`);
+};
+
+const syncExistingUserLogin = async ({
+	uid,
+	oldLogin,
+	login,
+	name,
+	branchId,
+}) => {
+	const oldEmail = oldLogin ? toLoginEmail(oldLogin) : "";
+	const auth = await syncAuthUserForLogin(uid, login, oldEmail);
+	await updateUserLogin(uid, login, name, branchId);
+	if (oldLogin && oldLogin !== login) {
+		await deleteUsernameRow(oldLogin, uid);
+	}
+	await ensureUsernameRow(login, uid, branchId);
+	return auth;
+};
+
+const resolveTargetLogin = async ({ currentLogin, name, userId }) => {
+	const normalizedCurrent = normalizeStoredLogin(currentLogin);
+	if (normalizedCurrent && normalizedCurrent.length >= MIN_LOGIN_LENGTH) {
+		return normalizedCurrent;
+	}
+	const base = buildLoginBase(normalizedCurrent, name);
+	return ensureUniqueLogin(base, { ignoreUserId: userId });
 };
 
 const updateSourceLogin = async (id, userId, login) => {
@@ -447,55 +580,94 @@ const createAuthUserWithUniqueLogin = async (baseLogin) => {
 };
 
 const provisionRow = async (row) => {
-	const baseLogin =
-		normalizeLoginPart(row.login || "").slice(0, 16) ||
-		buildLoginFromName(row.name);
+	const rowLogin = normalizeStoredLogin(row.login);
+	const baseLogin = buildLoginBase(rowLogin, row.name);
 
-	if (row.user_id && row.login) {
-		const password = passwordForLogin(row.login);
-		if (SHOULD_SET_PASSWORD) {
-			await setAuthPassword(row.user_id, password);
+	if (row.user_id && rowLogin) {
+		const targetLogin = await resolveTargetLogin({
+			currentLogin: rowLogin,
+			name: row.name,
+			userId: row.user_id,
+		});
+		if (targetLogin === rowLogin && !SHOULD_SET_PASSWORD) {
+			return {
+				status: "skipped-existing",
+				id: row.id,
+				name: row.name,
+				branchId: row.branch_id,
+				login: rowLogin,
+				password: "",
+				email: toLoginEmail(rowLogin),
+				uid: row.user_id,
+			};
 		}
+
+		if (targetLogin === rowLogin) {
+			const auth = await syncAuthUserForLogin(
+				row.user_id,
+				targetLogin,
+				toLoginEmail(rowLogin),
+			);
+			return {
+				status: "skipped-existing",
+				id: row.id,
+				name: row.name,
+				branchId: row.branch_id,
+				login: targetLogin,
+				password: SHOULD_SET_PASSWORD ? auth.password : "",
+				email: auth.email,
+				uid: row.user_id,
+			};
+		}
+
+		const synced = await syncExistingUserLogin({
+			uid: row.user_id,
+			oldLogin: rowLogin,
+			login: targetLogin,
+			name: row.name,
+			branchId: row.branch_id,
+		});
+		await updateSourceLogin(row.id, row.user_id, targetLogin);
+
 		return {
-			status: "skipped-existing",
+			status: targetLogin === rowLogin ? "skipped-existing" : "fixed-short-login",
 			id: row.id,
 			name: row.name,
 			branchId: row.branch_id,
-			login: row.login,
-			password: SHOULD_SET_PASSWORD ? password : "",
-			email: toLoginEmail(row.login),
+			login: targetLogin,
+			password: SHOULD_SET_PASSWORD ? synced.password : "",
+			email: synced.email,
 			uid: row.user_id,
 		};
 	}
 
-	if (row.user_id && !row.login) {
+	if (row.user_id && !rowLogin) {
 		const existingUser = await getUserById(row.user_id);
 		if (existingUser) {
-			let login = existingUser.login;
-			if (!login) {
-				login = await ensureUniqueLogin(baseLogin);
-				const updateUser = await supabase
-					.from("users")
-					.update({
-						login,
-						email: toLoginEmail(login),
-						display_name: row.name,
-						role: ENTITY_ROLE,
-						branch_id: row.branch_id,
-						deleted_at: null,
-						archived_at: null,
-					})
-					.eq("org_id", ORG_ID)
-					.eq("id", row.user_id);
-				ensureOk(updateUser, `users update failed for '${row.user_id}'`);
+			const currentUserLogin = normalizeStoredLogin(existingUser.login);
+			const login = await resolveTargetLogin({
+				currentLogin: currentUserLogin,
+				name: row.name,
+				userId: row.user_id,
+			});
+
+			let auth = {
+				email: toLoginEmail(login),
+				password: "",
+			};
+			if (currentUserLogin !== login || SHOULD_SET_PASSWORD) {
+				auth = await syncExistingUserLogin({
+					uid: row.user_id,
+					oldLogin: currentUserLogin,
+					login,
+					name: row.name,
+					branchId: row.branch_id,
+				});
+			} else {
+				await ensureUsernameRow(login, row.user_id, row.branch_id);
 			}
 
-			await ensureUsernameRow(login, row.user_id, row.branch_id);
 			await updateSourceLogin(row.id, row.user_id, login);
-			const password = passwordForLogin(login);
-			if (SHOULD_SET_PASSWORD) {
-				await setAuthPassword(row.user_id, password);
-			}
 
 			return {
 				status: "fixed-existing-user",
@@ -503,30 +675,48 @@ const provisionRow = async (row) => {
 				name: row.name,
 				branchId: row.branch_id,
 				login,
-				password: SHOULD_SET_PASSWORD ? password : "",
-				email: toLoginEmail(login),
+				password: SHOULD_SET_PASSWORD ? auth.password : "",
+				email: auth.email,
 				uid: row.user_id,
 			};
 		}
 	}
 
-	if (!row.user_id && row.login) {
-		const userByLogin = await getUserByLogin(row.login);
+	if (!row.user_id && rowLogin) {
+		const userByLogin = await getUserByLogin(rowLogin);
 		if (userByLogin) {
-			await ensureUsernameRow(row.login, userByLogin.id, row.branch_id);
-			await updateSourceLogin(row.id, userByLogin.id, row.login);
-			const password = passwordForLogin(row.login);
-			if (SHOULD_SET_PASSWORD) {
-				await setAuthPassword(userByLogin.id, password);
+			const targetLogin = await resolveTargetLogin({
+				currentLogin: rowLogin,
+				name: row.name,
+				userId: userByLogin.id,
+			});
+
+			let auth = {
+				email: toLoginEmail(targetLogin),
+				password: "",
+			};
+			if (targetLogin !== rowLogin || SHOULD_SET_PASSWORD) {
+				auth = await syncExistingUserLogin({
+					uid: userByLogin.id,
+					oldLogin: rowLogin,
+					login: targetLogin,
+					name: row.name,
+					branchId: row.branch_id,
+				});
+			} else {
+				await ensureUsernameRow(targetLogin, userByLogin.id, row.branch_id);
 			}
+
+			await updateSourceLogin(row.id, userByLogin.id, targetLogin);
+
 			return {
 				status: "fixed-existing-login",
 				id: row.id,
 				name: row.name,
 				branchId: row.branch_id,
-				login: row.login,
-				password: SHOULD_SET_PASSWORD ? password : "",
-				email: toLoginEmail(row.login),
+				login: targetLogin,
+				password: SHOULD_SET_PASSWORD ? auth.password : "",
+				email: auth.email,
 				uid: userByLogin.id,
 			};
 		}
@@ -535,31 +725,30 @@ const provisionRow = async (row) => {
 	const created = await createAuthUserWithUniqueLogin(baseLogin);
 	const existingUserById = await getUserById(created.uid);
 	if (existingUserById) {
-		let login = existingUserById.login || created.login;
-		if (!existingUserById.login) {
-			const updateUser = await supabase
-				.from("users")
-				.update({
-					login,
-					email: toLoginEmail(login),
-					display_name: row.name,
-					role: ENTITY_ROLE,
-					branch_id: row.branch_id,
-					auth_user_id: created.uid,
-					deleted_at: null,
-					archived_at: null,
-				})
-				.eq("org_id", ORG_ID)
-				.eq("id", created.uid);
-			ensureOk(updateUser, `users update failed for existing auth '${created.uid}'`);
+		const existingLogin = normalizeStoredLogin(existingUserById.login);
+		const login = await resolveTargetLogin({
+			currentLogin: existingLogin || created.login,
+			name: row.name,
+			userId: created.uid,
+		});
+
+		let auth = {
+			email: toLoginEmail(login),
+			password: "",
+		};
+		if (!existingLogin || existingLogin !== login || SHOULD_SET_PASSWORD) {
+			auth = await syncExistingUserLogin({
+				uid: created.uid,
+				oldLogin: existingLogin,
+				login,
+				name: row.name,
+				branchId: row.branch_id,
+			});
+		} else {
+			await ensureUsernameRow(login, created.uid, row.branch_id);
 		}
 
-		await ensureUsernameRow(login, created.uid, row.branch_id);
 		await updateSourceLogin(row.id, created.uid, login);
-		const password = passwordForLogin(login);
-		if (SHOULD_SET_PASSWORD) {
-			await setAuthPassword(created.uid, password);
-		}
 
 		return {
 			status: "linked-existing-auth",
@@ -567,8 +756,8 @@ const provisionRow = async (row) => {
 			name: row.name,
 			branchId: row.branch_id,
 			login,
-			password: SHOULD_SET_PASSWORD ? password : "",
-			email: toLoginEmail(login),
+			password: SHOULD_SET_PASSWORD ? auth.password : "",
+			email: auth.email,
 			uid: created.uid,
 		};
 	}
@@ -666,7 +855,7 @@ const main = async () => {
 		`Provisioning ${ENTITY_ROLE} logins for ${rows.length} rows (${BRANCH_NAME || "all branches"})...`,
 	);
 	if (SHOULD_SET_PASSWORD) {
-		console.log("Password mode: login (password reset enabled)");
+		console.log(`Password mode: ${PASSWORD_MODE} (password reset enabled)`);
 	}
 
 	for (const row of rows) {

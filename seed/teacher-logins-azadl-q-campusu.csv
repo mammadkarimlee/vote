@@ -1,0 +1,26 @@
+teacher_id,name,branch_id,login,password,email,user_id,status
+azadliq-teacher-aybeniz-memmedova-rufet-qizi,Aybəniz Məmmədova Rüfət Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aybqi0,aybqi0,aybqi0@vote.local,0e2df58e-f9df-4a14-8043-13fde98bee35,skipped-existing
+azadliq-teacher-aynur-xelilzade-azer-qizi,Aynur Xəlilzadə Azər Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aynqi1,aynqi1,aynqi1@vote.local,93ec917a-fb2e-4b07-bb84-9b9200dc1c93,skipped-existing
+azadliq-teacher-aysel-haciyeva-elvan-qizi,Aysel Hacıyeva Əlvan Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aysqi9,aysqi9,aysqi9@vote.local,85b0f614-6311-4f03-846c-b74f99702843,skipped-existing
+azadliq-teacher-aysel-huseynli-novruz-qizi,Aysel Hüseynli Novruz Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aysqi10,aysqi10,aysqi10@vote.local,f8c85139-204b-4a18-8af3-4e54540ff0ed,skipped-existing
+azadliq-teacher-ayten-memmedova-ilham-qizi,Aytən Məmmədova İlham Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aytqi4,aytqi4,aytqi4@vote.local,503b6857-d7fc-4625-a647-85ddd3ba5518,skipped-existing
+azadliq-teacher-balli-memmedli-elcin-qizi,Ballı Məmmədli Elçin Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,balqi0,balqi0,balqi0@vote.local,0c481f75-1b40-4135-b354-4d38a9697e07,skipped-existing
+azadliq-teacher-bextiyar-huseynov-davud-oglu,Bəxtiyar Hüseynov Davud Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,bexog0,bexog0,bexog0@vote.local,4ebe2a0b-8e1c-4ade-9b4e-63c806448cb8,skipped-existing
+azadliq-teacher-cinare-bedelova-nazim-qizi,Çinarə Bədəlova Nazim Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,cinqi0,cinqi0,cinqi0@vote.local,1010d5a9-69c6-4731-851b-aabd528734ab,skipped-existing
+azadliq-teacher-elsen-quliyev-meqsud-oglu,Elşən Quliyev Məqsud Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,elsog0,elsog0,elsog0@vote.local,611c947c-6159-4cf1-abf7-0b53b4d70f22,skipped-existing
+azadliq-teacher-esmira-qubadova-rovsen-qizi,Esmira Qubadova Rövşən Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,esmqi1,esmqi1,esmqi1@vote.local,8e8c4044-0eee-45af-a95d-51133e252d21,skipped-existing
+azadliq-teacher-husniyye-elesgerova-gulaga-qizi,Hüsniyyə Ələsgərova Gülağa Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,husqi0,husqi0,husqi0@vote.local,fcad661c-881b-4c81-ae70-9fc6bcc4e5bf,skipped-existing
+azadliq-teacher-ibrahimova-fatime-vidadiyevna,İbrahimova Fatimə Vidadiyevna,3caf18c6-4a42-47d7-a3dc-139501f356e1,ibrvi0,ibrvi0,ibrvi0@vote.local,9d9de5fa-2976-4c84-917c-35f9f413db18,skipped-existing
+azadliq-teacher-irade-memmedova-mayil-qizi,İradə Məmmədova Mayıl Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,iraqi0,iraqi0,iraqi0@vote.local,84277b7d-a7d0-4eab-b08a-720d00cf0f83,skipped-existing
+azadliq-teacher-liaman-badalova-xxx,Lıaman Badalova Xxx,3caf18c6-4a42-47d7-a3dc-139501f356e1,liaxx0,liaxx0,liaxx0@vote.local,920e9d0c-f814-4262-be39-8431c39183f3,skipped-existing
+azadliq-teacher-natiq-mazanov-ferrux-oglu,Natiq Mazanov Fərrux Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,natog0,natog0,natog0@vote.local,824bae96-fe6b-43f9-bc8c-51b672b427d0,skipped-existing
+azadliq-teacher-nermin-emirova-eldar-qizi,Nərmin Əmirova Eldar Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,nerqi1,nerqi1,nerqi1@vote.local,a5c75abc-bbb5-4f49-8744-6b244fd012f3,skipped-existing
+azadliq-teacher-nusabe-qayayeva-elyar-qizi,Nüşabə Qayayeva Əlyar Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,nusqi0,nusqi0,nusqi0@vote.local,9406a8f8-2c15-4ace-92a2-052988c735c7,skipped-existing
+azadliq-teacher-oktay-babayev-ezizaga-oglu,Oktay Babayev Əzizağa Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,oktog0,oktog0,oktog0@vote.local,4a119886-a780-49ce-a85d-16852f079678,skipped-existing
+azadliq-teacher-pervane-resulova-davud-qizi,Pərvanə Rəsulova Davud Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,perqi1,perqi1,perqi1@vote.local,7696afe5-f85a-4a7b-8bba-63511ab00f7d,skipped-existing
+azadliq-teacher-raisa-siraliyeva-maksudovna,Raisa Şiraliyeva Maksudovna,3caf18c6-4a42-47d7-a3dc-139501f356e1,raima0,raima0,raima0@vote.local,b9fc8f45-fbf1-4eaf-aab0-5257946bdf54,skipped-existing
+azadliq-teacher-resul-ferzeliyev-huseyn-oglu,Rəsul Fərzəliyev Hüseyn Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,resog0,resog0,resog0@vote.local,4939df3a-3d72-4dc1-9e82-f22a0ae69479,skipped-existing
+azadliq-teacher-senan-seyidbeyli-imameddin-oglu,Sənan Seyidbəyli İmaməddin Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,senog0,senog0,senog0@vote.local,50a7fab7-8223-43b8-bdd5-41f33486f48b,skipped-existing
+azadliq-teacher-sevinc-esedova-rufet-qizi,Sevinc Əsədova Rüfət Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,sevqi5,sevqi5,sevqi5@vote.local,b3a8938e-e76f-4612-8327-36f05759f7c2,skipped-existing
+azadliq-teacher-xeyal-esedov-huseyinaga-oglu,Xəyal Əsədov Hüseyinağa Oğlu,3caf18c6-4a42-47d7-a3dc-139501f356e1,xeyog0,xeyog0,xeyog0@vote.local,1a254c8c-97cc-4ecf-ada4-049c5d408271,skipped-existing
+azadliq-teacher-zerengiz-memisova-sahin-qizi,Zərəngiz Məmişova Şahin Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,zerqi2,zerqi2,zerqi2@vote.local,82f59509-9a1b-4cd4-9412-477295877c84,skipped-existing

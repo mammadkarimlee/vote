@@ -1,0 +1,48 @@
+teacher_id,name,branch_id,login,password,email,user_id,status
+stars-teacher-afaq-kazimova-arif-qizi,Afaq Kazımova Arif qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,afaqi0,afaqi0,afaqi0@vote.local,d955529f-9c4b-42cb-9c2a-2f8b0c93151b,skipped-existing
+stars-teacher-alisiya-akcurina-shamilovna,Alisiya Akçurina Shamilovna,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,alish0,alish0,alish0@vote.local,ece3ef3e-a794-420d-83e0-ee0355bd3093,skipped-existing
+stars-teacher-ayan-hasanova-shemsi-qizi,Ayan Həsənova Şəmsi qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,ayaqi0,ayaqi0,ayaqi0@vote.local,32a1b5d6-a3e1-4b60-805c-b39b50849567,skipped-existing
+stars-teacher-aydan-ibrahimova-elmar-qizi,Aydan İbrahimova Elmar qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aydqi0,aydqi0,aydqi0@vote.local,7bb0f351-df5d-4ab2-a2ab-f318c59b0fe1,skipped-existing
+stars-teacher-aynur-soltanova-namiq-qizi,Aynur Soltanova Namiq qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aynqi0,aynqi0,aynqi0@vote.local,2a175e4d-878f-4620-bba2-5f898566cc72,skipped-existing
+stars-teacher-aysel-karimova-pdf-source,Aysel Kərimova (PDF source),0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aysso0,aysso0,aysso0@vote.local,3d576751-aad1-4ec7-9614-dd6d55574d15,skipped-existing
+stars-teacher-aysel-seyid-eliqulu-qizi,Aysel Seyid Əliqulu qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aysqi0,aysqi0,aysqi0@vote.local,3b36311f-67bd-4b85-a2fe-8c767035e94f,fixed-short-login
+stars-teacher-aysel-xeberova-dunyamali-qizi,Aysel Xəbərova Dünyamalı qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aysqi1,aysqi1,aysqi1@vote.local,e087ef56-4ae1-4314-b9c0-4915bceb78bb,skipped-existing
+stars-teacher-aysel-zamanli-kamil-qizi,Aysel Zamanlı Kamil qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aysqi2,aysqi2,aysqi2@vote.local,1ac4584c-98f7-45bd-bd61-34fa87b3d8b3,skipped-existing
+stars-teacher-ayten-memmedli-bextiyar-qizi,Aytən Məmmədli Bəxtiyar qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,aytqi0,aytqi0,aytqi0@vote.local,4e07acbc-26d1-46c0-9a19-1cb3ca9d9173,fixed-short-login
+stars-teacher-camal-hemidov-behruz-oglu,Camal Həmidov Behruz oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,camog0,camog0,camog0@vote.local,05ddf19c-38ac-4985-ab53-f719af03fce9,fixed-short-login
+stars-teacher-elcan-seyidov,Elcan Seyidov,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,elcse0,elcse0,elcse0@vote.local,23142845-86fd-4b6e-85b1-6e44a6c7953b,fixed-short-login
+stars-teacher-emine-serifova-elxan-qizi,Əminə Şərifova Elxan qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,emiqi0,emiqi0,emiqi0@vote.local,adcdb750-f3fd-45c3-92ef-8a9b89e391ed,fixed-short-login
+stars-teacher-eren-kancilar-xxx,Eren Kancilar XXX,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,erexx0,erexx0,erexx0@vote.local,927a5774-8a85-4453-9d93-99bd6f489115,fixed-short-login
+stars-teacher-esref-memmedov-zaur-oglu,Əşrəf Məmmədov Zaur oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,esrog0,esrog0,esrog0@vote.local,aab74e26-1325-454d-af52-00028a38b7a7,fixed-short-login
+stars-teacher-fatime-ceferova-etibar-qizi,Fatimə Cəfərova Etibar qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fatqi0,fatqi0,fatqi0@vote.local,48da6223-654d-402e-99f7-faae98815f77,fixed-short-login
+stars-teacher-fatime-kerimli-idnoy-qizi,Fatimə Kərimli İdnoy qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fatqi1,fatqi1,fatqi1@vote.local,4cde24b5-ffcd-4b7a-969e-16ad3b5d55b7,skipped-existing
+stars-teacher-fatime-memmedli-aftandil-qizi,Fatimə Məmmədli Aftandil qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fatqi2,fatqi2,fatqi2@vote.local,da7b60a1-ef33-4af6-9177-099051dc258c,skipped-existing
+stars-teacher-fatime-quliyeva-murshud-qizi,Fatimə Quliyeva Mürşüd qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fatqi3,fatqi3,fatqi3@vote.local,9b960b1c-725f-4c4d-99ae-dfb6b5df2ae9,skipped-existing
+stars-teacher-fexri-qacar-mahir-oglu,Fəxri Qacar Mahir oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fexog0,fexog0,fexog0@vote.local,eadf9b0f-654b-4982-8af4-57eade3d3f3f,fixed-short-login
+stars-teacher-fidan-agayeva-zohrab-qizi,Fidan Ağayeva Zöhrab qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,fidqi0,fidqi0,fidqi0@vote.local,c9a5b0e3-4ee8-4369-87b6-689dc6ea863f,fixed-short-login
+stars-teacher-govher-meherremova-selahaddin-qizi,Gövhər Məhərrəmova Səlahəddin qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,govqi0,govqi0,govqi0@vote.local,bb54c2c4-0b03-40e4-8e5c-270442ff0e3a,fixed-short-login
+stars-teacher-gulrux-elsafa-sefter-qizi,Gülrux Elsafa Səftər qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,gulqi0,gulqi0,gulqi0@vote.local,0018f4db-c486-4865-b688-7746c47ddb80,fixed-short-login
+stars-teacher-gulsen-esedova-gulaga-qizi,Gülsən Əsədova Gülağa qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,gulqi1,gulqi1,gulqi1@vote.local,4abc193a-816c-4be5-b7fc-ff2389fab07a,skipped-existing
+stars-teacher-gulsen-novruzlu-rasim-qizi,Gülsən Novruzlu Rasim qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,gulqi2,gulqi2,gulqi2@vote.local,b5ceadc8-effd-4787-b2a5-423d47fd77e1,skipped-existing
+stars-teacher-gunel-nifteliyeva-davud-qizi,Günel Niftəliyeva Davud qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,gunqi0,gunqi0,gunqi0@vote.local,7de44dc5-08fe-4dcf-abc3-6f9496bead76,fixed-short-login
+stars-teacher-hemide-seyidova-asiman-qizi,Həmidə Seyidova Asiman qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,hemqi0,hemqi0,hemqi0@vote.local,d06682f7-106f-4d50-893b-0ebed067a0c7,fixed-short-login
+stars-teacher-heyran-memmedova-ceyhun-qizi,Heyran Məmmədova Ceyhun qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,heyqi0,heyqi0,heyqi0@vote.local,3651528c-c4fd-4870-8de7-7a822404b1db,fixed-short-login
+stars-teacher-huseyn-savalanli-natiq-oglu,Hüseyn Savalanlı Natiq oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,husog0,husog0,husog0@vote.local,f7db7cec-67bd-4a6d-8a62-b114fb437a5c,fixed-short-login
+stars-teacher-inci-elesgerli-cavid-qizi,İnci Ələsgərli Cavid qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,incqi0,incqi0,incqi0@vote.local,300e9a31-78dc-40ae-af82-ebc7688f0084,fixed-short-login
+stars-teacher-lale-ceferova-mehman-qizi,Lalə Cəfərova Mehman qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,lalqi0,lalqi0,lalqi0@vote.local,54e5a59e-6f0f-45c0-bc25-7d862892dc30,fixed-short-login
+stars-teacher-lale-nebiyeva-arif-qizi,Lalə Nəbiyeva Arif qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,lalqi1,lalqi1,lalqi1@vote.local,e7d373bc-571d-4e4c-89ab-b47a8b2d2abe,skipped-existing
+stars-teacher-lale-vahabova-tagi-qizi,Lalə Vahabova Tağı qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,lalqi2,lalqi2,lalqi2@vote.local,25b73fd0-7102-4feb-b3a6-3d7fe6e9563a,skipped-existing
+stars-teacher-larisa-huseynova-andreyevna,Larisa Hüseynova Andreyevna,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,laran0,laran0,laran0@vote.local,803bb951-a515-48a0-9f41-651611359f4d,fixed-short-login
+stars-teacher-leyla-memmedova-namiq-qizi,Leyla Məmmədova Namiq qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,leyqi0,leyqi0,leyqi0@vote.local,099afd0f-8345-45bd-aa44-e1ce529d216e,fixed-short-login
+stars-teacher-nermin-selimova-pdf-source,Nermin Səlimova (PDF source),0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,nerse1,nerse1,nerse1@vote.local,2f478786-d14e-41e8-a12e-610e8de6e090,skipped-existing
+stars-teacher-nigar-hasimova-bextiyar-qizi,Nigar Həşimova Bəxtiyar qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,nigqi0,nigqi0,nigqi0@vote.local,f5c0e748-a86d-4069-b794-6fdff04f708a,fixed-short-login
+stars-teacher-radim-memmedov-memmed-oglu,Radim Məmmədov Memmed oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,radog0,radog0,radog0@vote.local,5094c7fb-0f8b-49ac-86dc-225813b9706d,fixed-short-login
+stars-teacher-rizvan-qubatov-natiq-oglu,Rizvan Qubatov Natiq oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,rizog0,rizog0,rizog0@vote.local,cf995752-b14a-44eb-8465-c4c1067f69c4,fixed-short-login
+stars-teacher-semaye-quluzade-akif-qizi,Səmayə Quluzadə Akif qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,semqi0,semqi0,semqi0@vote.local,e7fccf14-c08a-4e44-9d17-c45795ef6b74,fixed-short-login
+stars-teacher-sureyya-allahverdiyeva-eli-qizi,Sürəyya Allahverdiyeva Əli qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,surqi0,surqi0,surqi0@vote.local,7bdefe8e-ec1f-4d27-9f0e-8e4955cca4db,fixed-short-login
+stars-teacher-taciman-mahmudova-sahib-qizi,Taciman Mahmudova Sahib qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,tacqi0,tacqi0,tacqi0@vote.local,55b56f38-a75a-42c1-8c6b-2ceaa546de3c,fixed-short-login
+stars-teacher-ulduz-babayeva-fexreddin-qizi,Ulduz Babayeva Fəxrəddin qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,uldqi0,uldqi0,uldqi0@vote.local,74164d38-5258-418f-b9b0-cc6768b8e9b2,fixed-short-login
+stars-teacher-vasif-saftarov-qara-oglu,Vasif Səftərov Qara oğlu,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,vasog0,vasog0,vasog0@vote.local,7a9b0b1f-6d58-43a3-9525-aae6247beb8b,fixed-short-login
+stars-teacher-xaver-ceferzade-bayram-qizi,Xavər Cəfərzadə Bayram qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,xavqi0,xavqi0,xavqi0@vote.local,13ed8d8a-4c20-469e-a44d-ff46054295c4,fixed-short-login
+stars-teacher-zamile-mustafayeva-meherrem-qizi,Zamilə Mustafayeva Məhərrəm qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,zamqi0,zamqi0,zamqi0@vote.local,8199772c-dbf0-4fce-8c81-1109c2e0ee1d,fixed-short-login
+stars-teacher-zerife-xelilova-bextiyar-qizi,Zərifə Xəlilova Bəxtiyar qızı,0a2bc8f0-4f43-4b7a-916d-72424f3d1b21,zerqi0,zerqi0,zerqi0@vote.local,6751adea-3f89-4044-8ad9-c99e7d81e04c,fixed-short-login
