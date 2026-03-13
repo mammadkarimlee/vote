@@ -540,6 +540,31 @@ create index if not exists pkpd_portfolios_branch_idx on public.pkpd_portfolios 
 create index if not exists pkpd_portfolios_cycle_idx on public.pkpd_portfolios (cycle_id);
 create index if not exists pkpd_portfolios_teacher_idx on public.pkpd_portfolios (teacher_id);
 
+create table if not exists public.pkpd_self_reviews (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  score numeric,
+  question_scores jsonb not null default '{}'::jsonb,
+  note text,
+  reviewed_by text references public.users (id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  check (score is null or (score >= 0 and score <= 10)),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+alter table public.pkpd_self_reviews
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade,
+  add column if not exists question_scores jsonb not null default '{}'::jsonb;
+
+create index if not exists pkpd_self_reviews_org_idx on public.pkpd_self_reviews (org_id);
+create index if not exists pkpd_self_reviews_branch_idx on public.pkpd_self_reviews (branch_id);
+create index if not exists pkpd_self_reviews_cycle_idx on public.pkpd_self_reviews (cycle_id);
+create index if not exists pkpd_self_reviews_teacher_idx on public.pkpd_self_reviews (teacher_id);
+
 create table if not exists public.pkpd_achievements (
   id text primary key default gen_random_uuid()::text,
   org_id text not null references public.orgs (id) on delete cascade,
@@ -769,6 +794,11 @@ create trigger audit_pkpd_exam_results
 drop trigger if exists audit_pkpd_portfolios on public.pkpd_portfolios;
 create trigger audit_pkpd_portfolios
   after insert or update or delete on public.pkpd_portfolios
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_self_reviews on public.pkpd_self_reviews;
+create trigger audit_pkpd_self_reviews
+  after insert or update or delete on public.pkpd_self_reviews
   for each row execute function public.log_audit();
 
 drop trigger if exists audit_pkpd_achievements on public.pkpd_achievements;
@@ -1399,6 +1429,7 @@ alter table public.biq_class_results enable row level security;
 alter table public.pkpd_teacher_biq_results enable row level security;
 alter table public.pkpd_exam_results enable row level security;
 alter table public.pkpd_portfolios enable row level security;
+alter table public.pkpd_self_reviews enable row level security;
 alter table public.pkpd_achievements enable row level security;
 alter table public.pkpd_decisions enable row level security;
 alter table public.audit_logs enable row level security;
@@ -1516,6 +1547,11 @@ drop policy if exists pkpd_portfolios_select on public.pkpd_portfolios;
 drop policy if exists pkpd_portfolios_insert on public.pkpd_portfolios;
 drop policy if exists pkpd_portfolios_update on public.pkpd_portfolios;
 drop policy if exists pkpd_portfolios_delete on public.pkpd_portfolios;
+
+drop policy if exists pkpd_self_reviews_select on public.pkpd_self_reviews;
+drop policy if exists pkpd_self_reviews_insert on public.pkpd_self_reviews;
+drop policy if exists pkpd_self_reviews_update on public.pkpd_self_reviews;
+drop policy if exists pkpd_self_reviews_delete on public.pkpd_self_reviews;
 
 drop policy if exists pkpd_achievements_select on public.pkpd_achievements;
 drop policy if exists pkpd_achievements_insert on public.pkpd_achievements;
@@ -2510,6 +2546,58 @@ create policy pkpd_portfolios_update on public.pkpd_portfolios
   );
 
 create policy pkpd_portfolios_delete on public.pkpd_portfolios
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_self_reviews_select on public.pkpd_self_reviews
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_self_reviews_insert on public.pkpd_self_reviews
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_self_reviews_update on public.pkpd_self_reviews
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_self_reviews_delete on public.pkpd_self_reviews
   for delete
   using (
     public.is_superadmin()

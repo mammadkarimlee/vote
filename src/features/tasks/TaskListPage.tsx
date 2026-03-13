@@ -18,6 +18,12 @@ import type {
 	TaskDoc,
 	TeacherDoc,
 } from "../../lib/types";
+import {
+	STUDENT_EVALUATION_CRITERIA,
+	STUDENT_TEACHER_INSTRUCTION_LINES,
+	isStudentTeacherInstructionQuestion,
+	shouldRenderStudentTeacherInstructionBlock,
+} from "../../lib/surveyQuestions";
 import { chunkArray, formatShortDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -322,6 +328,9 @@ export const TaskListPage = () => {
 							data: QuestionDoc;
 						} => Boolean(item),
 					);
+				next[cycleId] = next[cycleId].filter(
+					(question) => !isStudentTeacherInstructionQuestion(question.data),
+				);
 			});
 
 			setStudentQuestionsByCycle(next);
@@ -666,10 +675,10 @@ export const TaskListPage = () => {
 				<section className="vote-hero">
 					<div className="vote-hero__content">
 						<div className="eyebrow">Səsvermə mərkəzi</div>
-						<h1>Müəllimlərə bir səhifədə səs ver</h1>
+						<h1>Müəllim qiymətləndirilməsi</h1>
 						<p>
-							Hər müəllimi bir kartda görürsən. Balları seç, sonra bir dəfə
-							"Hamısını göndər" et.
+							Sizə dərs deyən fənn müəllimlərini aşağıdakı siyahıdan seçib,
+							meyarlara uyğun ortalama qiymət verin.
 						</p>
 					</div>
 					<div className="vote-hero__stats">
@@ -695,6 +704,29 @@ export const TaskListPage = () => {
 							<div className="stat-value">{studentVotableEntries.length}</div>
 							<div className="stat-meta">Qruplaşdırılıb tək görünür</div>
 						</div>
+					</div>
+				</section>
+
+				<section className="card">
+					<div className="stack">
+						<div className="section-header">
+							<div>
+								<div className="section-kicker">Təlimat</div>
+								<h2 className="section-title">
+									{STUDENT_TEACHER_INSTRUCTION_LINES[0]}
+								</h2>
+								<p className="hint">
+									{STUDENT_TEACHER_INSTRUCTION_LINES[1]}
+								</p>
+							</div>
+						</div>
+						<ul className="instruction-list">
+							{STUDENT_EVALUATION_CRITERIA.map((criterion) => (
+								<li className="instruction-list__item" key={criterion}>
+									<span className="instruction-list__label">{criterion}</span>
+								</li>
+							))}
+						</ul>
 					</div>
 				</section>
 
@@ -743,6 +775,7 @@ export const TaskListPage = () => {
 								<article className="bulk-vote-card" key={entry.id}>
 									<div className="task-card__head">
 										<div>
+											<div className="eyebrow">Müəllim qiymətləndirilməsi</div>
 											<div className="task-card__title">{entry.teacherName}</div>
 											<div className="task-card__meta">
 												Son tarix: {formatShortDate(entry.endAt)}
@@ -780,13 +813,47 @@ export const TaskListPage = () => {
 										<div className="stack">
 											{entry.questions.map((question, index) => (
 												<div className="question" key={`${entry.id}-${question.id}`}>
-													<div className="question-title">
-														<span className="question-number">#{index + 1}</span>{" "}
-														{question.data.text}
-														{question.data.required && (
-															<span className="required">*</span>
-														)}
-													</div>
+													{shouldRenderStudentTeacherInstructionBlock(
+														question.data,
+													) ? (
+														<div className="stack">
+															<div className="question-title">
+																<span className="question-number">
+																	#{index + 1}
+																</span>{" "}
+																Təlimat
+																{question.data.required && (
+																	<span className="required">*</span>
+																)}
+															</div>
+															<div className="hint">
+																{STUDENT_TEACHER_INSTRUCTION_LINES[0]}
+															</div>
+															<div className="hint">
+																{STUDENT_TEACHER_INSTRUCTION_LINES[1]}
+															</div>
+															<ul className="instruction-list">
+																{STUDENT_EVALUATION_CRITERIA.map((criterion) => (
+																	<li
+																		className="instruction-list__item"
+																		key={`${entry.id}-${question.id}-${criterion}`}
+																	>
+																		<span className="instruction-list__label">
+																			{criterion}
+																		</span>
+																	</li>
+																))}
+															</ul>
+														</div>
+													) : (
+														<div className="question-title">
+															<span className="question-number">#{index + 1}</span>{" "}
+															{question.data.text}
+															{question.data.required && (
+																<span className="required">*</span>
+															)}
+														</div>
+													)}
 
 													{question.data.type === "scale" && (
 														<div className="scale">

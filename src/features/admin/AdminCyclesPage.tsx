@@ -21,58 +21,112 @@ import type {
 	SurveyCycleDoc,
 	TaskDoc,
 } from "../../lib/types";
+import {
+	STUDENT_EVALUATION_CRITERIA,
+	STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+	buildStudentTeacherInstructionQuestionDoc,
+	ensureStudentTeacherInstructionQuestionIds,
+	isStudentTeacherInstructionQuestion,
+} from "../../lib/surveyQuestions";
 import { chunkArray, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 const flows = ["student_teacher", "management_teacher", "teacher_self"] as const;
 type EnabledFlow = (typeof flows)[number];
+const SUPABASE_BATCH_SIZE = 1000;
 const flowLabels: Record<EnabledFlow, string> = {
 	student_teacher: "Şagird → Müəllim",
 	management_teacher: "Rəhbərlik → Müəllim",
 	teacher_self: "Müəllim → Özünü",
 };
 
-const TEACHER_SELF_PKPD_QUESTIONS = [
+const TEACHER_SELF_PKPD_QUESTION_TEMPLATES = [
 	{
-		id: "pkpd-self-certificates-publications-media",
-		text: "Beynəlxalq və ölkədaxili sertifikatlar, elmi-metodiki nəşrlərdə müəlliflik, TV çıxışları, məqalələr, təlim və konfrans çıxışları (max 9 bal)",
-		scaleMax: 9,
+		key: "self-score",
+		buildText: (academicYearLabel: string) =>
+			`${academicYearLabel} üçün fəaliyyətinizi nəzərə alaraq özünüzə neçə bal verirsiniz?`,
+		type: "scale" as const,
+		scaleMin: 0,
+		scaleMax: 10,
 	},
 	{
-		id: "pkpd-self-olympiad-competition-results",
-		text: "Olimpiada və digər fənn müsabiqə və yarışlarda şagirdlərin nəticəsi (max 20 bal)",
-		scaleMax: 20,
+		key: "certificates-publications-media",
+		legacyId: "pkpd-self-certificates-publications-media",
+		buildText: (academicYearLabel: string) =>
+			`${academicYearLabel} üçün beynəlxalq və ölkədaxili sertifikatlar, elmi-metodiki nəşrlərdə müəlliflik, TV çıxışları, məqalələr, təlim və konfranslarda iştirak və ya çıxışlar varmı? Varsa, nailiyyətlərinizi yazın.`,
+		type: "text" as const,
 	},
 	{
-		id: "pkpd-self-projects-and-events",
-		text: "Dövlət və digər təşkilatlarda həyata keçirdiyi və ya iştirak etdiyi layihələr, liseydə təşkil etdiyi tədbirlər və layihələr (max 20 bal)",
-		scaleMax: 20,
+		key: "olympiad-competition-results",
+		legacyId: "pkpd-self-olympiad-competition-results",
+		buildText: (academicYearLabel: string) =>
+			`${academicYearLabel} üçün olimpiada və digər fənn müsabiqə və yarışlarda şagirdlərinizin nəticələri varmı? Varsa, nailiyyətlərinizi yazın.`,
+		type: "text" as const,
+	},
+	{
+		key: "projects-and-events",
+		legacyId: "pkpd-self-projects-and-events",
+		buildText: (academicYearLabel: string) =>
+			`${academicYearLabel} üçün dövlət və digər təşkilatlarla həyata keçirdiyiniz və ya iştirak etdiyiniz layihələr, həmçinin liseydə təşkil etdiyiniz tədbir və layihələr varmı? Varsa, nailiyyətlərinizi yazın.`,
+		type: "text" as const,
 	},
 ] as const;
 
+const buildAcademicYearLabel = (cycleYear: number) =>
+	`${cycleYear - 1}-${cycleYear}-cı il`;
+
+const buildTeacherSelfPkpdQuestionId = (cycleId: string, key: string) =>
+	`pkpd-self-${cycleId}-${key}`;
+
 const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
-	const questionRows = TEACHER_SELF_PKPD_QUESTIONS.map((item) => ({
-		id: item.id,
+	const { data: cycleRow, error: cycleError } = await supabase
+		.from("survey_cycles")
+		.select("id, year")
+		.eq("org_id", ORG_ID)
+		.eq("id", cycleId)
+		.maybeSingle();
+	if (cycleError || !cycleRow) {
+		return {
+			questionIds: [] as string[],
+			error: cycleError?.message ?? "Sorğu dövrü tapılmadı",
+		};
+	}
+
+	const academicYearLabel = buildAcademicYearLabel(cycleRow.year);
+	const questionRows = TEACHER_SELF_PKPD_QUESTION_TEMPLATES.map((item) => ({
+		id: buildTeacherSelfPkpdQuestionId(cycleId, item.key),
 		org_id: ORG_ID,
-		text: item.text,
-		type: "scale" as const,
+		text: item.buildText(academicYearLabel),
+		type: item.type,
 		required: true,
 		options: null,
-		scale_min: 0,
-		scale_max: item.scaleMax,
+		scale_min: item.type === "scale" ? item.scaleMin ?? 0 : null,
+		scale_max: item.type === "scale" ? item.scaleMax ?? 10 : null,
 		category: "teacher_self_pkpd",
 	}));
-	const { error: questionError } = await supabase.from("questions").upsert(
-		questionRows,
-		{
+	const legacyQuestionRows = TEACHER_SELF_PKPD_QUESTION_TEMPLATES.filter(
+		(item) => "legacyId" in item,
+	).map((item) => ({
+		id: item.legacyId,
+		org_id: ORG_ID,
+		text: item.buildText(academicYearLabel),
+		type: item.type,
+		required: true,
+		options: null,
+		scale_min: null,
+		scale_max: null,
+		category: "teacher_self_pkpd",
+	}));
+	const { error: questionError } = await supabase
+		.from("questions")
+		.upsert([...legacyQuestionRows, ...questionRows], {
 			onConflict: "id",
-		},
-	);
+		});
 	if (questionError) {
 		return { questionIds: [] as string[], error: questionError.message };
 	}
 
-	const questionIds = TEACHER_SELF_PKPD_QUESTIONS.map((item) => item.id);
+	const questionIds = questionRows.map((item) => item.id);
 	const { error: questionSetError } = await supabase.from("question_sets").upsert(
 		{
 			org_id: ORG_ID,
@@ -92,6 +146,91 @@ const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
 	return { questionIds, error: null as string | null };
 };
 
+const ensureStudentTeacherInstructionQuestionSet = async (
+	cycleId: string,
+	sourceQuestionIds?: string[],
+) => {
+	const instructionQuestion = buildStudentTeacherInstructionQuestionDoc();
+	const { error: questionError } = await supabase.from("questions").upsert(
+		{
+			id: STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+			org_id: ORG_ID,
+			text: instructionQuestion.text,
+			type: instructionQuestion.type,
+			required: instructionQuestion.required,
+			options: null,
+			scale_min: null,
+			scale_max: null,
+			category: instructionQuestion.category ?? null,
+		},
+		{
+			onConflict: "id",
+		},
+	);
+	if (questionError) {
+		return {
+			questionIds: [] as string[],
+			error: questionError.message,
+			hasQuestionSet: false,
+		};
+	}
+
+	let baseQuestionIds = sourceQuestionIds;
+	if (!baseQuestionIds) {
+		const { data: setRow, error: setError } = await supabase
+			.from("question_sets")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", cycleId)
+			.eq("target_flow", "student_teacher")
+			.maybeSingle();
+		if (setError) {
+			return {
+				questionIds: [] as string[],
+				error: setError.message,
+				hasQuestionSet: false,
+			};
+		}
+		if (!setRow) {
+			return {
+				questionIds: [] as string[],
+				error: null as string | null,
+				hasQuestionSet: false,
+			};
+		}
+		baseQuestionIds = mapQuestionSetRow(setRow).questionIds ?? [];
+	}
+
+	const questionIds = ensureStudentTeacherInstructionQuestionIds(baseQuestionIds);
+	const { error: questionSetError } = await supabase
+		.from("question_sets")
+		.upsert(
+			{
+				org_id: ORG_ID,
+				cycle_id: cycleId,
+				target_flow: "student_teacher",
+				question_ids: questionIds,
+				updated_at: new Date().toISOString(),
+			},
+			{
+				onConflict: "org_id,cycle_id,target_flow",
+			},
+		);
+	if (questionSetError) {
+		return {
+			questionIds: [] as string[],
+			error: questionSetError.message,
+			hasQuestionSet: true,
+		};
+	}
+
+	return {
+		questionIds,
+		error: null as string | null,
+		hasQuestionSet: true,
+	};
+};
+
 const buildTaskId = (task: {
 	cycleId: string;
 	raterUid: string;
@@ -106,8 +245,36 @@ const buildTaskId = (task: {
 		task.targetType,
 		task.targetId,
 		task.groupId ?? "all",
-		task.subjectId ?? "all",
+	task.subjectId ?? "all",
 	].join("_");
+
+const fetchAllBatched = async <T,>(
+	fetchPage: (
+		from: number,
+		to: number,
+	) => Promise<{ data: T[] | null; error: { message?: string } | null }>,
+) => {
+	const rows: T[] = [];
+	let from = 0;
+
+	while (true) {
+		const to = from + SUPABASE_BATCH_SIZE - 1;
+		const { data, error } = await fetchPage(from, to);
+		if (error) {
+			throw new Error(error.message ?? "Məlumat yüklənmədi");
+		}
+
+		const page = data ?? [];
+		rows.push(...page);
+		if (page.length < SUPABASE_BATCH_SIZE) {
+			break;
+		}
+
+		from += SUPABASE_BATCH_SIZE;
+	}
+
+	return rows;
+};
 
 export const AdminCyclesPage = () => {
 	const { user } = useAuth();
@@ -230,6 +397,35 @@ export const AdminCyclesPage = () => {
 			}
 
 			const mapped = mapQuestionSetRow(data);
+			if (selectedFlow === "student_teacher") {
+				const ensured = await ensureStudentTeacherInstructionQuestionSet(
+					selectedCycleId,
+					mapped.questionIds ?? [],
+				);
+				if (ensured.error) {
+					setSelectedQuestionIds([]);
+					setStatus(
+						`Şagird müəllim qiymətləndirilməsi təlimatı hazırlanmadı: ${ensured.error}`,
+					);
+					return;
+				}
+				setSelectedQuestionIds(ensured.questionIds);
+
+				const { data: refreshedQuestions, error: refreshedQuestionsError } =
+					await supabase
+						.from("questions")
+						.select("*")
+						.eq("org_id", ORG_ID);
+				if (!refreshedQuestionsError) {
+					const items = (refreshedQuestions ?? []).map((row) => ({
+						id: row.id,
+						data: mapQuestionRow(row),
+					}));
+					setQuestions(items);
+				}
+				return;
+			}
+
 			setSelectedQuestionIds(mapped.questionIds ?? []);
 		};
 
@@ -398,8 +594,27 @@ export const AdminCyclesPage = () => {
 			setStatus("Özünüqiymətləndirmə sualları avtomatik yeniləndi");
 			return;
 		}
-		if (selectedQuestionIds.length === 0) {
+		const questionIdsWithoutInstruction = selectedQuestionIds.filter(
+			(id) => id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+		);
+		if (questionIdsWithoutInstruction.length === 0) {
 			setStatus("Ən azı 1 sual seçilməlidir");
+			return;
+		}
+		if (selectedFlow === "student_teacher") {
+			const ensured = await ensureStudentTeacherInstructionQuestionSet(
+				selectedCycleId,
+				questionIdsWithoutInstruction,
+			);
+			if (ensured.error) {
+				setStatus(
+					`Şagird müəllim qiymətləndirilməsi təlimatı saxlanmadı: ${ensured.error}`,
+				);
+				return;
+			}
+			setSelectedQuestionIds(ensured.questionIds);
+			setStatus("Şagird müəllim qiymətləndirilməsi təlimatı avtomatik əlavə olundu");
+			await loadQuestions();
 			return;
 		}
 
@@ -469,10 +684,44 @@ export const AdminCyclesPage = () => {
 			return;
 		}
 
-		const currentFlowRow = rows.find((row) => row.target_flow === selectedFlow);
-		if (currentFlowRow)
-			setSelectedQuestionIds(currentFlowRow.question_ids ?? []);
+		const ensuredTeacherSelf = rows.some(
+			(row) => row.target_flow === "teacher_self",
+		)
+			? await ensureTeacherSelfPkpdQuestionSet(selectedCycle.id)
+			: null;
+		const studentTeacherRow = rows.find(
+			(row) => row.target_flow === "student_teacher",
+		);
+		const ensuredStudentTeacher = studentTeacherRow
+			? await ensureStudentTeacherInstructionQuestionSet(
+					selectedCycle.id,
+					studentTeacherRow.question_ids ?? [],
+				)
+			: null;
+		if (ensuredTeacherSelf?.error) {
+			setStatus(
+				`Sual setləri köçürüldü, amma özünüqiymətləndirmə yenilənmədi: ${ensuredTeacherSelf.error}`,
+			);
+			return;
+		}
+		if (ensuredStudentTeacher?.error) {
+			setStatus(
+				`Sual setləri köçürüldü, amma şagird müəllim qiymətləndirilməsi təlimatı yenilənmədi: ${ensuredStudentTeacher.error}`,
+			);
+			return;
+		}
 
+		if (selectedFlow === "teacher_self") {
+			setSelectedQuestionIds(ensuredTeacherSelf?.questionIds ?? []);
+		} else if (selectedFlow === "student_teacher") {
+			setSelectedQuestionIds(ensuredStudentTeacher?.questionIds ?? []);
+		} else {
+			const currentFlowRow = rows.find((row) => row.target_flow === selectedFlow);
+			if (currentFlowRow)
+				setSelectedQuestionIds(currentFlowRow.question_ids ?? []);
+		}
+
+		await loadQuestions();
 		setStatus(`Sual setləri ${prevCycle.data.year} ilindən köçürüldü`);
 	};
 
@@ -483,114 +732,146 @@ export const AdminCyclesPage = () => {
 			setStatus(`Özünüqiymətləndirmə sualları hazırlanmadı: ${ensured.error}`);
 			return;
 		}
-		if (selectedCycleId === cycleId && selectedFlow === "teacher_self") {
-			setSelectedQuestionIds(ensured.questionIds);
-		}
-
-		const [
-			usersRes,
-			studentsRes,
-			teachersRes,
-			groupsRes,
-			subjectsRes,
-			assignmentsRes,
-			managementAssignmentsRes,
-			existingTasksRes,
-		] = await Promise.all([
-			supabase
-				.from("users")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("students")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("teachers")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("groups")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("subjects")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("teaching_assignments")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("management_assignments")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.is("deleted_at", null),
-			supabase
-				.from("tasks")
-				.select("id,rater_id,target_type,target_id,group_id")
-				.eq("org_id", ORG_ID)
-				.eq("cycle_id", cycleId),
-		]);
-
-		if (
-			usersRes.error ||
-			studentsRes.error ||
-			teachersRes.error ||
-			groupsRes.error ||
-			subjectsRes.error ||
-			assignmentsRes.error ||
-			managementAssignmentsRes.error ||
-			existingTasksRes.error
-		) {
-			const loadError =
-				usersRes.error ||
-				studentsRes.error ||
-				teachersRes.error ||
-				groupsRes.error ||
-				subjectsRes.error ||
-				assignmentsRes.error ||
-				managementAssignmentsRes.error ||
-				existingTasksRes.error;
+		const ensuredStudentTeacher =
+			await ensureStudentTeacherInstructionQuestionSet(cycleId);
+		if (ensuredStudentTeacher.error) {
 			setStatus(
-				loadError?.message
-					? `Tapşırıqlar hazırlanmadı: ${loadError.message}`
-					: "Tapşırıqlar hazırlanmadı",
+				`Şagird müəllim qiymətləndirilməsi təlimatı hazırlanmadı: ${ensuredStudentTeacher.error}`,
 			);
 			return;
 		}
+		if (selectedCycleId === cycleId && selectedFlow === "teacher_self") {
+			setSelectedQuestionIds(ensured.questionIds);
+		}
+		if (selectedCycleId === cycleId && selectedFlow === "student_teacher") {
+			setSelectedQuestionIds(ensuredStudentTeacher.questionIds);
+		}
 
-		const users = (usersRes.data ?? []).map((row) => ({
+		let userRows: any[] = [];
+		let studentRows: any[] = [];
+		let teacherRows: any[] = [];
+		let groupRows: any[] = [];
+		let subjectRows: any[] = [];
+		let assignmentRows: any[] = [];
+		let managementAssignmentRows: any[] = [];
+		let existingTaskRows: any[] = [];
+
+		try {
+			[
+				userRows,
+				studentRows,
+				teacherRows,
+				groupRows,
+				subjectRows,
+				assignmentRows,
+				managementAssignmentRows,
+				existingTaskRows,
+			] = await Promise.all([
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("users")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("students")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("teachers")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("groups")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("subjects")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("teaching_assignments")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("management_assignments")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("tasks")
+						.select("id,rater_id,target_type,target_id,group_id")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", cycleId)
+						.order("id")
+						.range(from, to),
+				),
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Məlumat yüklənmədi";
+			setStatus(`Tapşırıqlar hazırlanmadı: ${message}`);
+			return;
+		}
+
+		const users = userRows.map((row) => ({
 			id: row.id,
 			data: mapUserRow(row),
 		}));
-		const students = (studentsRes.data ?? []).map((row) => ({
+		const students = studentRows.map((row) => ({
 			id: row.id,
 			data: mapStudentRow(row),
 		}));
-		const teachers = (teachersRes.data ?? []).map((row) => ({
+		const teachers = teacherRows.map((row) => ({
 			id: row.id,
 			data: mapTeacherRow(row),
 		}));
-		const groups = (groupsRes.data ?? []).map((row) => ({
+		const groups = groupRows.map((row) => ({
 			id: row.id,
 			data: mapGroupRow(row),
 		}));
-		const subjects = (subjectsRes.data ?? []).map((row) => ({
+		const subjects = subjectRows.map((row) => ({
 			id: row.id,
 			data: mapSubjectRow(row),
 		}));
-		const assignments = (assignmentsRes.data ?? []).map((row) => ({
+		const assignments = assignmentRows.map((row) => ({
 			id: row.id,
 			data: mapTeachingAssignmentRow(row),
 		}));
-		const managementAssignments = (managementAssignmentsRes.data ?? []).map(
+		const managementAssignments = managementAssignmentRows.map(
 			(row) => ({
 				id: row.id,
 				data: mapManagementAssignmentRow(row),
@@ -598,11 +879,11 @@ export const AdminCyclesPage = () => {
 		);
 
 		const existingTaskIds = new Set(
-			(existingTasksRes.data ?? []).map((row) => row.id as string),
+			existingTaskRows.map((row) => row.id as string),
 		);
 		const scheduledTaskIds = new Set(existingTaskIds);
 		const existingStudentTeacherTaskKeys = new Set(
-			(existingTasksRes.data ?? [])
+			existingTaskRows
 				.filter((row) => row.target_type === "teacher" && row.group_id)
 				.map(
 					(row) =>
@@ -962,7 +1243,10 @@ export const AdminCyclesPage = () => {
 				subject_name: item.data.subjectName ?? null,
 				status: item.data.status,
 			}));
-			const { error } = await supabase.from("tasks").insert(rows);
+			const { error } = await supabase.from("tasks").upsert(rows, {
+				onConflict: "id",
+				ignoreDuplicates: true,
+			});
 			if (error) {
 				const parts = [error.message, error.details, error.hint].filter(
 					(value): value is string => Boolean(value),
@@ -983,6 +1267,28 @@ export const AdminCyclesPage = () => {
 	const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
 	const branchMap = Object.fromEntries(
 		branches.map((branch) => [branch.id, branch.data]),
+	);
+	const selectableQuestions = useMemo(
+		() => {
+			const visibleQuestions = questions.filter(
+				(question) => !isStudentTeacherInstructionQuestion(question.data),
+			);
+			if (selectedFlow !== "teacher_self") {
+				return visibleQuestions;
+			}
+
+			const questionById = new Map(
+				visibleQuestions.map((question) => [question.id, question]),
+			);
+			return selectedQuestionIds
+				.map((questionId) => questionById.get(questionId) ?? null)
+				.filter(
+					(
+						question,
+					): question is (typeof visibleQuestions)[number] => question !== null,
+				);
+		},
+		[questions, selectedFlow, selectedQuestionIds],
 	);
 	const paginatedCycles = useMemo(() => {
 		const start = (page - 1) * pageSize;
@@ -1180,8 +1486,16 @@ export const AdminCyclesPage = () => {
 							</button>
 						))}
 					</div>
+					{selectedFlow === "student_teacher" && (
+						<div className="hint">
+							Şagird müəllim qiymətləndirilməsi üçün təlimat bloku avtomatik
+							əlavə olunur:
+							{" "}
+							{STUDENT_EVALUATION_CRITERIA.join(", ")}.
+						</div>
+					)}
 					<div className="checkbox-grid">
-						{questions.map((question) => (
+						{selectableQuestions.map((question) => (
 							<label key={question.id} className="checkbox-item">
 								<input
 									type="checkbox"
@@ -1204,7 +1518,8 @@ export const AdminCyclesPage = () => {
 					{selectedFlow === "teacher_self" && (
 						<div className="hint">
 							Bu axın üçün PKPD özünüqiymətləndirmə sualları avtomatik tətbiq
-							olunur (0-dan maksimum bala qədər seçim).
+							olunur: müəllim əvvəl 0-10 arası öz balını verir, sonra açıq
+							suallarda nailiyyətlərini yazır.
 						</div>
 					)}
 					<div className="actions">

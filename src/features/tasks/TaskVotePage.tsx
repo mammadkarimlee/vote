@@ -13,6 +13,12 @@ import type {
 	SurveyCycleDoc,
 	TaskDoc,
 } from "../../lib/types";
+import {
+	STUDENT_EVALUATION_CRITERIA,
+	STUDENT_TEACHER_INSTRUCTION_LINES,
+	isStudentTeacherInstructionQuestion,
+	shouldRenderStudentTeacherInstructionBlock,
+} from "../../lib/surveyQuestions";
 import { chunkArray, formatDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -35,6 +41,7 @@ const normalizeDraft = (
 		if (!allowedIds.has(questionId)) return;
 		const question = questions.find((item) => item.id === questionId)?.data;
 		if (!question) return;
+		if (isStudentTeacherInstructionQuestion(question)) return;
 		if (question.type === "scale" && typeof value === "number") {
 			next[questionId] = value;
 			return;
@@ -189,27 +196,42 @@ export const TaskVotePage = () => {
 		return true;
 	}, [cycle]);
 
-	const requiredTotal = useMemo(
-		() => questions.filter((question) => question.data.required).length,
+	const answerableQuestions = useMemo(
+		() =>
+			questions.filter(
+				(question) => !isStudentTeacherInstructionQuestion(question.data),
+			),
 		[questions],
+	);
+	const hasStudentTeacherInstruction = useMemo(
+		() =>
+			questions.some((question) =>
+				isStudentTeacherInstructionQuestion(question.data),
+			),
+		[questions],
+	);
+
+	const requiredTotal = useMemo(
+		() => answerableQuestions.filter((question) => question.data.required).length,
+		[answerableQuestions],
 	);
 	const requiredDone = useMemo(
 		() =>
-			questions.filter(
+			answerableQuestions.filter(
 				(question) =>
 					question.data.required &&
 					answers[question.id] !== undefined &&
 					answers[question.id] !== "",
 			).length,
-		[answers, questions],
+		[answerableQuestions, answers],
 	);
 	const completion = useMemo(() => {
-		if (questions.length === 0) return 0;
-		const answeredCount = questions.filter(
+		if (answerableQuestions.length === 0) return 0;
+		const answeredCount = answerableQuestions.filter(
 			(question) => answers[question.id] !== undefined && answers[question.id] !== "",
 		).length;
-		return Math.round((answeredCount / questions.length) * 100);
-	}, [answers, questions]);
+		return Math.round((answeredCount / answerableQuestions.length) * 100);
+	}, [answerableQuestions, answers]);
 
 	const cycleInfo = useMemo(() => {
 		if (!cycle) return "Sorğu dövrü məlumatı yoxdur";
@@ -242,7 +264,7 @@ export const TaskVotePage = () => {
 			return;
 		}
 
-		const missingRequired = questions.filter(
+		const missingRequired = answerableQuestions.filter(
 			(question) =>
 				question.data.required &&
 				(answers[question.id] === undefined || answers[question.id] === ""),
@@ -334,13 +356,63 @@ export const TaskVotePage = () => {
 					<div className="empty">Bu task üçün sual yoxdur.</div>
 				) : (
 					<div className="stack">
-						{questions.map((question, index) => (
-							<div className="question" key={question.id}>
-								<div className="question-title">
-									<span className="question-number">#{index + 1}</span>{" "}
-									{question.data.text}
-									{question.data.required && <span className="required">*</span>}
+						{hasStudentTeacherInstruction && (
+							<div className="question">
+								<div className="stack">
+									<div className="question-title">
+										{STUDENT_TEACHER_INSTRUCTION_LINES[0]}
+									</div>
+									<div className="hint">
+										{STUDENT_TEACHER_INSTRUCTION_LINES[1]}
+									</div>
+									<ul className="instruction-list">
+										{STUDENT_EVALUATION_CRITERIA.map((criterion) => (
+											<li className="instruction-list__item" key={criterion}>
+												<span className="instruction-list__label">
+													{criterion}
+												</span>
+											</li>
+										))}
+									</ul>
 								</div>
+							</div>
+						)}
+						{answerableQuestions.map((question, index) => (
+							<div className="question" key={question.id}>
+								{shouldRenderStudentTeacherInstructionBlock(question.data) ? (
+									<div className="stack">
+										<div className="question-title">
+											<span className="question-number">#{index + 1}</span>{" "}
+											Təlimat
+											{question.data.required && (
+												<span className="required">*</span>
+											)}
+										</div>
+										<div className="hint">
+											{STUDENT_TEACHER_INSTRUCTION_LINES[0]}
+										</div>
+										<div className="hint">
+											{STUDENT_TEACHER_INSTRUCTION_LINES[1]}
+										</div>
+										<ul className="instruction-list">
+											{STUDENT_EVALUATION_CRITERIA.map((criterion) => (
+												<li className="instruction-list__item" key={criterion}>
+													<span className="instruction-list__label">
+														{criterion}
+													</span>
+												</li>
+											))}
+										</ul>
+									</div>
+								) : (
+									<div className="question-title">
+										<span className="question-number">#{index + 1}</span>{" "}
+										{question.data.text}
+										{question.data.required && (
+											<span className="required">*</span>
+										)}
+									</div>
+								)}
 
 								{question.data.type === "scale" && (
 									<div className="scale">
@@ -397,6 +469,9 @@ export const TaskVotePage = () => {
 								)}
 							</div>
 						))}
+						{answerableQuestions.length === 0 && (
+							<div className="empty">Bu task üçün cavab veriləcək sual yoxdur.</div>
+						)}
 					</div>
 				)}
 
@@ -410,7 +485,7 @@ export const TaskVotePage = () => {
 						className="btn primary"
 						type="button"
 						onClick={handleSubmit}
-						disabled={!isOpen || submitting || questions.length === 0}
+						disabled={!isOpen || submitting || answerableQuestions.length === 0}
 					>
 						{submitting ? "Göndərilir..." : "Göndər"}
 					</button>

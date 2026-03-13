@@ -2,13 +2,26 @@
 import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
 import { PaginationControls } from "../../components/PaginationControls";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 import { downloadCsv } from "../../lib/csv";
+import {
+	buildPkpdSelfReviewNote,
+	isPkpdSelfReviewQuestionScoresError,
+} from "../../lib/pkpdSelfReview";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapAnswerRow,
 	mapBiqClassResultRow,
 	mapBranchRow,
 	mapDepartmentRow,
+	mapPkpdSelfReviewRow,
 	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
 	mapSubmissionRow,
@@ -23,6 +36,7 @@ import type {
 	BiqClassResultDoc,
 	BranchDoc,
 	DepartmentDoc,
+	PkpdSelfReviewDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	SubmissionDoc,
@@ -33,6 +47,7 @@ import type {
 	UserDoc,
 } from "../../lib/types";
 import { chunkArray, toNumber } from "../../lib/utils";
+import { useAuth } from "../auth/AuthProvider";
 
 type DocEntry<T> = { id: string; data: T };
 const SUPABASE_BATCH_SIZE = 1000;
@@ -61,6 +76,9 @@ type TeacherRow = {
 	studentAvg: number | null;
 	managementAvg: number | null;
 	selfAvg: number | null;
+	selfDeclaredScore: number | null;
+	academicIndicator: number | null;
+	selfTotal: number | null;
 	biqAvg: number | null;
 	finalScore: number | null;
 	surveySubmissionCount: number;
@@ -69,6 +87,15 @@ type TeacherRow = {
 	studentClassScores: TeacherClassScore[];
 	managementCount: number;
 	selfCount: number;
+};
+
+type TeacherSelfResponse = {
+	declaredScore: number | null;
+	textAnswers: Array<{
+		questionId: string;
+		questionText: string;
+		answerText: string;
+	}>;
 };
 
 const emptyFlowAggregate = (): TeacherFlowAggregate => ({
@@ -83,6 +110,19 @@ const averageNumbers = (values: number[]) =>
 	values.length > 0
 		? values.reduce((acc, value) => acc + value, 0) / values.length
 		: null;
+
+const averageQuestionScores = (scores: Array<number | null | undefined>) => {
+	const numericScores = scores.filter(
+		(value): value is number => typeof value === "number" && !Number.isNaN(value),
+	);
+	return averageNumbers(numericScores);
+};
+
+const getAcademicIndicator = (review?: PkpdSelfReviewDoc | null) => {
+	if (!review) return null;
+	const questionAverage = averageQuestionScores(Object.values(review.questionScores ?? {}));
+	return questionAverage ?? review.score ?? null;
+};
 
 const normalizeScale = (
 	value: number,
@@ -137,7 +177,15 @@ const scoreLabel = (score: number | null) => {
 };
 
 const buildTeacherFeedback = (teacher: TeacherRow): TeacherFeedback => {
-	const levelLabel = scoreLabel(teacher.finalScore);
+	const performanceScore = averageNumbers(
+		[
+			teacher.studentAvg,
+			teacher.managementAvg,
+			teacher.selfAvg,
+			teacher.biqAvg,
+		].filter((value): value is number => typeof value === "number" && !Number.isNaN(value)),
+	);
+	const levelLabel = scoreLabel(performanceScore);
 	const finalScoreText = formatScore(teacher.finalScore);
 
 	const components = [
@@ -195,7 +243,7 @@ const buildTeacherFeedback = (teacher: TeacherRow): TeacherFeedback => {
 
 	return {
 		levelLabel,
-		summary: `${teacher.name} üçün yekun bal ${finalScoreText} / 10 (${levelLabel}).`,
+		summary: `${teacher.name} üçün yekun cəm balı ${finalScoreText}, ümumi performans səviyyəsi ${levelLabel}.`,
 		strengths:
 			strengths.length > 0
 				? strengths
@@ -238,6 +286,7 @@ const fetchAllBatched = async <T,>(
 
 export const AdminCycleDetailPage = () => {
 	const { cycleId } = useParams<{ cycleId: string }>();
+	const { user } = useAuth();
 
 	const [cycle, setCycle] = useState<SurveyCycleDoc | null>(null);
 	const [teachers, setTeachers] = useState<Array<DocEntry<TeacherDoc>>>([]);
@@ -256,6 +305,9 @@ export const AdminCycleDetailPage = () => {
 	const [teacherBiqResults, setTeacherBiqResults] = useState<
 		Array<DocEntry<PkpdTeacherBiqResultDoc>>
 	>([]);
+	const [selfReviews, setSelfReviews] = useState<
+		Array<DocEntry<PkpdSelfReviewDoc>>
+	>([]);
 	const [submissions, setSubmissions] = useState<
 		Array<DocEntry<SubmissionDoc>>
 	>([]);
@@ -267,6 +319,20 @@ export const AdminCycleDetailPage = () => {
 	const [teacherQuery, setTeacherQuery] = useState("");
 	const [showRaters, setShowRaters] = useState(false);
 	const [showComments, setShowComments] = useState(false);
+	const [selfReviewQuestionScores, setSelfReviewQuestionScores] = useState<
+		Record<string, string>
+	>({});
+	const [selfReviewNote, setSelfReviewNote] = useState("");
+	const [selfReviewStatus, setSelfReviewStatus] = useState<string | null>(null);
+	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
+	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
+	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
+	const [selfReviewUnlockReason, setSelfReviewUnlockReason] = useState("");
+	const [selfReviewUnlockError, setSelfReviewUnlockError] = useState<string | null>(
+		null,
+	);
+	const [selfReviewUnlockSubmitting, setSelfReviewUnlockSubmitting] =
+		useState(false);
 
 	const [teacherPage, setTeacherPage] = useState(1);
 	const [teacherPageSize, setTeacherPageSize] = useState(25);
@@ -356,7 +422,7 @@ export const AdminCycleDetailPage = () => {
 			if (!cycleId) return;
 
 			try {
-				const [taskRows, submissionRows, biqRows, teacherBiqRows] =
+				const [taskRows, submissionRows, biqRows, teacherBiqRows, selfReviewRows] =
 					await Promise.all([
 						fetchAllBatched<any>(async (from, to) =>
 							await supabase
@@ -390,6 +456,14 @@ export const AdminCycleDetailPage = () => {
 								.eq("cycle_id", cycleId)
 								.range(from, to),
 						),
+						fetchAllBatched<any>(async (from, to) =>
+							await supabase
+								.from("pkpd_self_reviews")
+								.select("*")
+								.eq("org_id", ORG_ID)
+								.eq("cycle_id", cycleId)
+								.range(from, to),
+						),
 					]);
 
 				setTasks(
@@ -414,6 +488,12 @@ export const AdminCycleDetailPage = () => {
 					teacherBiqRows.map((row) => ({
 						id: row.id,
 						data: mapPkpdTeacherBiqResultRow(row),
+					})),
+				);
+				setSelfReviews(
+					selfReviewRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdSelfReviewRow(row),
 					})),
 				);
 
@@ -468,6 +548,7 @@ export const AdminCycleDetailPage = () => {
 				setSubmissions([]);
 				setBiqResults([]);
 				setTeacherBiqResults([]);
+				setSelfReviews([]);
 				setAssignments([]);
 				setAnswers([]);
 			}
@@ -640,6 +721,57 @@ export const AdminCycleDetailPage = () => {
 		[teacherBiqResults],
 	);
 
+	const selfReviewMap = useMemo(
+		() =>
+			Object.fromEntries(
+				selfReviews.map((item) => [item.data.teacherId, item.data]),
+			),
+		[selfReviews],
+	);
+
+	const teacherSelfResponses = useMemo<Record<string, TeacherSelfResponse>>(() => {
+		const responseMap: Record<string, TeacherSelfResponse> = {};
+
+		answers.forEach((answer) => {
+			const task = taskMap[answer.data.submissionId];
+			if (!task || task.targetType !== "teacher" || task.raterRole !== "teacher") {
+				return;
+			}
+
+			const question = questions[answer.data.questionId];
+			if (!question || question.category !== "teacher_self_pkpd") return;
+
+			const teacherId = task.targetId;
+			responseMap[teacherId] = responseMap[teacherId] ?? {
+				declaredScore: null,
+				textAnswers: [],
+			};
+
+			if (question.type === "scale") {
+				const numeric = toNumber(answer.data.value);
+				if (numeric !== null) {
+					responseMap[teacherId].declaredScore = numeric;
+				}
+				return;
+			}
+
+			if (question.type !== "text") return;
+			const answerText =
+				typeof answer.data.value === "string"
+					? answer.data.value
+					: String(answer.data.value ?? "");
+			if (!answerText.trim()) return;
+
+			responseMap[teacherId].textAnswers.push({
+				questionId: answer.data.questionId,
+				questionText: question.text,
+				answerText,
+			});
+		});
+
+		return responseMap;
+	}, [answers, questions, taskMap]);
+
 	const teacherRows = useMemo<TeacherRow[]>(() => {
 		return teachers
 			.map((teacher) => {
@@ -651,7 +783,22 @@ export const AdminCycleDetailPage = () => {
 					0,
 				);
 				const managementAvg = average(flow.management);
-				const selfAvg = average(flow.self);
+				const selfDeclaredScore = average(flow.self);
+				const academicIndicator = getAcademicIndicator(
+					selfReviewMap[teacher.id] ?? null,
+				);
+				const selfAvg = averageNumbers(
+					[selfDeclaredScore, academicIndicator].filter(
+						(value): value is number =>
+							typeof value === "number" && !Number.isNaN(value),
+					),
+				);
+				const selfTotal = [selfDeclaredScore, academicIndicator].reduce<number>(
+					(acc, value) => acc + (typeof value === "number" ? value : 0),
+					0,
+				);
+				const resolvedSelfTotal =
+					selfDeclaredScore === null && academicIndicator === null ? null : selfTotal;
 
 				const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
 				const biqValues = assignmentsForTeacher
@@ -670,31 +817,19 @@ export const AdminCycleDetailPage = () => {
 						? biqValues.reduce((acc, value) => acc + value, 0) / biqValues.length
 						: null;
 
-				const category = teacher.data.category ?? "standard";
-				const weights =
-					category === "standard"
-						? { student: 15, management: 10, self: 10, biq: 15 }
-						: { student: 20, management: 10, self: 10, biq: 0 };
-
-				const weightedParts = [
-					{ value: studentAvg, weight: weights.student },
-					{ value: managementAvg, weight: weights.management },
-					{ value: selfAvg, weight: weights.self },
-					{ value: biqAvg, weight: weights.biq },
+				const finalScoreParts = [
+					studentAvg,
+					managementAvg,
+					resolvedSelfTotal,
+					biqAvg,
 				].filter(
-					(part): part is { value: number; weight: number } =>
-						part.value !== null && part.weight > 0,
+					(value): value is number =>
+						typeof value === "number" && !Number.isNaN(value),
 				);
-
-				const weightedSum = weightedParts.reduce(
-					(acc, part) => acc + part.value * part.weight,
-					0,
-				);
-				const totalWeight = weightedParts.reduce(
-					(acc, part) => acc + part.weight,
-					0,
-				);
-				const finalScore = totalWeight > 0 ? weightedSum / totalWeight : null;
+				const finalScore =
+					finalScoreParts.length > 0
+						? finalScoreParts.reduce((acc, value) => acc + value, 0)
+						: null;
 
 				const resolvedName = teacher.data.name ?? teacher.id;
 				const nameParts = splitFullName(resolvedName);
@@ -717,6 +852,9 @@ export const AdminCycleDetailPage = () => {
 					studentAvg,
 					managementAvg,
 					selfAvg,
+					selfDeclaredScore,
+					academicIndicator,
+					selfTotal: resolvedSelfTotal,
 					biqAvg,
 					finalScore,
 					surveySubmissionCount: submissionCountByTeacher[teacher.id] ?? 0,
@@ -742,6 +880,7 @@ export const AdminCycleDetailPage = () => {
 		branchMap,
 		departmentMap,
 		flowStats,
+		selfReviewMap,
 		submissionCountByTeacher,
 		studentClassScoresByTeacher,
 		teacherBiqByKey,
@@ -755,6 +894,66 @@ export const AdminCycleDetailPage = () => {
 				: null,
 		[selectedTeacherId, teacherRows],
 	);
+	const selectedTeacherSelfResponse = selectedTeacherId
+		? (teacherSelfResponses[selectedTeacherId] ?? null)
+		: null;
+	const selectedTeacherSelfReview = selectedTeacherId
+		? (selfReviewMap[selectedTeacherId] ?? null)
+		: null;
+	const selectedTeacherOpenQuestionIds = useMemo(
+		() => selectedTeacherSelfResponse?.textAnswers.map((item) => item.questionId) ?? [],
+		[selectedTeacherSelfResponse],
+	);
+	const selectedTeacherAcademicIndicator = getAcademicIndicator(selectedTeacherSelfReview);
+	const selectedTeacherHasOpenAnswers = Boolean(
+		selectedTeacherSelfResponse &&
+			selectedTeacherSelfResponse.textAnswers.length > 0,
+	);
+	const selectedTeacherHasSavedOpenReview = Boolean(
+		selectedTeacherSelfReview &&
+			(typeof selectedTeacherSelfReview.score === "number" ||
+				Object.keys(selectedTeacherSelfReview.questionScores ?? {}).length > 0 ||
+				Boolean(selectedTeacherSelfReview.reviewedAt)),
+	);
+	const selectedTeacherOpenReviewLocked =
+		selectedTeacherHasSavedOpenReview && !selfReviewEditUnlocked;
+
+	useEffect(() => {
+		if (!selectedTeacherId) {
+			setSelfReviewQuestionScores({});
+			setSelfReviewNote("");
+			setSelfReviewStatus(null);
+			setSelfReviewEditUnlocked(false);
+			setSelfReviewUnlockOpen(false);
+			setSelfReviewUnlockPassword("");
+			setSelfReviewUnlockReason("");
+			setSelfReviewUnlockError(null);
+			setSelfReviewUnlockSubmitting(false);
+			return;
+		}
+
+		const nextScores = Object.fromEntries(
+			selectedTeacherOpenQuestionIds.map((questionId) => [
+				questionId,
+				typeof selectedTeacherSelfReview?.questionScores?.[questionId] === "number"
+					? String(selectedTeacherSelfReview.questionScores?.[questionId])
+					: "",
+			]),
+		);
+		setSelfReviewQuestionScores(nextScores);
+		setSelfReviewNote(selectedTeacherSelfReview?.note ?? "");
+		setSelfReviewStatus(null);
+		setSelfReviewEditUnlocked(false);
+		setSelfReviewUnlockOpen(false);
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockReason("");
+		setSelfReviewUnlockError(null);
+		setSelfReviewUnlockSubmitting(false);
+	}, [
+		selectedTeacherId,
+		selectedTeacherOpenQuestionIds,
+		selectedTeacherSelfReview,
+	]);
 
 	const validTeacherScores = useMemo(
 		() => teacherRows.filter((row) => row.finalScore !== null),
@@ -903,6 +1102,37 @@ export const AdminCycleDetailPage = () => {
 
 		const toListHtml = (items: string[]) =>
 			items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+		const academicIndicatorText = formatScore(selectedTeacherAcademicIndicator);
+		const selfDeclaredScoreText = formatScore(
+			selectedTeacherSelfResponse?.declaredScore ?? null,
+		);
+		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
+			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
+			: null;
+		const academicEditReasonText = selectedTeacherSelfReview?.editReason
+			? escapeHtml(selectedTeacherSelfReview.editReason)
+			: null;
+		const openAnswerRowsHtml =
+			selectedTeacherSelfResponse && selectedTeacherSelfResponse.textAnswers.length > 0
+				? selectedTeacherSelfResponse.textAnswers
+						.map((item, index) => {
+							const questionScore =
+								selectedTeacherSelfReview?.questionScores?.[item.questionId] ?? null;
+							return `
+								<tr>
+									<td>${index + 1}</td>
+									<td>${escapeHtml(item.questionText)}</td>
+									<td>${escapeHtml(item.answerText)}</td>
+									<td>${formatScore(questionScore)}</td>
+								</tr>
+							`;
+						})
+						.join("")
+				: `
+					<tr>
+						<td colspan="4">Açıq özünüqiymətləndirmə cavabı yoxdur.</td>
+					</tr>
+				`;
 
 		const classRowsHtml =
 			selectedTeacher.studentClassScores.length > 0
@@ -1017,6 +1247,11 @@ export const AdminCycleDetailPage = () => {
 							margin-bottom: 5px;
 							font-size: 14px;
 						}
+						.meta-stack {
+							display: grid;
+							gap: 6px;
+							margin-top: 8px;
+						}
 						.signature-section {
 							margin-top: 26px;
 							padding-top: 8px;
@@ -1083,15 +1318,42 @@ export const AdminCycleDetailPage = () => {
 					<p class="meta">Hazırlanma vaxtı: ${generatedAt}</p>
 
 					<div class="section">
-						<h2>Yekun Göstəricilər (0-10)</h2>
+						<h2>Yekun Göstəricilər</h2>
 						<div class="grid">
 							<div class="card"><div class="label">Şagird sorğusu (sinif ort.)</div><div class="value">${formatScore(selectedTeacher.studentAvg)}</div></div>
 							<div class="card"><div class="label">Rəhbərlik sorğusu</div><div class="value">${formatScore(selectedTeacher.managementAvg)}</div></div>
-							<div class="card"><div class="label">Özünüqiymətləndirmə</div><div class="value">${formatScore(selectedTeacher.selfAvg)}</div></div>
+							<div class="card"><div class="label">Özünüqiymətləndirmə (cəm)</div><div class="value">${formatScore(selectedTeacher.selfTotal)}</div></div>
 							<div class="card"><div class="label">BİQ nəticəsi</div><div class="value">${formatScore(selectedTeacher.biqAvg)}</div></div>
+							<div class="card"><div class="label">Müəllimin akademik göstəricisi</div><div class="value">${academicIndicatorText}</div></div>
+							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
 							<div class="card"><div class="label">Yekun bal</div><div class="value">${formatScore(selectedTeacher.finalScore)}</div></div>
 							<div class="card"><div class="label">Şagird cavab sayı</div><div class="value">${selectedTeacher.studentCount}</div></div>
 						</div>
+					</div>
+
+					<div class="section">
+						<h2>Akademik Göstərici və Açıq Cavablar</h2>
+						<div class="grid">
+							<div class="card"><div class="label">Müəllimin akademik göstəricisi</div><div class="value">${academicIndicatorText}</div></div>
+							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
+						</div>
+						<div class="meta-stack">
+							<p class="meta">Son qiymətləndirmə: ${academicReviewedAtText ?? "—"}</p>
+							<p class="meta">Son düzəliş səbəbi: ${academicEditReasonText ?? "—"}</p>
+						</div>
+						<table>
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Sual</th>
+									<th>Cavab</th>
+									<th>Bal</th>
+								</tr>
+							</thead>
+							<tbody>
+								${openAnswerRowsHtml}
+							</tbody>
+						</table>
 					</div>
 
 					<div class="section">
@@ -1180,6 +1442,209 @@ export const AdminCycleDetailPage = () => {
 		});
 	};
 
+	const handleTeacherDetailOpenChange = (open: boolean) => {
+		if (!open) {
+			setSelectedTeacherId(null);
+			setSelfReviewQuestionScores({});
+			setSelfReviewStatus(null);
+			setSelfReviewEditUnlocked(false);
+			setSelfReviewUnlockOpen(false);
+			setSelfReviewUnlockPassword("");
+			setSelfReviewUnlockReason("");
+			setSelfReviewUnlockError(null);
+			setSelfReviewUnlockSubmitting(false);
+		}
+	};
+
+	const handleRequestSelfReviewEdit = () => {
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockReason("");
+		setSelfReviewUnlockError(null);
+		setSelfReviewUnlockOpen(true);
+	};
+
+	const handleUnlockSelfReviewEdit = async () => {
+		if (!user?.email) {
+			setSelfReviewUnlockError("Hesab email-i tapılmadı. Yenidən daxil olun.");
+			return;
+		}
+		if (!selfReviewUnlockPassword.trim()) {
+			setSelfReviewUnlockError("Admin şifrəsini daxil edin.");
+			return;
+		}
+		if (!selfReviewUnlockReason.trim()) {
+			setSelfReviewUnlockError("Düzəliş səbəbini yazın.");
+			return;
+		}
+
+		setSelfReviewUnlockSubmitting(true);
+		setSelfReviewUnlockError(null);
+
+		const { error } = await supabase.auth.signInWithPassword({
+			email: user.email,
+			password: selfReviewUnlockPassword,
+		});
+		if (error) {
+			setSelfReviewUnlockError("Şifrə yanlışdır.");
+			setSelfReviewUnlockSubmitting(false);
+			return;
+		}
+
+		setSelfReviewEditUnlocked(true);
+		setSelfReviewUnlockOpen(false);
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockError(null);
+		setSelfReviewUnlockSubmitting(false);
+		setSelfReviewStatus("Düzəliş üçün sahələr açıldı.");
+	};
+
+	const handleSaveSelfReview = async () => {
+		if (!cycleId || !selectedTeacherId) return;
+		if (!selectedTeacherHasOpenAnswers) {
+			setSelfReviewStatus("Açıq cavab olmadığı üçün bal verilə bilməz");
+			return;
+		}
+		if (selectedTeacherOpenReviewLocked) {
+			setSelfReviewStatus(
+				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün admin şifrəsi tələb olunur.",
+			);
+			return;
+		}
+
+		const teacherBranchId = teacherMap[selectedTeacherId]?.branchId;
+		if (!teacherBranchId) {
+			setSelfReviewStatus("Müəllimin filialı tapılmadı");
+			return;
+		}
+
+		const noteValue = selfReviewNote.trim() || null;
+		const questionScores = Object.fromEntries(
+			selectedTeacherOpenQuestionIds.map((questionId) => [
+				questionId,
+				selfReviewQuestionScores[questionId]?.trim() ?? "",
+			]),
+		);
+		const hasAnyScore = Object.values(questionScores).some((value) => value !== "");
+
+		if (!hasAnyScore) {
+			if (!noteValue) {
+				await supabase
+					.from("pkpd_self_reviews")
+					.delete()
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", cycleId)
+					.eq("teacher_id", selectedTeacherId);
+
+				const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
+					await supabase
+						.from("pkpd_self_reviews")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", cycleId)
+						.range(from, to),
+				);
+				setSelfReviews(
+					refreshedRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdSelfReviewRow(row),
+					})),
+				);
+				setSelfReviewStatus("Açıq sual balı silindi");
+				return;
+			}
+
+			setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
+			return;
+		}
+
+		const normalizedQuestionScores: Record<string, number> = {};
+		for (const [questionId, rawValue] of Object.entries(questionScores)) {
+			if (rawValue === "") {
+				setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
+				return;
+			}
+			const scoreValue = Number(rawValue);
+			if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
+				setSelfReviewStatus("Hər sualın balı 0-10 arasında olmalıdır");
+				return;
+			}
+			normalizedQuestionScores[questionId] = scoreValue;
+		}
+
+		const totalScore = averageQuestionScores(
+			Object.values(normalizedQuestionScores),
+		);
+		if (totalScore === null) {
+			setSelfReviewStatus("Bal hesablanmadı");
+			return;
+		}
+
+		const editReason = selectedTeacherHasSavedOpenReview
+			? selfReviewUnlockReason.trim()
+			: null;
+		const payload = {
+			org_id: ORG_ID,
+			branch_id: teacherBranchId,
+			cycle_id: cycleId,
+			teacher_id: selectedTeacherId,
+			score: totalScore,
+			question_scores: normalizedQuestionScores,
+			note:
+				selectedTeacherHasSavedOpenReview && editReason
+					? buildPkpdSelfReviewNote(noteValue, null, editReason)
+					: noteValue,
+			reviewed_by: user?.id ?? null,
+			reviewed_at: new Date().toISOString(),
+		};
+
+		let { error } = await supabase.from("pkpd_self_reviews").upsert(payload, {
+			onConflict: "org_id,cycle_id,teacher_id",
+		});
+		if (error && isPkpdSelfReviewQuestionScoresError(error.message)) {
+			const fallbackPayload = {
+				...payload,
+				note: buildPkpdSelfReviewNote(
+					noteValue,
+					normalizedQuestionScores,
+					editReason,
+				),
+			};
+			delete (fallbackPayload as { question_scores?: Record<string, number> })
+				.question_scores;
+
+			const fallbackResult = await supabase
+				.from("pkpd_self_reviews")
+				.upsert(fallbackPayload, {
+					onConflict: "org_id,cycle_id,teacher_id",
+				});
+			error = fallbackResult.error;
+		}
+		if (error) {
+			setSelfReviewStatus(
+				`Açıq sual balı saxlanmadı: ${error.message ?? "naməlum xəta"}`,
+			);
+			return;
+		}
+
+		const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
+			await supabase
+				.from("pkpd_self_reviews")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("cycle_id", cycleId)
+				.range(from, to),
+		);
+		setSelfReviews(
+			refreshedRows.map((row) => ({
+				id: row.id,
+				data: mapPkpdSelfReviewRow(row),
+			})),
+		);
+		setSelfReviewStatus("Açıq sual balı saxlanıldı");
+		setSelfReviewEditUnlocked(false);
+		setSelfReviewUnlockReason("");
+	};
+
 	return (
 		<div className="panel">
 			<div className="panel-header">
@@ -1217,8 +1682,8 @@ export const AdminCycleDetailPage = () => {
 				<div className="grid three">
 					<div className="stat-card">
 							<div className="stat-label">
-								Yekun orta bal
-								<InfoTip text="Müəllimlər üzrə şagird/rəhbərlik/özünüqiymətləndirmə/BİQ mənbələrinin çəkili ortası (0-10). Şagird hissəsi: əvvəl sinif ortası, sonra sinif ortalarının ortası." />
+								Yekun orta cəm balı
+								<InfoTip text="Müəllimlər üzrə mövcud komponentlərin cəmi hesablanır, sonra müəllimlər üzrə orta göstərici göstərilir. Özünüqiymətləndirmə hissəsi müəllimin öz balı və akademik göstəricisinin cəmi kimi götürülür." />
 							</div>
 							<div className="stat-value">{formatScore(overallSummary.avg)}</div>
 							<div className="stat-meta">
@@ -1265,8 +1730,7 @@ export const AdminCycleDetailPage = () => {
 						<div>
 							<h3>Müəllim nəticələri</h3>
 							<p>
-								Müəllim adına klik edin: şagird/rəhbərlik/özünüqiymətləndirmə/BİQ
-								balları açılacaq.
+								Müəllim adına klik edin: detallar drawer içində açılacaq.
 							</p>
 						</div>
 					</div>
@@ -1337,81 +1801,312 @@ export const AdminCycleDetailPage = () => {
 				)}
 			</div>
 
-			{selectedTeacher && (
-				<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>{selectedTeacher.name}</h3>
-							<p>
-								Kampus: {selectedTeacher.branchName} • Kafedra: {selectedTeacher.departmentName}
-							</p>
-						</div>
-						<div className="actions">
-							<button className="btn ghost" type="button" onClick={handleExportTeacherPdf}>
-								PDF yüklə
-							</button>
-						</div>
-					</div>
-					<div className="grid four">
-						<div className="stat-card">
-							<div className="stat-label">Şagird sorğusu (sinif ort.)</div>
-							<div className="stat-value">{formatScore(selectedTeacher.studentAvg)}</div>
-							<div className="stat-meta">
-								sinif sayı: {selectedTeacher.studentClassCount} • cavab sayı:{" "}
-								{selectedTeacher.studentCount}
-							</div>
-						</div>
-						<div className="stat-card">
-							<div className="stat-label">Rəhbərlik sorğusu</div>
-							<div className="stat-value">
-								{formatScore(selectedTeacher.managementAvg)}
-							</div>
-							<div className="stat-meta">cavab sayı: {selectedTeacher.managementCount}</div>
-						</div>
-						<div className="stat-card">
-							<div className="stat-label">Özünüqiymətləndirmə</div>
-							<div className="stat-value">{formatScore(selectedTeacher.selfAvg)}</div>
-							<div className="stat-meta">cavab sayı: {selectedTeacher.selfCount}</div>
-						</div>
-						<div className="stat-card">
-							<div className="stat-label">BİQ nəticəsi</div>
-							<div className="stat-value">{formatScore(selectedTeacher.biqAvg)}</div>
-							<div className="stat-meta">qrup/fənn ortalaması</div>
-						</div>
-					</div>
-					{selectedTeacher.studentClassScores.length > 0 && (
-						<>
-							<div className="divider" />
-							<div className="section-header">
-								<div>
-									<h3>Sinif üzrə şagird balları</h3>
-									<p>Hər sinif üçün orta bal və cavab sayı.</p>
+			<Dialog
+				open={Boolean(selectedTeacher)}
+				onOpenChange={handleTeacherDetailOpenChange}
+			>
+				<DialogContent className="left-auto right-0 top-0 h-screen max-h-screen w-full max-w-5xl translate-x-0 translate-y-0 overflow-y-auto rounded-none border-l p-0">
+					{selectedTeacher && (
+						<div className="panel gap-0">
+							<div className="panel-header sticky top-0 z-10 border-b border-border bg-card px-6 py-5">
+								<DialogHeader className="text-left">
+									<DialogTitle>{selectedTeacher.name}</DialogTitle>
+									<p className="text-sm text-muted-foreground">
+										Kampus: {selectedTeacher.branchName} • Kafedra:{" "}
+										{selectedTeacher.departmentName}
+									</p>
+								</DialogHeader>
+								<div className="actions">
+									<button
+										className="btn ghost"
+										type="button"
+										onClick={handleExportTeacherPdf}
+									>
+										PDF yüklə
+									</button>
+									<button
+										className="btn"
+										type="button"
+										onClick={() => handleTeacherDetailOpenChange(false)}
+									>
+										Bağla
+									</button>
 								</div>
 							</div>
-							<div className="data-table">
-								<div className="data-row header">
-									<div>Sinif</div>
-									<div>Cavab sayı</div>
-									<div>Sinif orta balı</div>
-								</div>
-								{selectedTeacher.studentClassScores.map((item) => (
-									<div className="data-row" key={`${selectedTeacher.teacherId}_${item.groupId}`}>
-										<div>{item.groupName}</div>
-										<div>{item.submissionCount}</div>
-										<div>{formatScore(item.avg)}</div>
+
+							<div className="panel-content px-6 py-6">
+								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+									<div className="stat-card">
+										<div className="stat-label">Şagird sorğusu (sinif ort.)</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.studentAvg)}
+										</div>
+										<div className="stat-meta">
+											sinif sayı: {selectedTeacher.studentClassCount} • cavab sayı:{" "}
+											{selectedTeacher.studentCount}
+										</div>
 									</div>
-								))}
+									<div className="stat-card">
+										<div className="stat-label">Rəhbərlik sorğusu</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.managementAvg)}
+										</div>
+										<div className="stat-meta">
+											cavab sayı: {selectedTeacher.managementCount}
+										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Özünüqiymətləndirmə (cəm)</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.selfTotal)}
+										</div>
+										<div className="stat-meta">
+											cavab sayı: {selectedTeacher.selfCount} • öz balı + akademik göstərici
+										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">BİQ nəticəsi</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.biqAvg)}
+										</div>
+										<div className="stat-meta">qrup/fənn ortalaması</div>
+									</div>
+								</div>
+
+								<div className="grid gap-4 md:grid-cols-2">
+									<div className="stat-card">
+										<div className="stat-label">Yekun bal</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.finalScore)}
+										</div>
+										<div className="stat-meta">mövcud bütün komponentlərin cəmi</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Müəllimin akademik göstəricisi</div>
+										<div className="stat-value">
+											{selectedTeacherAcademicIndicator?.toFixed(1) ?? "—"}
+										</div>
+										<div className="stat-meta">
+											{selectedTeacherSelfReview?.reviewedAt
+												? `Son qiymətləndirmə: ${new Date(
+														String(selectedTeacherSelfReview.reviewedAt),
+													).toLocaleString("az-AZ")}`
+												: "Hələ bal verilməyib"}
+										</div>
+									</div>
+								</div>
+
+								<div className="card">
+									<div className="section-header">
+										<div>
+											<h3>Açıq özünüqiymətləndirmə cavabları</h3>
+											<p>
+												Superadmin burada müəllimin açıq cavablarını oxuyub ayrıca
+												bal verə bilər. Bu göstərici PKPD hesabında istifadə olunur.
+											</p>
+										</div>
+										{selectedTeacherHasSavedOpenReview && (
+											<div className="actions">
+												{selectedTeacherOpenReviewLocked ? (
+													<button
+														className="btn ghost"
+														type="button"
+														onClick={handleRequestSelfReviewEdit}
+													>
+														Düzəliş et
+													</button>
+												) : (
+													<span className="tag success">Düzəliş açıqdır</span>
+												)}
+											</div>
+										)}
+									</div>
+									{selectedTeacherHasSavedOpenReview && (
+										<div className="notice">
+											{selectedTeacherOpenReviewLocked
+												? "Bu qiymətləndirmə kilidlənib. Dəyişiklik üçün admin şifrəsi tələb olunur."
+												: "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}
+										</div>
+									)}
+									<div className="stat-card">
+										<div className="stat-label">Müəllimin öz verdiyi bal</div>
+										<div className="stat-value">
+											{selectedTeacherSelfResponse?.declaredScore?.toFixed(1) ?? "—"}
+										</div>
+										<div className="stat-meta">0-10</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Akademik göstərici üzrə orta bal</div>
+										<div className="stat-value">
+											{averageQuestionScores(
+												selectedTeacherOpenQuestionIds.map((questionId) => {
+													const value =
+														selfReviewQuestionScores[questionId]?.trim() ?? "";
+													return value === "" ? null : Number(value);
+												}),
+											)?.toFixed(1) ?? "—"}
+										</div>
+										<div className="stat-meta">
+											Hər sual üzrə verilən balların ortalaması
+										</div>
+									</div>
+									{selectedTeacherSelfReview?.editReason && (
+										<div className="hint">
+											Son düzəliş səbəbi: {selectedTeacherSelfReview.editReason}
+										</div>
+									)}
+									<div className="stack">
+										{selectedTeacherSelfResponse?.textAnswers.map((item, index) => (
+											<div className="question" key={item.questionId}>
+												<div className="label">Sual {index + 1}</div>
+												<div className="mt-1 text-sm font-semibold text-foreground">
+													{item.questionText}
+												</div>
+												<div className="divider" />
+												<div className="label">Cavab</div>
+												<div className="comment-text">{item.answerText}</div>
+												<div className="form-row">
+													<div className="field w-full max-w-40">
+														<span className="label">Bal</span>
+														<input
+															className="input"
+															type="number"
+															min="0"
+															max="10"
+															step="0.1"
+															placeholder="0-10"
+															value={selfReviewQuestionScores[item.questionId] ?? ""}
+															disabled={selectedTeacherOpenReviewLocked}
+															onChange={(event) =>
+																setSelfReviewQuestionScores((prev) => ({
+																	...prev,
+																	[item.questionId]: event.target.value,
+																}))
+															}
+														/>
+													</div>
+												</div>
+											</div>
+										))}
+										{(!selectedTeacherSelfResponse ||
+											selectedTeacherSelfResponse.textAnswers.length === 0) && (
+											<div className="empty">
+												Bu müəllim açıq suallara hələ cavab yazmayıb.
+											</div>
+										)}
+									</div>
+									<div className="form-row">
+										<input
+											className="input"
+											placeholder="Qeyd (istəyə bağlı)"
+											value={selfReviewNote}
+											disabled={selectedTeacherOpenReviewLocked}
+											onChange={(event) => setSelfReviewNote(event.target.value)}
+										/>
+										<button
+											className="btn primary"
+											type="button"
+											onClick={handleSaveSelfReview}
+											disabled={
+												!selectedTeacherHasOpenAnswers ||
+												selectedTeacherOpenReviewLocked
+											}
+										>
+											Saxla
+										</button>
+									</div>
+									{selfReviewStatus && <div className="notice">{selfReviewStatus}</div>}
+								</div>
+
+								{selectedTeacher.studentClassScores.length > 0 && (
+									<div className="card">
+										<div className="section-header">
+											<div>
+												<h3>Sinif üzrə şagird balları</h3>
+												<p>Hər sinif üçün orta bal və cavab sayı.</p>
+											</div>
+										</div>
+										<div className="data-table">
+											<div className="data-row header">
+												<div>Sinif</div>
+												<div>Cavab sayı</div>
+												<div>Sinif orta balı</div>
+											</div>
+											{selectedTeacher.studentClassScores.map((item) => (
+												<div
+													className="data-row"
+													key={`${selectedTeacher.teacherId}_${item.groupId}`}
+												>
+													<div>{item.groupName}</div>
+													<div>{item.submissionCount}</div>
+													<div>{formatScore(item.avg)}</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
 							</div>
-						</>
+						</div>
 					)}
-					<div className="divider" />
-					<div className="stat-card">
-						<div className="stat-label">Yekun bal</div>
-						<div className="stat-value">{formatScore(selectedTeacher.finalScore)}</div>
-						<div className="stat-meta">0-10</div>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={selfReviewUnlockOpen} onOpenChange={setSelfReviewUnlockOpen}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>Düzəlişi təsdiqlə</DialogTitle>
+						<DialogDescription>
+							Saxlanmış açıq sual balını dəyişmək üçün admin şifrəsini və
+							düzəliş səbəbini daxil edin.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="stack">
+						<label className="field">
+							<span className="label">Admin şifrəsi</span>
+							<input
+								className="input"
+								type="password"
+								value={selfReviewUnlockPassword}
+								onChange={(event) =>
+									setSelfReviewUnlockPassword(event.target.value)
+								}
+							/>
+						</label>
+						<label className="field">
+							<span className="label">Düzəliş səbəbi</span>
+							<textarea
+								className="input"
+								rows={4}
+								value={selfReviewUnlockReason}
+								onChange={(event) =>
+									setSelfReviewUnlockReason(event.target.value)
+								}
+							/>
+						</label>
+						{selfReviewUnlockError && (
+							<div className="notice">{selfReviewUnlockError}</div>
+						)}
 					</div>
-					</div>
-				)}
+					<DialogFooter>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => setSelfReviewUnlockOpen(false)}
+							disabled={selfReviewUnlockSubmitting}
+						>
+							Ləğv et
+						</button>
+						<button
+							className="btn primary"
+							type="button"
+							onClick={handleUnlockSelfReviewEdit}
+							disabled={selfReviewUnlockSubmitting}
+						>
+							{selfReviewUnlockSubmitting ? "Yoxlanır..." : "Təsdiqlə"}
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 				<div className="card">
 					<div className="section-header">

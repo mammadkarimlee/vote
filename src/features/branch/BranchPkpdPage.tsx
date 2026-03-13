@@ -8,6 +8,7 @@ import {
 	mapPkpdDecisionRow,
 	mapPkpdExamRow,
 	mapPkpdPortfolioRow,
+	mapPkpdSelfReviewRow,
 	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
 	mapSubjectRow,
@@ -16,6 +17,10 @@ import {
 	mapTeacherRow,
 	mapTeachingAssignmentRow,
 } from "../../lib/supabaseMappers";
+import {
+	buildPkpdSelfReviewNote,
+	isPkpdSelfReviewQuestionScoresError,
+} from "../../lib/pkpdSelfReview";
 import type {
 	AnswerDoc,
 	BiqClassResultDoc,
@@ -25,6 +30,7 @@ import type {
 	PkpdDecisionStatus,
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
+	PkpdSelfReviewDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	SubjectDoc,
@@ -39,6 +45,14 @@ import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
 import { parseSpreadsheet } from "./importUtils";
 import { useBranchScope } from "./useBranchScope";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 
 type DocEntry<T> = { id: string; data: T };
 
@@ -129,6 +143,9 @@ export const BranchPkpdPage = () => {
 	const [portfolios, setPortfolios] = useState<
 		Array<DocEntry<PkpdPortfolioDoc>>
 	>([]);
+	const [selfReviews, setSelfReviews] = useState<
+		Array<DocEntry<PkpdSelfReviewDoc>>
+	>([]);
 	const [achievements, setAchievements] = useState<
 		Array<DocEntry<PkpdAchievementDoc>>
 	>([]);
@@ -158,6 +175,18 @@ export const BranchPkpdPage = () => {
 	const [portfolioOlympiad, setPortfolioOlympiad] = useState("");
 	const [portfolioEvents, setPortfolioEvents] = useState("");
 	const [portfolioNote, setPortfolioNote] = useState("");
+	const [selfReviewTeacherId, setSelfReviewTeacherId] = useState("");
+	const [selfReviewScore, setSelfReviewScore] = useState("");
+	const [selfReviewNote, setSelfReviewNote] = useState("");
+	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
+	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
+	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
+	const [selfReviewUnlockReason, setSelfReviewUnlockReason] = useState("");
+	const [selfReviewUnlockError, setSelfReviewUnlockError] = useState<string | null>(
+		null,
+	);
+	const [selfReviewUnlockSubmitting, setSelfReviewUnlockSubmitting] =
+		useState(false);
 
 	const [achievementTeacherId, setAchievementTeacherId] = useState("");
 	const [achievementType, setAchievementType] = useState("");
@@ -259,6 +288,7 @@ export const BranchPkpdPage = () => {
 				teacherBiqRes,
 				examRes,
 				portfolioRes,
+				selfReviewRes,
 				achievementRes,
 				decisionRes,
 			] = await Promise.all([
@@ -289,6 +319,12 @@ export const BranchPkpdPage = () => {
 					.eq("branch_id", branchId),
 				supabase
 					.from("pkpd_portfolios")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("branch_id", branchId),
+				supabase
+					.from("pkpd_self_reviews")
 					.select("*")
 					.eq("org_id", ORG_ID)
 					.eq("cycle_id", selectedCycleId)
@@ -349,6 +385,12 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdPortfolioRow(row),
 			}));
 			setPortfolios(portfolioDocs);
+
+			const selfReviewDocs = (selfReviewRes.data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdSelfReviewRow(row),
+			}));
+			setSelfReviews(selfReviewDocs);
 
 			const achievementDocs = (achievementRes.data ?? []).map((row) => ({
 				id: row.id,
@@ -474,11 +516,21 @@ export const BranchPkpdPage = () => {
 			),
 		[portfolios],
 	);
+	const selfReviewMap = useMemo(
+		() =>
+			Object.fromEntries(
+				selfReviews.map((item) => [item.data.teacherId, item.data]),
+			),
+		[selfReviews],
+	);
 
 	const portfolioTeacher = portfolioTeacherId
 		? teacherMap[portfolioTeacherId]
 		: undefined;
 	const portfolioMax = portfolioLimits(portfolioTeacher?.category);
+	const selfReviewTeacher = selfReviewTeacherId
+		? teacherMap[selfReviewTeacherId]
+		: null;
 
 	const examMap = useMemo(
 		() =>
@@ -504,6 +556,69 @@ export const BranchPkpdPage = () => {
 			),
 		[decisions],
 	);
+
+	const teacherSelfResponses = useMemo(() => {
+		const taskMap = Object.fromEntries(tasks.map((item) => [item.id, item.data]));
+		const responseMap: Record<
+			string,
+			{
+				declaredScore: number | null;
+				textAnswers: Array<{ questionId: string; questionText: string; answerText: string }>;
+			}
+		> = {};
+
+		answers.forEach((answer) => {
+			const task = taskMap[answer.data.submissionId];
+			if (!task) return;
+			if (task.raterRole !== "teacher" || task.targetType !== "teacher") return;
+
+			const question = questions[answer.data.questionId];
+			if (!question) return;
+			if (question.category !== "teacher_self_pkpd") return;
+
+			const teacherId = task.targetId;
+			responseMap[teacherId] = responseMap[teacherId] ?? {
+				declaredScore: null,
+				textAnswers: [],
+			};
+
+			if (question.type === "scale") {
+				const numeric = toNumber(answer.data.value);
+				if (numeric !== null) {
+					responseMap[teacherId].declaredScore = numeric;
+				}
+				return;
+			}
+
+			if (question.type !== "text") return;
+			const answerText =
+				typeof answer.data.value === "string"
+					? answer.data.value
+					: String(answer.data.value ?? "");
+			if (!answerText.trim()) return;
+
+			responseMap[teacherId].textAnswers.push({
+				questionId: answer.data.questionId,
+				questionText: question.text,
+				answerText,
+			});
+		});
+
+		return responseMap;
+	}, [answers, questions, tasks]);
+	const selectedTeacherSelfResponse = selfReviewTeacherId
+		? (teacherSelfResponses[selfReviewTeacherId] ?? null)
+		: null;
+	const selectedTeacherSelfReview = selfReviewTeacherId
+		? (selfReviewMap[selfReviewTeacherId] ?? null)
+		: null;
+	const selectedTeacherHasSavedSelfReview = Boolean(
+		selectedTeacherSelfReview &&
+			(typeof selectedTeacherSelfReview.score === "number" ||
+				Boolean(selectedTeacherSelfReview.reviewedAt)),
+	);
+	const selectedTeacherSelfReviewLocked =
+		selectedTeacherHasSavedSelfReview && !selfReviewEditUnlocked;
 
 	const assignmentByTeacher = useMemo(() => {
 		const map: Record<string, TeachingAssignmentDoc[]> = {};
@@ -661,6 +776,7 @@ export const BranchPkpdPage = () => {
 				Math.min(portfolio?.olympiadScore ?? 0, limits.olympiad) +
 				Math.min(portfolio?.eventsScore ?? 0, limits.events);
 			const portfolioScore = portfolio ? portfolioScoreRaw : null;
+			const hrSelfReviewScore = selfReviewMap[teacher.id]?.score ?? null;
 			const bonus = achievementTotals[teacher.id] ?? 0;
 
 			const baseTotal =
@@ -671,7 +787,7 @@ export const BranchPkpdPage = () => {
 				(examScore ?? 0) +
 				(portfolioScore ?? 0);
 
-			const total = baseTotal + bonus;
+			const total = baseTotal + (hrSelfReviewScore ?? 0) + bonus;
 
 			return {
 				teacherId: teacher.id,
@@ -680,6 +796,7 @@ export const BranchPkpdPage = () => {
 				studentScore,
 				managementScore,
 				selfScore,
+				hrSelfReviewScore,
 				biqScore,
 				examScore,
 				portfolioScore,
@@ -694,6 +811,7 @@ export const BranchPkpdPage = () => {
 		examMap,
 		flowStats,
 		portfolioMap,
+		selfReviewMap,
 		teacherBiqMap,
 		teachers,
 	]);
@@ -1126,6 +1244,76 @@ export const BranchPkpdPage = () => {
 		setPortfolioNote(portfolio?.note ?? "");
 	};
 
+	const loadSelfReviewForTeacher = (teacherId: string) => {
+		if (!teacherId) {
+			setSelfReviewTeacherId("");
+			setSelfReviewScore("");
+			setSelfReviewNote("");
+			setSelfReviewEditUnlocked(false);
+			setSelfReviewUnlockOpen(false);
+			setSelfReviewUnlockPassword("");
+			setSelfReviewUnlockReason("");
+			setSelfReviewUnlockError(null);
+			setSelfReviewUnlockSubmitting(false);
+			return;
+		}
+
+		const review = selfReviewMap[teacherId];
+		setSelfReviewTeacherId(teacherId);
+		setSelfReviewScore(
+			typeof review?.score === "number" ? review.score.toString() : "",
+		);
+		setSelfReviewNote(review?.note ?? "");
+		setSelfReviewEditUnlocked(false);
+		setSelfReviewUnlockOpen(false);
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockReason("");
+		setSelfReviewUnlockError(null);
+		setSelfReviewUnlockSubmitting(false);
+	};
+
+	const handleRequestSelfReviewEdit = () => {
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockReason("");
+		setSelfReviewUnlockError(null);
+		setSelfReviewUnlockOpen(true);
+	};
+
+	const handleUnlockSelfReviewEdit = async () => {
+		if (!user?.email) {
+			setSelfReviewUnlockError("Hesab email-i tapilmadi. Yeniden daxil olun.");
+			return;
+		}
+		if (!selfReviewUnlockPassword.trim()) {
+			setSelfReviewUnlockError("Admin sifresini daxil edin.");
+			return;
+		}
+		if (!selfReviewUnlockReason.trim()) {
+			setSelfReviewUnlockError("Duzelis sebebini yazin.");
+			return;
+		}
+
+		setSelfReviewUnlockSubmitting(true);
+		setSelfReviewUnlockError(null);
+
+		const { error } = await supabase.auth.signInWithPassword({
+			email: user.email,
+			password: selfReviewUnlockPassword,
+		});
+		if (error) {
+			setSelfReviewUnlockError("Sifre yanlisdir.");
+			setSelfReviewUnlockSubmitting(false);
+			return;
+		}
+
+		setSelfReviewEditUnlocked(true);
+		setSelfReviewUnlockOpen(false);
+		setSelfReviewUnlockPassword("");
+		setSelfReviewUnlockError(null);
+		setStatus("Duzelis ucun sahələr achildi.");
+		setSelfReviewUnlockSubmitting(false);
+	};
+
 	const handleSavePortfolio = async () => {
 		if (!branchId || !selectedCycleId || !portfolioTeacherId) return;
 		const teacherCategory = teacherMap[portfolioTeacherId]?.category;
@@ -1180,6 +1368,122 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 		setStatus("Portfolio saxlanıldı");
+	};
+
+	const handleSaveSelfReview = async () => {
+		if (!branchId || !selectedCycleId || !selfReviewTeacherId) return;
+		if (selectedTeacherSelfReviewLocked) {
+			setStatus(
+				"Bu qiymetlendirme kilidlenib. Duzelis ucun admin sifresi teleb olunur.",
+			);
+			return;
+		}
+
+		const scoreRaw = selfReviewScore.trim();
+		const noteValue = selfReviewNote.trim() || null;
+
+		if (scoreRaw === "") {
+			if (!noteValue) {
+				await supabase
+					.from("pkpd_self_reviews")
+					.delete()
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("teacher_id", selfReviewTeacherId);
+
+				const { data } = await supabase
+					.from("pkpd_self_reviews")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("branch_id", branchId);
+				setSelfReviews(
+					(data ?? []).map((row) => ({
+						id: row.id,
+						data: mapPkpdSelfReviewRow(row),
+					})),
+				);
+				setStatus("HR qiymətləndirməsi silindi");
+				return;
+			}
+
+			setStatus("HR balı 0-10 arasında daxil edilməlidir");
+			return;
+		}
+
+		const scoreValue = Number(scoreRaw);
+		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
+			setStatus("HR balı 0-10 arasında daxil edilməlidir");
+			return;
+		}
+
+		const existingQuestionScores =
+			selfReviewMap[selfReviewTeacherId]?.questionScores ?? null;
+		const editReason = selectedTeacherHasSavedSelfReview
+			? selfReviewUnlockReason.trim()
+			: null;
+		const payload = {
+			org_id: ORG_ID,
+			branch_id: branchId,
+			cycle_id: selectedCycleId,
+			teacher_id: selfReviewTeacherId,
+			score: scoreValue,
+			question_scores: existingQuestionScores,
+			note:
+				selectedTeacherHasSavedSelfReview && editReason
+					? buildPkpdSelfReviewNote(noteValue, existingQuestionScores, editReason)
+					: noteValue,
+			reviewed_by: user?.id ?? null,
+			reviewed_at: new Date().toISOString(),
+		};
+
+		let { error } = await supabase.from("pkpd_self_reviews").upsert(payload, {
+			onConflict: "org_id,cycle_id,teacher_id",
+		});
+		if (error && isPkpdSelfReviewQuestionScoresError(error.message)) {
+			const fallbackPayload = {
+				...payload,
+				note: buildPkpdSelfReviewNote(
+					noteValue,
+					existingQuestionScores,
+					editReason,
+				),
+			};
+			delete (
+				fallbackPayload as {
+					question_scores?: Record<string, number | null> | null;
+				}
+			).question_scores;
+
+			const fallbackResult = await supabase
+				.from("pkpd_self_reviews")
+				.upsert(fallbackPayload, {
+					onConflict: "org_id,cycle_id,teacher_id",
+				});
+			error = fallbackResult.error;
+		}
+		if (error) {
+			setStatus(
+				`HR qiymetlendirmesi saxlanmadi: ${error.message ?? "namelum xeta"}`,
+			);
+			return;
+		}
+
+		const { data } = await supabase
+			.from("pkpd_self_reviews")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		setSelfReviews(
+			(data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdSelfReviewRow(row),
+			})),
+		);
+		setStatus("HR qiymetlendirmesi saxlanildi");
+		setSelfReviewEditUnlocked(false);
+		setSelfReviewUnlockReason("");
 	};
 
 	const handleAddAchievement = async () => {
@@ -1719,6 +2023,7 @@ export const BranchPkpdPage = () => {
 						<div>BİQ</div>
 						<div>İmtahan</div>
 						<div>Portfolio</div>
+						<div>HR</div>
 						<div>Bonus</div>
 						<div>Yekun</div>
 						<div>PKPD kateqoriyası</div>
@@ -1736,6 +2041,7 @@ export const BranchPkpdPage = () => {
 							<div>{row.biqScore?.toFixed(1) ?? "-"}</div>
 							<div>{row.examScore?.toFixed(1) ?? "-"}</div>
 							<div>{row.portfolioScore?.toFixed(1) ?? "-"}</div>
+							<div>{row.hrSelfReviewScore?.toFixed(1) ?? "-"}</div>
 							<div>{row.bonus?.toFixed(1) ?? "-"}</div>
 							<div>{row.total.toFixed(1)}</div>
 							<div>{pkpdBucket(row.total)}</div>
@@ -1806,6 +2112,164 @@ export const BranchPkpdPage = () => {
 					)}
 				</div>
 			</div>
+
+			<div className="card">
+				<h3>Özünüqiymətləndirmə cavabları və HR balı</h3>
+				<div className="form-row">
+					<select
+						className="input"
+						value={selfReviewTeacherId}
+						onChange={(event) => loadSelfReviewForTeacher(event.target.value)}
+					>
+						<option value="">Müəllim seçin</option>
+						{teachers.map((teacher) => (
+							<option key={teacher.id} value={teacher.id}>
+								{teacher.data.name}
+							</option>
+						))}
+					</select>
+				</div>
+				{selfReviewTeacherId && selectedTeacherHasSavedSelfReview && (
+					<div className="form-row">
+						{selectedTeacherSelfReviewLocked ? (
+							<button
+								className="btn ghost"
+								type="button"
+								onClick={handleRequestSelfReviewEdit}
+							>
+								Düzəliş et
+							</button>
+						) : (
+							<span className="tag success">Düzəliş açıqdır</span>
+						)}
+					</div>
+				)}
+				{selfReviewTeacherId && (
+					<>
+						{selectedTeacherHasSavedSelfReview && (
+							<div className="notice">
+								{selectedTeacherSelfReviewLocked
+									? "Bu HR qiymətləndirməsi kilidlənib. Dəyişiklik üçün admin şifrəsi və səbəb tələb olunur."
+									: "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}
+							</div>
+						)}
+						<div className="notice">
+							{selfReviewTeacher?.name ?? "Müəllim"} üçün müəllimin öz balı:{" "}
+							{selectedTeacherSelfResponse?.declaredScore ?? "-"} / 10
+						</div>
+						{selectedTeacherSelfReview?.editReason && (
+							<div className="hint">
+								Son düzəliş səbəbi: {selectedTeacherSelfReview.editReason}
+							</div>
+						)}
+						<div className="data-table">
+							<div className="data-row header">
+								<div>Sual</div>
+								<div>Cavab</div>
+							</div>
+							{selectedTeacherSelfResponse?.textAnswers.map((item) => (
+								<div className="data-row" key={item.questionId}>
+									<div>{item.questionText}</div>
+									<div>{item.answerText}</div>
+								</div>
+							))}
+							{(!selectedTeacherSelfResponse ||
+								selectedTeacherSelfResponse.textAnswers.length === 0) && (
+								<div className="empty">
+									Müəllim bu sorğuda hələ açıq cavab yazmayıb.
+								</div>
+							)}
+						</div>
+						<div className="form-row">
+							<input
+								className="input"
+								type="number"
+								min="0"
+								max="10"
+								step="0.1"
+								placeholder="HR balı (0-10)"
+								value={selfReviewScore}
+								disabled={selectedTeacherSelfReviewLocked}
+								onChange={(event) => setSelfReviewScore(event.target.value)}
+							/>
+							<input
+								className="input"
+								placeholder="HR qeydi (istəyə bağlı)"
+								value={selfReviewNote}
+								disabled={selectedTeacherSelfReviewLocked}
+								onChange={(event) => setSelfReviewNote(event.target.value)}
+							/>
+							<button
+								className="btn primary"
+								type="button"
+								onClick={handleSaveSelfReview}
+								disabled={selectedTeacherSelfReviewLocked}
+							>
+								Saxla
+							</button>
+						</div>
+						<div className="hint">
+							HR balı müəllimin yekun PKPD cəminin üzərinə əlavə olunur.
+						</div>
+					</>
+				)}
+			</div>
+			<Dialog open={selfReviewUnlockOpen} onOpenChange={setSelfReviewUnlockOpen}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>Düzəlişi təsdiqlə</DialogTitle>
+						<DialogDescription>
+							Saxlanmış HR balını dəyişmək üçün admin şifrəsini və düzəliş
+							səbəbini daxil edin.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="stack">
+						<label className="field">
+							<span className="label">Admin şifrəsi</span>
+							<input
+								className="input"
+								type="password"
+								value={selfReviewUnlockPassword}
+								onChange={(event) =>
+									setSelfReviewUnlockPassword(event.target.value)
+								}
+							/>
+						</label>
+						<label className="field">
+							<span className="label">Düzəliş səbəbi</span>
+							<textarea
+								className="input"
+								rows={4}
+								value={selfReviewUnlockReason}
+								onChange={(event) =>
+									setSelfReviewUnlockReason(event.target.value)
+								}
+							/>
+						</label>
+						{selfReviewUnlockError && (
+							<div className="notice">{selfReviewUnlockError}</div>
+						)}
+					</div>
+					<DialogFooter>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => setSelfReviewUnlockOpen(false)}
+							disabled={selfReviewUnlockSubmitting}
+						>
+							Ləğv et
+						</button>
+						<button
+							className="btn primary"
+							type="button"
+							onClick={handleUnlockSelfReviewEdit}
+							disabled={selfReviewUnlockSubmitting}
+						>
+							{selfReviewUnlockSubmitting ? "Yoxlanır..." : "Təsdiqlə"}
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };

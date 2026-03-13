@@ -439,6 +439,19 @@
     @apply text-xs text-muted-foreground;
   }
 
+  .instruction-list {
+    @apply grid gap-2 pl-5;
+    list-style: disc;
+  }
+
+  .instruction-list__item {
+    @apply text-sm text-foreground;
+  }
+
+  .instruction-list__label {
+    @apply font-semibold text-foreground;
+  }
+
   .list {
     @apply flex flex-col gap-3;
   }

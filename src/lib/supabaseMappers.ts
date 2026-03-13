@@ -12,6 +12,7 @@ import type {
 	PkpdDecisionDoc,
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
+	PkpdSelfReviewDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	QuestionSetDoc,
@@ -24,6 +25,7 @@ import type {
 	TeachingAssignmentDoc,
 	UserDoc,
 } from "./types";
+import { parsePkpdSelfReviewNote } from "./pkpdSelfReview";
 
 type Row = Record<string, any>;
 
@@ -230,6 +232,34 @@ export const mapPkpdPortfolioRow = (row: Row): PkpdPortfolioDoc => ({
 	olympiadScore: row.olympiad_score ?? null,
 	eventsScore: row.events_score ?? null,
 	note: row.note ?? null,
+	createdAt: row.created_at ?? null,
+});
+
+export const mapPkpdSelfReviewRow = (row: Row): PkpdSelfReviewDoc => ({
+	...(() => {
+		const parsedNote = parsePkpdSelfReviewNote(row.note ?? null);
+		return {
+			note: parsedNote.note,
+			editReason: parsedNote.editReason,
+			questionScores:
+				row.question_scores && typeof row.question_scores === "object"
+					? Object.fromEntries(
+							Object.entries(row.question_scores as Record<string, unknown>).map(
+								([key, value]) => [
+									key,
+									value === null || value === undefined ? null : Number(value),
+								],
+							),
+						)
+					: parsedNote.questionScores,
+		};
+	})(),
+	cycleId: row.cycle_id,
+	branchId: row.branch_id,
+	teacherId: row.teacher_id,
+	score: row.score === null || row.score === undefined ? null : Number(row.score),
+	reviewedBy: row.reviewed_by ?? null,
+	reviewedAt: row.reviewed_at ?? null,
 	createdAt: row.created_at ?? null,
 });
 

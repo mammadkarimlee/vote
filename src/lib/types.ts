@@ -219,6 +219,19 @@ export type PkpdPortfolioDoc = {
 	createdAt?: unknown;
 };
 
+export type PkpdSelfReviewDoc = {
+	cycleId: string;
+	branchId: string;
+	teacherId: string;
+	score?: number | null;
+	questionScores?: Record<string, number | null> | null;
+	note?: string | null;
+	editReason?: string | null;
+	reviewedBy?: string | null;
+	reviewedAt?: unknown;
+	createdAt?: unknown;
+};
+
 export type PkpdAchievementDoc = {
 	cycleId: string;
 	branchId: string;
