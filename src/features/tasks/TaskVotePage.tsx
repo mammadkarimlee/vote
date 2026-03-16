@@ -63,6 +63,7 @@ export const TaskVotePage = () => {
 		Array<{ id: string; data: QuestionDoc }>
 	>([]);
 	const [cycle, setCycle] = useState<SurveyCycleDoc | null>(null);
+	const [questionSet, setQuestionSet] = useState<QuestionSetDoc | null>(null);
 	const [answers, setAnswers] = useState<Record<string, string | number>>({});
 	const [status, setStatus] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -77,6 +78,7 @@ export const TaskVotePage = () => {
 		const loadTask = async () => {
 			setLoading(true);
 			setStatus(null);
+			setQuestionSet(null);
 
 			const taskRes = await supabase
 				.from("tasks")
@@ -89,6 +91,7 @@ export const TaskVotePage = () => {
 				setStatus("Tapşırıq tapılmadı.");
 				setTask(null);
 				setQuestions([]);
+				setQuestionSet(null);
 				setLoading(false);
 				return;
 			}
@@ -98,6 +101,7 @@ export const TaskVotePage = () => {
 				setStatus("Bu tapşırığa giriş icazəniz yoxdur.");
 				setTask(null);
 				setQuestions([]);
+				setQuestionSet(null);
 				setLoading(false);
 				return;
 			}
@@ -106,6 +110,7 @@ export const TaskVotePage = () => {
 				setStatus("Bu qiymetlendirme bolmesi deaktiv edilib.");
 				setTask(null);
 				setQuestions([]);
+				setQuestionSet(null);
 				setLoading(false);
 				return;
 			}
@@ -132,11 +137,16 @@ export const TaskVotePage = () => {
 			if (!questionSetRes.data) {
 				setStatus("Bu tapşırıq üçün sual seti tapılmadı.");
 				setQuestions([]);
+				setQuestionSet(null);
 				setLoading(false);
 				return;
 			}
 
 			const questionSet = mapQuestionSetRow(questionSetRes.data);
+			setQuestionSet(questionSet);
+			if (!questionSet.isOpen) {
+				setStatus("Bu sorğu hazırda bağlıdır.");
+			}
 			const ids = questionSet.questionIds ?? [];
 			if (ids.length === 0) {
 				setQuestions([]);
@@ -187,6 +197,7 @@ export const TaskVotePage = () => {
 
 	const isOpen = useMemo(() => {
 		if (!cycle) return false;
+		if (!questionSet?.isOpen) return false;
 		if (cycle.status !== "OPEN") return false;
 		const now = new Date();
 		const start = toJsDate(cycle.startAt);
@@ -194,7 +205,7 @@ export const TaskVotePage = () => {
 		if (start && now < start) return false;
 		if (end && now > end) return false;
 		return true;
-	}, [cycle]);
+	}, [cycle, questionSet]);
 
 	const answerableQuestions = useMemo(
 		() =>

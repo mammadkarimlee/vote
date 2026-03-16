@@ -26,6 +26,7 @@ import type {
 	UserDoc,
 } from "./types";
 import { parsePkpdSelfReviewNote } from "./pkpdSelfReview";
+import { decodeQuestionSetState } from "./questionSetState";
 
 type Row = Record<string, any>;
 
@@ -128,10 +129,14 @@ export const mapSurveyCycleRow = (row: Row): SurveyCycleDoc => ({
 	},
 });
 
-export const mapQuestionSetRow = (row: Row): QuestionSetDoc => ({
-	targetFlow: row.target_flow,
-	questionIds: row.question_ids ?? [],
-});
+export const mapQuestionSetRow = (row: Row): QuestionSetDoc => {
+	const decoded = decodeQuestionSetState(row.question_ids, row.is_open);
+	return {
+		targetFlow: row.target_flow,
+		questionIds: decoded.questionIds,
+		isOpen: decoded.isOpen,
+	};
+};
 
 export const mapTaskRow = (row: Row): TaskDoc => ({
 	cycleId: row.cycle_id,

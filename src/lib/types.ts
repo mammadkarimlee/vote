@@ -117,6 +117,7 @@ export type SurveyCycleDoc = {
 export type QuestionSetDoc = {
 	targetFlow: TargetFlow;
 	questionIds: string[];
+	isOpen: boolean;
 };
 
 export type TaskDoc = {

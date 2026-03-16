@@ -28,6 +28,7 @@ import {
 	ensureStudentTeacherInstructionQuestionIds,
 	isStudentTeacherInstructionQuestion,
 } from "../../lib/surveyQuestions";
+import { encodeQuestionSetStateTokens } from "../../lib/questionSetState";
 import { chunkArray, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -38,6 +39,64 @@ const flowLabels: Record<EnabledFlow, string> = {
 	student_teacher: "Şagird → Müəllim",
 	management_teacher: "Rəhbərlik → Müəllim",
 	teacher_self: "Müəllim → Özünü",
+};
+
+const mapQuestionSetSchemaError = (message?: string | null) => {
+	if (!message) return "Sual seti yenilənmədi";
+	if (
+		message.includes(
+			"Could not find the 'is_open' column of 'question_sets' in the schema cache",
+		)
+	) {
+		return "Database schema yenilənməyib. `question_sets.is_open` dəyişikliklərini DB-yə tətbiq edin.";
+	}
+	return message;
+};
+
+const isMissingQuestionSetOpenColumnError = (message?: string | null) =>
+	Boolean(
+		message?.includes(
+			"Could not find the 'is_open' column of 'question_sets' in the schema cache",
+		),
+	);
+
+const upsertQuestionSetWithFlowState = async (params: {
+	cycleId: string;
+	targetFlow: EnabledFlow;
+	questionIds: string[];
+	isOpen: boolean;
+}) => {
+	const payload = {
+		org_id: ORG_ID,
+		cycle_id: params.cycleId,
+		target_flow: params.targetFlow,
+		question_ids: params.questionIds,
+		is_open: params.isOpen,
+		updated_at: new Date().toISOString(),
+	};
+
+	const result = await supabase.from("question_sets").upsert(payload, {
+		onConflict: "org_id,cycle_id,target_flow",
+	});
+	if (!result.error || !isMissingQuestionSetOpenColumnError(result.error.message)) {
+		return result;
+	}
+
+	return supabase.from("question_sets").upsert(
+		{
+			org_id: ORG_ID,
+			cycle_id: params.cycleId,
+			target_flow: params.targetFlow,
+			question_ids: encodeQuestionSetStateTokens(
+				params.questionIds,
+				params.isOpen,
+			),
+			updated_at: new Date().toISOString(),
+		},
+		{
+			onConflict: "org_id,cycle_id,target_flow",
+		},
+	);
 };
 
 const TEACHER_SELF_PKPD_QUESTION_TEMPLATES = [
@@ -78,7 +137,10 @@ const buildAcademicYearLabel = (cycleYear: number) =>
 const buildTeacherSelfPkpdQuestionId = (cycleId: string, key: string) =>
 	`pkpd-self-${cycleId}-${key}`;
 
-const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
+const ensureTeacherSelfPkpdQuestionSet = async (
+	cycleId: string,
+	isOpen?: boolean,
+) => {
 	const { data: cycleRow, error: cycleError } = await supabase
 		.from("survey_cycles")
 		.select("id, year")
@@ -89,6 +151,21 @@ const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
 		return {
 			questionIds: [] as string[],
 			error: cycleError?.message ?? "Sorğu dövrü tapılmadı",
+		};
+	}
+
+	const { data: existingQuestionSetRow, error: existingQuestionSetError } =
+		await supabase
+			.from("question_sets")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", cycleId)
+			.eq("target_flow", "teacher_self")
+			.maybeSingle();
+	if (existingQuestionSetError) {
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(existingQuestionSetError.message),
 		};
 	}
 
@@ -123,24 +200,29 @@ const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
 			onConflict: "id",
 		});
 	if (questionError) {
-		return { questionIds: [] as string[], error: questionError.message };
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(questionError.message),
+		};
 	}
 
 	const questionIds = questionRows.map((item) => item.id);
-	const { error: questionSetError } = await supabase.from("question_sets").upsert(
-		{
-			org_id: ORG_ID,
-			cycle_id: cycleId,
-			target_flow: "teacher_self",
-			question_ids: questionIds,
-			updated_at: new Date().toISOString(),
-		},
-		{
-			onConflict: "org_id,cycle_id,target_flow",
-		},
-	);
+	const resolvedIsOpen =
+		isOpen ??
+		(existingQuestionSetRow
+			? mapQuestionSetRow(existingQuestionSetRow).isOpen
+			: false);
+	const { error: questionSetError } = await upsertQuestionSetWithFlowState({
+		cycleId,
+		targetFlow: "teacher_self",
+		questionIds,
+		isOpen: resolvedIsOpen,
+	});
 	if (questionSetError) {
-		return { questionIds: [] as string[], error: questionSetError.message };
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(questionSetError.message),
+		};
 	}
 
 	return { questionIds, error: null as string | null };
@@ -149,6 +231,7 @@ const ensureTeacherSelfPkpdQuestionSet = async (cycleId: string) => {
 const ensureStudentTeacherInstructionQuestionSet = async (
 	cycleId: string,
 	sourceQuestionIds?: string[],
+	isOpen?: boolean,
 ) => {
 	const instructionQuestion = buildStudentTeacherInstructionQuestionDoc();
 	const { error: questionError } = await supabase.from("questions").upsert(
@@ -170,12 +253,13 @@ const ensureStudentTeacherInstructionQuestionSet = async (
 	if (questionError) {
 		return {
 			questionIds: [] as string[],
-			error: questionError.message,
+			error: mapQuestionSetSchemaError(questionError.message),
 			hasQuestionSet: false,
 		};
 	}
 
 	let baseQuestionIds = sourceQuestionIds;
+	let currentQuestionSet = null as ReturnType<typeof mapQuestionSetRow> | null;
 	if (!baseQuestionIds) {
 		const { data: setRow, error: setError } = await supabase
 			.from("question_sets")
@@ -187,7 +271,7 @@ const ensureStudentTeacherInstructionQuestionSet = async (
 		if (setError) {
 			return {
 				questionIds: [] as string[],
-				error: setError.message,
+				error: mapQuestionSetSchemaError(setError.message),
 				hasQuestionSet: false,
 			};
 		}
@@ -198,28 +282,38 @@ const ensureStudentTeacherInstructionQuestionSet = async (
 				hasQuestionSet: false,
 			};
 		}
-		baseQuestionIds = mapQuestionSetRow(setRow).questionIds ?? [];
+		currentQuestionSet = mapQuestionSetRow(setRow);
+		baseQuestionIds = currentQuestionSet.questionIds ?? [];
+	} else if (isOpen === undefined) {
+		const { data: setRow, error: setError } = await supabase
+			.from("question_sets")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", cycleId)
+			.eq("target_flow", "student_teacher")
+			.maybeSingle();
+		if (setError) {
+			return {
+				questionIds: [] as string[],
+				error: mapQuestionSetSchemaError(setError.message),
+				hasQuestionSet: false,
+			};
+		}
+		currentQuestionSet = setRow ? mapQuestionSetRow(setRow) : null;
 	}
 
 	const questionIds = ensureStudentTeacherInstructionQuestionIds(baseQuestionIds);
-	const { error: questionSetError } = await supabase
-		.from("question_sets")
-		.upsert(
-			{
-				org_id: ORG_ID,
-				cycle_id: cycleId,
-				target_flow: "student_teacher",
-				question_ids: questionIds,
-				updated_at: new Date().toISOString(),
-			},
-			{
-				onConflict: "org_id,cycle_id,target_flow",
-			},
-		);
+	const resolvedIsOpen = isOpen ?? currentQuestionSet?.isOpen ?? false;
+	const { error: questionSetError } = await upsertQuestionSetWithFlowState({
+		cycleId,
+		targetFlow: "student_teacher",
+		questionIds,
+		isOpen: resolvedIsOpen,
+	});
 	if (questionSetError) {
 		return {
 			questionIds: [] as string[],
-			error: questionSetError.message,
+			error: mapQuestionSetSchemaError(questionSetError.message),
 			hasQuestionSet: true,
 		};
 	}
@@ -291,6 +385,7 @@ export const AdminCyclesPage = () => {
 	const [selectedFlow, setSelectedFlow] =
 		useState<EnabledFlow>("student_teacher");
 	const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+	const [selectedFlowOpen, setSelectedFlowOpen] = useState(false);
 	const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
 	const [year, setYear] = useState(String(new Date().getFullYear()));
 	const [startAt, setStartAt] = useState("");
@@ -356,17 +451,36 @@ export const AdminCyclesPage = () => {
 
 	useEffect(() => {
 		const loadQuestionSet = async () => {
-			if (!selectedCycleId) return;
+			if (!selectedCycleId) {
+				setSelectedQuestionIds([]);
+				setSelectedFlowOpen(false);
+				return;
+			}
 			if (selectedFlow === "teacher_self") {
 				const ensured = await ensureTeacherSelfPkpdQuestionSet(selectedCycleId);
 				if (ensured.error) {
 					setSelectedQuestionIds([]);
+					setSelectedFlowOpen(false);
 					setStatus(
 						`Özünüqiymətləndirmə sualları hazırlanmadı: ${ensured.error}`,
 					);
 					return;
 				}
-				setSelectedQuestionIds(ensured.questionIds);
+				const { data: setRow, error: setError } = await supabase
+					.from("question_sets")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("target_flow", selectedFlow)
+					.maybeSingle();
+				if (setError || !setRow) {
+					setSelectedQuestionIds(ensured.questionIds);
+					setSelectedFlowOpen(false);
+				} else {
+					const mapped = mapQuestionSetRow(setRow);
+					setSelectedQuestionIds(mapped.questionIds ?? ensured.questionIds);
+					setSelectedFlowOpen(mapped.isOpen);
+				}
 
 				const { data: refreshedQuestions, error: refreshedQuestionsError } =
 					await supabase
@@ -393,10 +507,12 @@ export const AdminCyclesPage = () => {
 
 			if (error || !data) {
 				setSelectedQuestionIds([]);
+				setSelectedFlowOpen(false);
 				return;
 			}
 
 			const mapped = mapQuestionSetRow(data);
+			setSelectedFlowOpen(mapped.isOpen);
 			if (selectedFlow === "student_teacher") {
 				const ensured = await ensureStudentTeacherInstructionQuestionSet(
 					selectedCycleId,
@@ -404,6 +520,7 @@ export const AdminCyclesPage = () => {
 				);
 				if (ensured.error) {
 					setSelectedQuestionIds([]);
+					setSelectedFlowOpen(false);
 					setStatus(
 						`Şagird müəllim qiymətləndirilməsi təlimatı hazırlanmadı: ${ensured.error}`,
 					);
@@ -583,7 +700,10 @@ export const AdminCyclesPage = () => {
 	const handleSaveQuestionSet = async () => {
 		if (!selectedCycleId) return;
 		if (selectedFlow === "teacher_self") {
-			const ensured = await ensureTeacherSelfPkpdQuestionSet(selectedCycleId);
+			const ensured = await ensureTeacherSelfPkpdQuestionSet(
+				selectedCycleId,
+				selectedFlowOpen,
+			);
 			if (ensured.error) {
 				setStatus(
 					`Özünüqiymətləndirmə sualları saxlanmadı: ${ensured.error}`,
@@ -605,6 +725,7 @@ export const AdminCyclesPage = () => {
 			const ensured = await ensureStudentTeacherInstructionQuestionSet(
 				selectedCycleId,
 				questionIdsWithoutInstruction,
+				selectedFlowOpen,
 			);
 			if (ensured.error) {
 				setStatus(
@@ -618,19 +739,15 @@ export const AdminCyclesPage = () => {
 			return;
 		}
 
-		const { error } = await supabase.from("question_sets").upsert(
-			{
-				org_id: ORG_ID,
-				cycle_id: selectedCycleId,
-				target_flow: selectedFlow,
-				question_ids: selectedQuestionIds,
-				updated_at: new Date().toISOString(),
-			},
-			{ onConflict: "org_id,cycle_id,target_flow" },
-		);
+		const { error } = await upsertQuestionSetWithFlowState({
+			cycleId: selectedCycleId,
+			targetFlow: selectedFlow,
+			questionIds: selectedQuestionIds,
+			isOpen: selectedFlowOpen,
+		});
 
 		if (error) {
-			setStatus(error.message || "Sual seti yenilənmədi");
+			setStatus(mapQuestionSetSchemaError(error.message));
 			return;
 		}
 		setStatus("Sual seti yeniləndi");
@@ -659,29 +776,28 @@ export const AdminCyclesPage = () => {
 			return;
 		}
 
-		const nowIso = new Date().toISOString();
 		const rows = data
 			.map((row) => {
 				const mapped = mapQuestionSetRow(row);
 				return {
-					org_id: ORG_ID,
-					cycle_id: selectedCycle.id,
 					target_flow: mapped.targetFlow,
 					question_ids: mapped.questionIds ?? [],
-					updated_at: nowIso,
+					is_open: mapped.isOpen,
 				};
 			})
 			.filter((row) => flows.includes(row.target_flow as EnabledFlow));
 
-		const { error: upsertError } = await supabase
-			.from("question_sets")
-			.upsert(rows, {
-				onConflict: "org_id,cycle_id,target_flow",
+		for (const row of rows) {
+			const { error: upsertError } = await upsertQuestionSetWithFlowState({
+				cycleId: selectedCycle.id,
+				targetFlow: row.target_flow as EnabledFlow,
+				questionIds: row.question_ids,
+				isOpen: row.is_open,
 			});
-
-		if (upsertError) {
-			setStatus("Sual setləri köçürülmədi");
-			return;
+			if (upsertError) {
+				setStatus(mapQuestionSetSchemaError(upsertError.message));
+				return;
+			}
 		}
 
 		const ensuredTeacherSelf = rows.some(
@@ -713,16 +829,98 @@ export const AdminCyclesPage = () => {
 
 		if (selectedFlow === "teacher_self") {
 			setSelectedQuestionIds(ensuredTeacherSelf?.questionIds ?? []);
+			const currentFlowRow = rows.find((row) => row.target_flow === selectedFlow);
+			setSelectedFlowOpen(currentFlowRow?.is_open ?? false);
 		} else if (selectedFlow === "student_teacher") {
 			setSelectedQuestionIds(ensuredStudentTeacher?.questionIds ?? []);
+			const currentFlowRow = rows.find((row) => row.target_flow === selectedFlow);
+			setSelectedFlowOpen(currentFlowRow?.is_open ?? false);
 		} else {
 			const currentFlowRow = rows.find((row) => row.target_flow === selectedFlow);
-			if (currentFlowRow)
+			if (currentFlowRow) {
 				setSelectedQuestionIds(currentFlowRow.question_ids ?? []);
+				setSelectedFlowOpen(currentFlowRow.is_open ?? false);
+			}
 		}
 
 		await loadQuestions();
 		setStatus(`Sual setləri ${prevCycle.data.year} ilindən köçürüldü`);
+	};
+
+	const handleFlowOpenChange = async (nextOpen: boolean) => {
+		if (!selectedCycleId) return;
+
+		if (selectedFlow === "teacher_self") {
+			const ensured = await ensureTeacherSelfPkpdQuestionSet(
+				selectedCycleId,
+				nextOpen,
+			);
+			if (ensured.error) {
+				setStatus(
+					`Özünüqiymətləndirmə Sorğusu yenilənmədi: ${ensured.error}`,
+				);
+				return;
+			}
+			setSelectedQuestionIds(ensured.questionIds);
+			setSelectedFlowOpen(nextOpen);
+			setStatus(
+				`${flowLabels[selectedFlow]} sorğusu ${
+					nextOpen ? "açıldı" : "bağlandı"
+				}`,
+			);
+			return;
+		}
+
+		const questionIdsWithoutInstruction = selectedQuestionIds.filter(
+			(id) => id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+		);
+
+		if (selectedFlow === "student_teacher") {
+			if (questionIdsWithoutInstruction.length === 0) {
+				setStatus("Əvvəlcə şagird sorğusu üçün sual setini saxlayın");
+				return;
+			}
+			const ensured = await ensureStudentTeacherInstructionQuestionSet(
+				selectedCycleId,
+				questionIdsWithoutInstruction,
+				nextOpen,
+			);
+			if (ensured.error) {
+				setStatus(
+					`Şagird müəllim sorğusu yenilənmədi: ${ensured.error}`,
+				);
+				return;
+			}
+			setSelectedQuestionIds(ensured.questionIds);
+			setSelectedFlowOpen(nextOpen);
+			setStatus(
+				`${flowLabels[selectedFlow]} sorğusu ${
+					nextOpen ? "açıldı" : "bağlandı"
+				}`,
+			);
+			return;
+		}
+
+		if (selectedQuestionIds.length === 0) {
+			setStatus("Əvvəlcə bu Sorğu üçün sual setini saxlayın");
+			return;
+		}
+
+		const { error } = await upsertQuestionSetWithFlowState({
+			cycleId: selectedCycleId,
+			targetFlow: selectedFlow,
+			questionIds: selectedQuestionIds,
+			isOpen: nextOpen,
+		});
+		if (error) {
+			setStatus(mapQuestionSetSchemaError(error.message));
+			return;
+		}
+
+		setSelectedFlowOpen(nextOpen);
+		setStatus(
+			`${flowLabels[selectedFlow]} sorğusu ${nextOpen ? "açıldı" : "bağlandı"}`,
+		);
 	};
 
 	const generateTasksForCycle = async (cycleId: string) => {
@@ -1496,6 +1694,37 @@ export const AdminCyclesPage = () => {
 							</button>
 						))}
 					</div>
+					<div className="section-header">
+						<div>
+							<h4>{flowLabels[selectedFlow]}</h4>
+							<p>
+								Bu sorğunu ayrıca manual açıb-bağlaya bilərsiniz. Ümumi dövr
+								bağlıdırsa, sorğu açıq olsa belə istifadəçilər cavab göndərə
+								bilməyəcək.
+							</p>
+						</div>
+						<div className="actions">
+							<span className={selectedFlowOpen ? "tag success" : "tag"}>
+								{selectedFlowOpen ? "Sorğu açıqdır" : "Sorğu bağlıdır"}
+							</span>
+							<button
+								className="btn"
+								type="button"
+								onClick={() => void handleFlowOpenChange(true)}
+								disabled={selectedFlowOpen}
+							>
+								Sorğunu aç
+							</button>
+							<button
+								className="btn ghost"
+								type="button"
+								onClick={() => void handleFlowOpenChange(false)}
+								disabled={!selectedFlowOpen}
+							>
+								Sorğunu bağla
+							</button>
+						</div>
+					</div>
 					{selectedFlow === "student_teacher" && (
 						<div className="hint">
 							Şagird müəllim qiymətləndirilməsi üçün təlimat bloku avtomatik
@@ -1527,7 +1756,7 @@ export const AdminCyclesPage = () => {
 					</div>
 					{selectedFlow === "teacher_self" && (
 						<div className="hint">
-							Bu axın üçün PKPD özünüqiymətləndirmə sualları avtomatik tətbiq
+							Bu sorğu üçün PKPD özünüqiymətləndirmə sualları avtomatik tətbiq
 							olunur: müəllim əvvəl 0-10 arası öz balını verir, sonra açıq
 							suallarda nailiyyətlərini yazır.
 						</div>
@@ -1603,10 +1832,3 @@ export const AdminCyclesPage = () => {
 		</div>
 	);
 };
-
-
-
-
-
-
-

@@ -333,6 +333,7 @@ create table if not exists public.question_sets (
   cycle_id text not null references public.survey_cycles (id) on delete cascade,
   target_flow public.target_flow not null,
   question_ids text[] not null default '{}'::text[],
+  is_open boolean not null default false,
   updated_at timestamptz,
   created_at timestamptz not null default now(),
   unique (org_id, cycle_id, target_flow)
@@ -340,6 +341,31 @@ create table if not exists public.question_sets (
 
 alter table public.question_sets
   add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade;
+
+alter table public.question_sets
+  add column if not exists is_open boolean;
+
+update public.question_sets
+   set is_open = case
+     when array_position(question_ids, '__question_set_open__') is not null then true
+     when array_position(question_ids, '__question_set_closed__') is not null then false
+     else true
+   end
+ where is_open is null;
+
+update public.question_sets
+   set question_ids = array_remove(
+     array_remove(question_ids, '__question_set_open__'),
+     '__question_set_closed__'
+   )
+ where array_position(question_ids, '__question_set_open__') is not null
+    or array_position(question_ids, '__question_set_closed__') is not null;
+
+alter table public.question_sets
+  alter column is_open set default false;
+
+alter table public.question_sets
+  alter column is_open set not null;
 
 create index if not exists question_sets_cycle_idx on public.question_sets (cycle_id);
 
@@ -1145,6 +1171,19 @@ begin
    where t.org_id = v_cycle.org_id
      and t.cycle_id = v_cycle.id
      and t.status = 'OPEN'
+     and exists (
+       select 1
+         from public.question_sets qs
+        where qs.org_id = t.org_id
+          and qs.cycle_id = t.cycle_id
+          and qs.is_open = true
+          and (
+            (t.rater_role = 'student' and t.target_type = 'teacher' and qs.target_flow = 'student_teacher')
+            or (t.rater_role = 'teacher' and t.target_type = 'manager' and qs.target_flow = 'teacher_management')
+            or (t.rater_role = 'teacher' and t.target_type = 'teacher' and qs.target_flow = 'teacher_self')
+            or (t.rater_role = 'manager' and t.target_type = 'teacher' and qs.target_flow = 'management_teacher')
+          )
+     )
      and (
        public.is_superadmin()
        or (
@@ -1188,6 +1227,7 @@ declare
   v_cycle public.survey_cycles%rowtype;
   v_flow public.target_flow;
   v_question_ids text[];
+  v_question_set_open boolean;
   v_now timestamptz := now();
   v_missing text[];
 begin
@@ -1246,12 +1286,20 @@ begin
     v_flow := 'management_teacher';
   end if;
 
-  select question_ids
-    into v_question_ids
+  select question_ids, is_open
+    into v_question_ids, v_question_set_open
     from public.question_sets
    where org_id = v_task.org_id
      and cycle_id = v_task.cycle_id
      and target_flow = v_flow;
+
+  if not found then
+    raise exception 'sual dəsti tapılmadı';
+  end if;
+
+  if not coalesce(v_question_set_open, false) then
+    raise exception 'sorğu axını hazırda bağlıdır';
+  end if;
 
   if v_question_ids is null or array_length(v_question_ids, 1) is null then
     raise exception 'sual dəsti tapılmadı';

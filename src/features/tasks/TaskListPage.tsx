@@ -17,6 +17,7 @@ import type {
 	GroupDoc,
 	ManagementAssignmentDoc,
 	QuestionDoc,
+	QuestionSetDoc,
 	SubjectDoc,
 	SurveyCycleDoc,
 	TaskDoc,
@@ -50,6 +51,21 @@ type StudentVoteEntry = {
 	questions: Array<{ id: string; data: QuestionDoc }>;
 };
 
+const flowFromTask = (task: TaskDoc): QuestionSetDoc["targetFlow"] => {
+	if (task.raterRole === "student" && task.targetType === "teacher")
+		return "student_teacher";
+	if (task.raterRole === "teacher" && task.targetType === "teacher")
+		return "teacher_self";
+	if (task.raterRole === "teacher" && task.targetType === "manager")
+		return "teacher_management";
+	return "management_teacher";
+};
+
+const buildQuestionSetKey = (
+	cycleId: string,
+	flow: QuestionSetDoc["targetFlow"],
+) => `${cycleId}:${flow}`;
+
 const buildNameMap = <T extends { name?: string }>(
 	docs: { id: string; data: T }[],
 ) => {
@@ -60,7 +76,10 @@ const buildNameMap = <T extends { name?: string }>(
 	return map;
 };
 
-const resolveCycleState = (cycle?: SurveyCycleDoc | null) => {
+const resolveCycleState = (
+	cycle?: SurveyCycleDoc | null,
+	questionSet?: QuestionSetDoc | null,
+) => {
 	if (!cycle) {
 		return { open: false, label: "Dövr tapılmadı", tone: "closed" as const };
 	}
@@ -71,6 +90,18 @@ const resolveCycleState = (cycle?: SurveyCycleDoc | null) => {
 			label: `Dövr ${cycle.status.toLowerCase()}`,
 			tone: "closed" as const,
 		};
+	}
+
+	if (!questionSet) {
+		return { open: false, label: "Sual dəsti yoxdur", tone: "closed" as const };
+	}
+
+	if (!questionSet.isOpen) {
+		return { open: false, label: "Sorğu bağlıdır", tone: "closed" as const };
+	}
+
+	if ((questionSet.questionIds ?? []).length === 0) {
+		return { open: false, label: "Sual yoxdur", tone: "closed" as const };
 	}
 
 	const now = new Date();
@@ -103,6 +134,9 @@ export const TaskListPage = () => {
 		{},
 	);
 	const [cycles, setCycles] = useState<Record<string, SurveyCycleDoc>>({});
+	const [questionSetsByKey, setQuestionSetsByKey] = useState<
+		Record<string, QuestionSetDoc>
+	>({});
 	const [myTeacherIds, setMyTeacherIds] = useState<string[]>([]);
 	const [myManagementAssignments, setMyManagementAssignments] = useState<
 		ManagementAssignmentEntry[]
@@ -131,6 +165,7 @@ export const TaskListPage = () => {
 		if (!user) {
 			setTasks([]);
 			setCycles({});
+			setQuestionSetsByKey({});
 			return;
 		}
 
@@ -147,6 +182,7 @@ export const TaskListPage = () => {
 		if (error) {
 			setTasks([]);
 			setCycles({});
+			setQuestionSetsByKey({});
 			setLoading(false);
 			return;
 		}
@@ -159,6 +195,7 @@ export const TaskListPage = () => {
 
 		const cycleIds = Array.from(new Set(nextTasks.map((task) => task.data.cycleId)));
 		const cycleMap: Record<string, SurveyCycleDoc> = {};
+		const nextQuestionSetsByKey: Record<string, QuestionSetDoc> = {};
 
 		for (const chunk of chunkArray(cycleIds, 200)) {
 			if (chunk.length === 0) continue;
@@ -170,8 +207,20 @@ export const TaskListPage = () => {
 			(cycleRes.data ?? []).forEach((row) => {
 				cycleMap[row.id] = mapSurveyCycleRow(row);
 			});
+			const questionSetRes = await supabase
+				.from("question_sets")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.in("cycle_id", chunk);
+			(questionSetRes.data ?? []).forEach((row) => {
+				const mapped = mapQuestionSetRow(row);
+				nextQuestionSetsByKey[
+					buildQuestionSetKey(row.cycle_id, mapped.targetFlow)
+				] = mapped;
+			});
 		}
 		setCycles(cycleMap);
+		setQuestionSetsByKey(nextQuestionSetsByKey);
 		setLoading(false);
 	}, [user]);
 
@@ -344,6 +393,7 @@ export const TaskListPage = () => {
 	useEffect(() => {
 		if (!isStudent) {
 			setStudentQuestionsByCycle({});
+			setStudentQuestionsLoading(false);
 			return;
 		}
 
@@ -357,20 +407,11 @@ export const TaskListPage = () => {
 			setStudentQuestionsLoading(true);
 
 			const questionSetByCycle: Record<string, string[]> = {};
-			for (const chunk of chunkArray(cycleIds, 200)) {
-				if (chunk.length === 0) continue;
-				const setRes = await supabase
-					.from("question_sets")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("target_flow", "student_teacher")
-					.in("cycle_id", chunk);
-
-				(setRes.data ?? []).forEach((row) => {
-					const mapped = mapQuestionSetRow(row);
-					questionSetByCycle[row.cycle_id] = mapped.questionIds ?? [];
-				});
-			}
+			cycleIds.forEach((cycleId) => {
+				const questionSet =
+					questionSetsByKey[buildQuestionSetKey(cycleId, "student_teacher")];
+				questionSetByCycle[cycleId] = questionSet?.questionIds ?? [];
+			});
 
 			const allQuestionIds = Array.from(
 				new Set(Object.values(questionSetByCycle).flat()),
@@ -419,7 +460,7 @@ export const TaskListPage = () => {
 		};
 
 		void loadStudentQuestions();
-	}, [isStudent, tasks]);
+	}, [isStudent, questionSetsByKey, tasks]);
 
 	const resolveTargetName = useCallback(
 		(task: TaskDoc) => {
@@ -523,12 +564,17 @@ export const TaskListPage = () => {
 	const enriched = useMemo(() => {
 		return tasks.map((task) => {
 			const cycle = cycles[task.data.cycleId];
-			const cycleState = resolveCycleState(cycle);
+			const questionSet =
+				questionSetsByKey[
+					buildQuestionSetKey(task.data.cycleId, flowFromTask(task.data))
+				] ?? null;
+			const cycleState = resolveCycleState(cycle, questionSet);
 			const endAt = toJsDate(cycle?.endAt);
 			const targetName = resolveTargetName(task.data);
 			return {
 				...task,
 				cycle,
+				questionSet,
 				cycleState,
 				targetName,
 				meta: resolveMeta(task.data),
@@ -536,7 +582,7 @@ export const TaskListPage = () => {
 				endAt,
 			};
 		});
-	}, [cycles, tasks, resolveTargetName, resolveMeta, resolveTaskReason]);
+	}, [cycles, questionSetsByKey, tasks, resolveTargetName, resolveMeta, resolveTaskReason]);
 
 	const filtered = useMemo(() => {
 		return enriched
@@ -607,7 +653,11 @@ export const TaskListPage = () => {
 			if (task.data.status !== "OPEN") return;
 
 			const cycle = cycles[task.data.cycleId];
-			const cycleState = resolveCycleState(cycle);
+			const questionSet =
+				questionSetsByKey[
+					buildQuestionSetKey(task.data.cycleId, flowFromTask(task.data))
+				] ?? null;
+			const cycleState = resolveCycleState(cycle, questionSet);
 			if (!cycleState.open) return;
 
 			const key = `${task.data.cycleId}:${task.data.targetId}`;
@@ -652,6 +702,7 @@ export const TaskListPage = () => {
 	}, [
 		cycles,
 		isStudent,
+		questionSetsByKey,
 		resolveMetaParts,
 		resolveTargetName,
 		studentQuestionsByCycle,
@@ -671,9 +722,13 @@ export const TaskListPage = () => {
 			tasks.filter((task) => {
 				if (task.data.targetType !== "teacher") return false;
 				if (task.data.status !== "OPEN") return false;
-				return resolveCycleState(cycles[task.data.cycleId]).open;
+				const questionSet =
+					questionSetsByKey[
+						buildQuestionSetKey(task.data.cycleId, flowFromTask(task.data))
+					] ?? null;
+				return resolveCycleState(cycles[task.data.cycleId], questionSet).open;
 			}).length,
-		[cycles, tasks],
+		[cycles, questionSetsByKey, tasks],
 	);
 	const studentTeacherProgress = useMemo(() => {
 		const total = studentDoneTeacherTasks + studentOpenTeacherTasks;

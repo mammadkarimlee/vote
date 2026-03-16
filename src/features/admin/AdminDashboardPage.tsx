@@ -1093,7 +1093,7 @@ export const AdminDashboardPage = () => {
 
 			{activeSection === "comments" && (
 				<div className="card">
-					<h3>Şərh axını</h3>
+					<h3>Şərh siyahısı</h3>
 					<div className="comment-feed">
 						{commentFeed.map((item, index) => (
 							<div className="comment" key={`${item.submission?.id}_${index}`}>
