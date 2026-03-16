@@ -2,7 +2,10 @@
 import { Link } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
+	mapBranchRow,
+	mapDepartmentRow,
 	mapGroupRow,
+	mapManagementAssignmentRow,
 	mapQuestionRow,
 	mapQuestionSetRow,
 	mapSubjectRow,
@@ -12,6 +15,7 @@ import {
 } from "../../lib/supabaseMappers";
 import type {
 	GroupDoc,
+	ManagementAssignmentDoc,
 	QuestionDoc,
 	SubjectDoc,
 	SurveyCycleDoc,
@@ -28,6 +32,12 @@ import { chunkArray, formatShortDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 type TaskEntry = { id: string; data: TaskDoc };
+type ManagementAssignmentEntry = { id: string; data: ManagementAssignmentDoc };
+type TaskReason = {
+	badge: string;
+	label: string;
+	detail: string;
+};
 
 type StudentVoteEntry = {
 	id: string;
@@ -85,9 +95,18 @@ export const TaskListPage = () => {
 	const [tasks, setTasks] = useState<TaskEntry[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [teacherNames, setTeacherNames] = useState<Record<string, string>>({});
+	const [teacherDocs, setTeacherDocs] = useState<Record<string, TeacherDoc>>({});
 	const [groupNames, setGroupNames] = useState<Record<string, string>>({});
 	const [subjectNames, setSubjectNames] = useState<Record<string, string>>({});
+	const [branchNames, setBranchNames] = useState<Record<string, string>>({});
+	const [departmentNames, setDepartmentNames] = useState<Record<string, string>>(
+		{},
+	);
 	const [cycles, setCycles] = useState<Record<string, SurveyCycleDoc>>({});
+	const [myTeacherIds, setMyTeacherIds] = useState<string[]>([]);
+	const [myManagementAssignments, setMyManagementAssignments] = useState<
+		ManagementAssignmentEntry[]
+	>([]);
 	const [statusFilter, setStatusFilter] = useState<"all" | "OPEN" | "DONE">(
 		"all",
 	);
@@ -162,11 +181,23 @@ export const TaskListPage = () => {
 
 	useEffect(() => {
 		const loadLookups = async () => {
-			if (tasks.length === 0) {
+			if (!user) {
 				setTeacherNames({});
+				setTeacherDocs({});
 				setGroupNames({});
 				setSubjectNames({});
+				setBranchNames({});
+				setDepartmentNames({});
+				setMyTeacherIds([]);
+				setMyManagementAssignments([]);
 				return;
+			}
+
+			if (tasks.length === 0) {
+				setTeacherNames({});
+				setTeacherDocs({});
+				setGroupNames({});
+				setSubjectNames({});
 			}
 
 			const teacherIds = Array.from(
@@ -192,8 +223,38 @@ export const TaskListPage = () => {
 			);
 
 			const teacherMap: Record<string, string> = {};
+			const teacherDocMap: Record<string, TeacherDoc> = {};
 			const groupMap: Record<string, string> = {};
 			const subjectMap: Record<string, string> = {};
+			const [
+				branchesRes,
+				departmentsRes,
+				myAssignmentsRes,
+				myTeacherRes,
+			] = await Promise.all([
+				supabase
+					.from("branches")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+				supabase
+					.from("departments")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+				supabase
+					.from("management_assignments")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("manager_id", user.id)
+					.is("deleted_at", null),
+				supabase
+					.from("teachers")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null)
+					.or(`user_id.eq.${user.id},id.eq.${user.id}`),
+			]);
 
 			for (const chunk of chunkArray(teacherIds, 200)) {
 				if (chunk.length === 0) continue;
@@ -203,15 +264,14 @@ export const TaskListPage = () => {
 					.eq("org_id", ORG_ID)
 					.in("id", chunk)
 					.is("deleted_at", null);
-				Object.assign(
-					teacherMap,
-					buildNameMap(
-						(res.data ?? []).map((row) => ({
-							id: row.id,
-							data: mapTeacherRow(row) as TeacherDoc,
-						})),
-					),
-				);
+				const mappedTeachers = (res.data ?? []).map((row) => ({
+					id: row.id,
+					data: mapTeacherRow(row) as TeacherDoc,
+				}));
+				Object.assign(teacherMap, buildNameMap(mappedTeachers));
+				mappedTeachers.forEach((teacher) => {
+					teacherDocMap[teacher.id] = teacher.data;
+				});
 			}
 
 			for (const chunk of chunkArray(groupIds, 200)) {
@@ -253,12 +313,33 @@ export const TaskListPage = () => {
 			}
 
 			setTeacherNames(teacherMap);
+			setTeacherDocs(teacherDocMap);
 			setGroupNames(groupMap);
 			setSubjectNames(subjectMap);
+			setBranchNames(
+				Object.fromEntries(
+					(branchesRes.data ?? []).map((row) => [row.id, mapBranchRow(row).name]),
+				),
+			);
+			setDepartmentNames(
+				Object.fromEntries(
+					(departmentsRes.data ?? []).map((row) => [
+						row.id,
+						mapDepartmentRow(row).name,
+					]),
+				),
+			);
+			setMyManagementAssignments(
+				(myAssignmentsRes.data ?? []).map((row) => ({
+					id: row.id,
+					data: mapManagementAssignmentRow(row),
+				})),
+			);
+			setMyTeacherIds((myTeacherRes.data ?? []).map((row) => row.id));
 		};
 
 		void loadLookups();
-	}, [tasks]);
+	}, [tasks, user]);
 
 	useEffect(() => {
 		if (!isStudent) {
@@ -368,21 +449,94 @@ export const TaskListPage = () => {
 		[resolveMetaParts],
 	);
 
+	const myTeacherIdSet = useMemo(() => new Set(myTeacherIds), [myTeacherIds]);
+
+	const resolveTaskReason = useCallback(
+		(task: TaskDoc, targetName: string): TaskReason => {
+			if (task.raterRole === "teacher" && myTeacherIdSet.has(task.targetId)) {
+				return {
+					badge: "Özünü",
+					label: "Özünüqiymətləndirmə sorğusu",
+					detail:
+						"Bu tapşırıq sizin şəxsi fəaliyyətinizi qiymətləndirməyiniz üçündür.",
+				};
+			}
+
+			const cycleYear = cycles[task.cycleId]?.year;
+			const targetTeacher = teacherDocs[task.targetId];
+			const matchingAssignments = myManagementAssignments.filter((assignment) => {
+				if (cycleYear && assignment.data.year !== cycleYear) return false;
+				if (assignment.data.branchId !== task.branchId) return false;
+				if (assignment.data.departmentId) {
+					return assignment.data.departmentId === targetTeacher?.departmentId;
+				}
+				return true;
+			});
+			const departmentAssignment =
+				matchingAssignments.find((assignment) => Boolean(assignment.data.departmentId)) ??
+				null;
+			const branchAssignment =
+				matchingAssignments.find((assignment) => !assignment.data.departmentId) ?? null;
+
+			if (departmentAssignment?.data.departmentId) {
+				const departmentName =
+					departmentNames[departmentAssignment.data.departmentId] ??
+					teacherDocs[task.targetId]?.departmentId ??
+					"kafedranız";
+				return {
+					badge: "Kafedra",
+					label: `${departmentName} üzrə müəllim sorğusu`,
+					detail: `${targetName} sizə görünür, çünki ${departmentName} kafedrası üzrə rəhbərlik təyinatınız var.`,
+				};
+			}
+
+			if (branchAssignment) {
+				const branchName =
+					branchNames[branchAssignment.data.branchId] ??
+					branchNames[task.branchId] ??
+					"filial";
+				return {
+					badge: "Filial",
+					label: `${branchName} üzrə ümumi müəllim sorğusu`,
+					detail: `${targetName} sizə görünür, çünki ${branchName} üzrə bütün müəllimləri qiymətləndirmək səlahiyyətiniz var.`,
+				};
+			}
+
+			if (task.raterRole === "manager") {
+				return {
+					badge: "Rəhbərlik",
+					label: "Rəhbərlik sorğusu",
+					detail:
+						"Bu müəllim sizə rəhbərlik qiymətləndirməsi üçün təyin olunub.",
+				};
+			}
+
+			return {
+				badge: "Sorğu",
+				label: "Qiymətləndirmə tapşırığı",
+				detail: "Bu müəllim aktiv sorğu təyinatına görə sizin siyahınızda görünür.",
+			};
+		},
+		[branchNames, cycles, departmentNames, myManagementAssignments, myTeacherIdSet, teacherDocs],
+	);
+
 	const enriched = useMemo(() => {
 		return tasks.map((task) => {
 			const cycle = cycles[task.data.cycleId];
 			const cycleState = resolveCycleState(cycle);
 			const endAt = toJsDate(cycle?.endAt);
+			const targetName = resolveTargetName(task.data);
 			return {
 				...task,
 				cycle,
 				cycleState,
-				targetName: resolveTargetName(task.data),
+				targetName,
 				meta: resolveMeta(task.data),
+				reason: resolveTaskReason(task.data, targetName),
 				endAt,
 			};
 		});
-	}, [cycles, tasks, resolveTargetName, resolveMeta]);
+	}, [cycles, tasks, resolveTargetName, resolveMeta, resolveTaskReason]);
 
 	const filtered = useMemo(() => {
 		return enriched
@@ -393,7 +547,8 @@ export const TaskListPage = () => {
 					return false;
 				if (search.trim()) {
 					const q = search.trim().toLowerCase();
-					const haystack = `${task.targetName} ${task.meta}`.toLowerCase();
+					const haystack =
+						`${task.targetName} ${task.meta} ${task.reason.label} ${task.reason.detail}`.toLowerCase();
 					if (!haystack.includes(q)) return false;
 				}
 				return true;
@@ -1084,7 +1239,14 @@ export const TaskListPage = () => {
 											{task.cycleState.label}
 										</span>
 									</div>
-									<div className="task-card__meta">{task.meta || "Meta yoxdur"}</div>
+									<div className="task-card__context">
+										<span className="task-chip">{task.reason.badge}</span>
+										<span className="task-card__reason-label">
+											{task.reason.label}
+										</span>
+									</div>
+									<div className="task-card__reason">{task.reason.detail}</div>
+									{task.meta && <div className="task-card__meta">{task.meta}</div>}
 									<div className="task-card__meta">
 										Son tarix: {formatShortDate(task.endAt)}
 									</div>
@@ -1095,7 +1257,14 @@ export const TaskListPage = () => {
 										<div className="task-card__title">{task.targetName}</div>
 										<span className="task-pill closed">{task.cycleState.label}</span>
 									</div>
-									<div className="task-card__meta">{task.meta || "Meta yoxdur"}</div>
+									<div className="task-card__context">
+										<span className="task-chip">{task.reason.badge}</span>
+										<span className="task-card__reason-label">
+											{task.reason.label}
+										</span>
+									</div>
+									<div className="task-card__reason">{task.reason.detail}</div>
+									{task.meta && <div className="task-card__meta">{task.meta}</div>}
 									<div className="task-card__meta">
 										Son tarix: {formatShortDate(task.endAt)}
 									</div>
@@ -1124,7 +1293,14 @@ export const TaskListPage = () => {
 									<div className="task-card__title">{task.targetName}</div>
 									<span className="task-pill ok">Tamamlandı</span>
 								</div>
-								<div className="task-card__meta">{task.meta || "Meta yoxdur"}</div>
+								<div className="task-card__context">
+									<span className="task-chip">{task.reason.badge}</span>
+									<span className="task-card__reason-label">
+										{task.reason.label}
+									</span>
+								</div>
+								<div className="task-card__reason">{task.reason.detail}</div>
+								{task.meta && <div className="task-card__meta">{task.meta}</div>}
 								<div className="task-card__meta">
 									Göndərilmə: {formatShortDate(toJsDate(task.data.submittedAt))}
 								</div>

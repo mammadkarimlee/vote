@@ -13,65 +13,99 @@ import type {
 	ManagementAssignmentDoc,
 	UserDoc,
 } from "../../lib/types";
+import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
-import { BranchSelector } from "./BranchSelector";
-import { useBranchScope } from "./useBranchScope";
+
+type UserEntry = { id: string; data: UserDoc };
+type DepartmentEntry = { id: string; data: DepartmentDoc };
+type AssignmentEntry = { id: string; data: ManagementAssignmentDoc };
+type BranchEntry = { id: string; data: BranchDoc };
+type AggregatedDepartmentHead = {
+	key: string;
+	departmentName: string;
+	managerUid: string;
+	year: number;
+	assignmentIds: string[];
+	branchIds: string[];
+};
+type GlobalDepartmentOption = {
+	name: string;
+	departmentIds: string[];
+	branchIds: string[];
+};
+
+const HIDDEN_DEPARTMENT_NAMES = new Set(["umumi", "ümumi"]);
+
+const formatRoleLabel = (role?: UserDoc["role"]) =>
+	role === "teacher" ? "Müəllim" : "Rəhbərlik";
+
+const isVisibleDepartmentName = (name?: string | null) => {
+	const normalized = name?.trim().toLocaleLowerCase("az");
+	if (!normalized) return false;
+	return !HIDDEN_DEPARTMENT_NAMES.has(normalized);
+};
 
 export const BranchManagementAssignmentsPage = () => {
-	const { user } = useAuth();
+	const { user, userDoc } = useAuth();
 	const { confirm, dialog } = useConfirmDialog();
-	const { branchId, setBranchId, branches, branchName, isSuperAdmin } =
-		useBranchScope();
-	const [managerCandidates, setManagerCandidates] = useState<
-		Array<{ id: string; data: UserDoc }>
-	>([]);
-	const [assignments, setAssignments] = useState<
-		Array<{ id: string; data: ManagementAssignmentDoc }>
-	>([]);
-	const [departments, setDepartments] = useState<
-		Array<{ id: string; data: DepartmentDoc }>
-	>([]);
-	const [allBranches, setAllBranches] = useState<
-		Array<{ id: string; data: BranchDoc }>
-	>([]);
+	const isSuperAdmin = userDoc?.role === "superadmin";
+	const scopedBranchIds = useMemo(
+		() => (isSuperAdmin ? null : userDoc?.branchId ? [userDoc.branchId] : []),
+		[isSuperAdmin, userDoc?.branchId],
+	);
+	const [managerCandidates, setManagerCandidates] = useState<UserEntry[]>([]);
+	const [assignments, setAssignments] = useState<AssignmentEntry[]>([]);
+	const [departments, setDepartments] = useState<DepartmentEntry[]>([]);
+	const [branches, setBranches] = useState<BranchEntry[]>([]);
 	const [managerUid, setManagerUid] = useState("");
-	const [departmentId, setDepartmentId] = useState("");
+	const [departmentName, setDepartmentName] = useState("");
 	const [year, setYear] = useState(String(new Date().getFullYear()));
 	const [status, setStatus] = useState<string | null>(null);
 
 	const loadData = useCallback(async () => {
-		if (!branchId) {
+		if (Array.isArray(scopedBranchIds) && scopedBranchIds.length === 0) {
 			setManagerCandidates([]);
 			setAssignments([]);
 			setDepartments([]);
+			setBranches([]);
 			return;
+		}
+
+		const usersQuery = supabase
+			.from("users")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.in("role", ["manager", "teacher"])
+			.is("deleted_at", null);
+		const assignmentsQuery = supabase
+			.from("management_assignments")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.not("department_id", "is", null)
+			.is("deleted_at", null);
+		const departmentsQuery = supabase
+			.from("departments")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+		const branchesQuery = supabase
+			.from("branches")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+
+		if (Array.isArray(scopedBranchIds) && scopedBranchIds.length > 0) {
+			assignmentsQuery.in("branch_id", scopedBranchIds);
+			departmentsQuery.in("branch_id", scopedBranchIds);
+			branchesQuery.in("id", scopedBranchIds);
 		}
 
 		const [usersRes, assignmentsRes, departmentsRes, branchesRes] =
 			await Promise.all([
-				supabase
-					.from("users")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.in("role", ["manager", "teacher"])
-					.is("deleted_at", null),
-				supabase
-					.from("management_assignments")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("branch_id", branchId)
-					.is("deleted_at", null),
-				supabase
-					.from("departments")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("branch_id", branchId)
-					.is("deleted_at", null),
-				supabase
-					.from("branches")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
+				usersQuery,
+				assignmentsQuery,
+				departmentsQuery,
+				branchesQuery,
 			]);
 
 		setManagerCandidates(
@@ -84,6 +118,7 @@ export const BranchManagementAssignmentsPage = () => {
 					),
 				),
 		);
+
 		setAssignments(
 			(assignmentsRes.data ?? [])
 				.map((row) => ({
@@ -92,6 +127,7 @@ export const BranchManagementAssignmentsPage = () => {
 				}))
 				.sort((a, b) => b.data.year - a.data.year),
 		);
+
 		setDepartments(
 			(departmentsRes.data ?? [])
 				.map((row) => ({
@@ -100,209 +136,446 @@ export const BranchManagementAssignmentsPage = () => {
 				}))
 				.sort((a, b) => a.data.name.localeCompare(b.data.name, "az")),
 		);
-		setAllBranches(
-			(branchesRes.data ?? []).map((row) => ({
-				id: row.id,
-				data: mapBranchRow(row),
-			})),
+
+		setBranches(
+			(branchesRes.data ?? [])
+				.map((row) => ({
+					id: row.id,
+					data: mapBranchRow(row),
+				}))
+				.sort((a, b) => a.data.name.localeCompare(b.data.name, "az")),
 		);
-	}, [branchId]);
+	}, [scopedBranchIds]);
 
 	useEffect(() => {
 		void loadData();
 	}, [loadData]);
 
+	const managerMap = useMemo(
+		() =>
+			Object.fromEntries(
+				managerCandidates.map((manager) => [manager.id, manager.data]),
+			),
+		[managerCandidates],
+	);
+
+	const departmentMap = useMemo(
+		() =>
+			Object.fromEntries(
+				departments.map((department) => [department.id, department.data]),
+			),
+		[departments],
+	);
+
+	const branchMap = useMemo(
+		() => Object.fromEntries(branches.map((branch) => [branch.id, branch.data])),
+		[branches],
+	);
+
+	const globalDepartments = useMemo(() => {
+		const grouped = new Map<
+			string,
+			{ name: string; departmentIds: string[]; branchIds: Set<string> }
+		>();
+
+		departments.forEach((department) => {
+			if (!isVisibleDepartmentName(department.data.name)) return;
+			const existing = grouped.get(department.data.name) ?? {
+				name: department.data.name,
+				departmentIds: [],
+				branchIds: new Set<string>(),
+			};
+			existing.departmentIds.push(department.id);
+			existing.branchIds.add(department.data.branchId);
+			grouped.set(department.data.name, existing);
+		});
+
+		return Array.from(grouped.values())
+			.map<GlobalDepartmentOption>((item) => ({
+				name: item.name,
+				departmentIds: item.departmentIds,
+				branchIds: Array.from(item.branchIds),
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name, "az"));
+	}, [departments]);
+
+	const departmentHeads = useMemo(() => {
+		const grouped = new Map<
+			string,
+			{
+				key: string;
+				departmentName: string;
+				managerUid: string;
+				year: number;
+				assignmentIds: string[];
+				branchIds: Set<string>;
+			}
+		>();
+
+		assignments.forEach((assignment) => {
+			const departmentId = assignment.data.departmentId;
+			if (!departmentId) return;
+			const department = departmentMap[departmentId];
+			if (!department || !isVisibleDepartmentName(department.name)) return;
+
+			const key = [
+				department.name,
+				assignment.data.managerUid,
+				assignment.data.year,
+			].join("::");
+			const existing = grouped.get(key) ?? {
+				key,
+				departmentName: department.name,
+				managerUid: assignment.data.managerUid,
+				year: assignment.data.year,
+				assignmentIds: [],
+				branchIds: new Set<string>(),
+			};
+
+			existing.assignmentIds.push(assignment.id);
+			existing.branchIds.add(assignment.data.branchId);
+			grouped.set(key, existing);
+		});
+
+		return Array.from(grouped.values())
+			.map<AggregatedDepartmentHead>((item) => ({
+				key: item.key,
+				departmentName: item.departmentName,
+				managerUid: item.managerUid,
+				year: item.year,
+				assignmentIds: item.assignmentIds,
+				branchIds: Array.from(item.branchIds),
+			}))
+			.sort((a, b) => {
+				const departmentCompare = a.departmentName.localeCompare(
+					b.departmentName,
+					"az",
+				);
+				if (departmentCompare !== 0) return departmentCompare;
+				const managerCompare = (
+					managerMap[a.managerUid]?.displayName ??
+					managerMap[a.managerUid]?.login ??
+					a.managerUid
+				).localeCompare(
+					managerMap[b.managerUid]?.displayName ??
+						managerMap[b.managerUid]?.login ??
+						b.managerUid,
+					"az",
+				);
+				if (managerCompare !== 0) return managerCompare;
+				return b.year - a.year;
+			});
+	}, [assignments, departmentMap, managerMap]);
+
+	const credentialReadyCount = useMemo(
+		() => departmentHeads.filter((row) => Boolean(managerMap[row.managerUid]?.login)).length,
+		[departmentHeads, managerMap],
+	);
+
+	const scopeLabel = useMemo(() => {
+		if (isSuperAdmin) return "Bütün filiallar";
+		if (!scopedBranchIds || scopedBranchIds.length === 0) return "Filial təyin edilməyib";
+		return branchMap[scopedBranchIds[0]]?.name ?? "Filial";
+	}, [branchMap, isSuperAdmin, scopedBranchIds]);
+
 	const handleCreate = async () => {
-		if (!managerUid || !year || !branchId) {
-			setStatus("Rəhbər, filial və il seçin");
+		if (!managerUid || !departmentName || !year) {
+			setStatus("Müdir, kafedra və il seçin.");
 			return;
 		}
 
 		const yearNumber = Number(year);
 		if (!Number.isInteger(yearNumber) || yearNumber < 2000) {
-			setStatus("İl düzgün daxil edilməyib");
+			setStatus("İl düzgün daxil edilməyib.");
 			return;
 		}
 
-		const { error } = await supabase.from("management_assignments").insert({
-			org_id: ORG_ID,
-			manager_id: managerUid,
-			branch_id: branchId,
-			department_id: departmentId || null,
-			year: yearNumber,
-		});
+		const matchingDepartments = departments.filter(
+			(department) => department.data.name === departmentName,
+		);
+		if (matchingDepartments.length === 0) {
+			setStatus("Seçilmiş kafedra üçün aktiv filial tapılmadı.");
+			return;
+		}
 
+		const existingBranchIds = new Set(
+			departmentHeads
+				.filter(
+					(row) =>
+						row.departmentName === departmentName &&
+						row.managerUid === managerUid &&
+						row.year === yearNumber,
+				)
+				.flatMap((row) => row.branchIds),
+		);
+
+		const rows = matchingDepartments
+			.filter((department) => !existingBranchIds.has(department.data.branchId))
+			.map((department) => ({
+				org_id: ORG_ID,
+				manager_id: managerUid,
+				branch_id: department.data.branchId,
+				department_id: department.id,
+				year: yearNumber,
+			}));
+
+		if (rows.length === 0) {
+			setStatus("Bu kafedra müdiri artıq seçilmiş il üçün əlavə olunub.");
+			return;
+		}
+
+		const { error } = await supabase.from("management_assignments").insert(rows);
 		if (error) {
-			setStatus(error.message || "Yaratma zamanı xəta oldu");
+			setStatus(error.message || "Kafedra müdiri əlavə olunmadı.");
 			return;
 		}
 
 		setManagerUid("");
-		setDepartmentId("");
-		setStatus("Təyinat yaradıldı");
+		setDepartmentName("");
+		setStatus(`Kafedra müdiri ${rows.length} filial üzrə əlavə olundu.`);
 		await loadData();
 	};
 
-	const handleDelete = async (assignmentId: string) => {
+	const handleDelete = async (row: AggregatedDepartmentHead) => {
 		const ok = await confirm({
-			title: "Təyinatı sil",
-			message: "Təyinatı silmək istədiyinizə əminsiniz?",
+			title: "Kafedra müdirini sil",
+			message:
+				"Bu kafedra müdiri təyinatı seçilmiş scope daxilində bütün filiallardan silinəcək. Davam edək?",
 			confirmText: "Sil",
 			cancelText: "İmtina",
 			tone: "danger",
 		});
 		if (!ok) return;
-		await supabase
+
+		const { error } = await supabase
 			.from("management_assignments")
 			.update({
 				deleted_at: new Date().toISOString(),
 				deleted_by: user?.id ?? null,
 			})
 			.eq("org_id", ORG_ID)
-			.eq("id", assignmentId);
+			.in("id", row.assignmentIds);
+
+		if (error) {
+			setStatus(error.message || "Silmə zamanı xəta oldu.");
+			return;
+		}
+
+		setStatus("Kafedra müdiri təyinatı silindi.");
 		await loadData();
 	};
 
-	const summary = useMemo(() => assignments.length, [assignments]);
-	const displayTargetBranch = useMemo(() => {
-		if (!branchId) return branchName || "Filial tapılmadı";
-		return (
-			allBranches.find((branch) => branch.id === branchId)?.data.name ??
-			branchName ??
-			"Filial tapılmadı"
+	const handleExport = async () => {
+		const rows = departmentHeads
+			.map((row) => {
+				const manager = managerMap[row.managerUid];
+				const login = manager?.login ?? "";
+				const primaryBranch =
+					(manager?.branchId && branchMap[manager.branchId]?.name) || "-";
+				const coveredBranches = row.branchIds
+					.map((branchId) => branchMap[branchId]?.name ?? branchId)
+					.sort((a, b) => a.localeCompare(b, "az"))
+					.join(", ");
+
+				return {
+					departmentName: row.departmentName,
+					managerName: manager?.displayName ?? manager?.login ?? row.managerUid,
+					login,
+					password: login,
+					primaryBranch,
+					coveredBranches,
+					year: row.year,
+				};
+			})
+			.sort((a, b) => {
+				const departmentCompare = a.departmentName.localeCompare(
+					b.departmentName,
+					"az",
+				);
+				if (departmentCompare !== 0) return departmentCompare;
+				return a.managerName.localeCompare(b.managerName, "az");
+			});
+
+		if (rows.length === 0) {
+			setStatus("Export üçün kafedra müdiri tapılmadı.");
+			return;
+		}
+
+		await downloadWorkbook("kafedra-mudirleri-logins.xlsx", [
+			{
+				name: "Kafedra müdirləri",
+				headers: [
+					"Kafedra",
+					"Müdir",
+					"Login",
+					"Parol",
+					"Əsas filial",
+					"Əhatə etdiyi filiallar",
+					"İl",
+				],
+				rows: rows.map((row) => [
+					row.departmentName,
+					row.managerName,
+					row.login,
+					row.password,
+					row.primaryBranch,
+					row.coveredBranches,
+					row.year,
+				]),
+			},
+		]);
+
+		setStatus(
+			"Export hazırdır. Parol sütunu sistemin ilkin qaydasına uyğun olaraq login dəyəri ilə dolduruldu.",
 		);
-	}, [allBranches, branchId, branchName]);
-	const managerMap = useMemo(
-		() => Object.fromEntries(managerCandidates.map((manager) => [manager.id, manager.data])),
-		[managerCandidates],
-	);
-	const departmentMap = useMemo(
-		() => Object.fromEntries(departments.map((department) => [department.id, department.data])),
-		[departments],
-	);
-	const branchMap = useMemo(
-		() => Object.fromEntries(allBranches.map((branch) => [branch.id, branch.data])),
-		[allBranches],
-	);
+	};
 
 	return (
-		<div className="panel">
-			{isSuperAdmin && (
-				<BranchSelector
-					branchId={branchId}
-					branches={branches}
-					onChange={setBranchId}
-				/>
-			)}
-
-			<div className="panel-header">
-				<div>
-					<h2>Kafedra rəhbəri təyinatları</h2>
-					<p>Kim hansı filialda hansı kafedranın müəllimlərini qiymətləndirir.</p>
+		<div className="panel branch-page">
+			<div className="page-hero">
+				<div className="page-hero__content">
+					<div className="eyebrow">Rəhbərlik strukturu</div>
+					<h1>Kafedra müdirləri</h1>
+					<p>
+						Kafedra müdirləri qlobal siyahı kimi göstərilir. Buradan onların
+						loginlərini görə və export edə bilərsiniz.
+					</p>
 				</div>
-				<div className="stat-pill">Cəmi: {summary}</div>
-			</div>
-
-			<div className="card">
-				<h3>Yeni təyinat</h3>
-				<div className="form-grid">
-					<select
-						className="input"
-						value={managerUid}
-						onChange={(event) => setManagerUid(event.target.value)}
-					>
-						<option value="">Rəhbər seçin</option>
-						{managerCandidates.map((manager) => {
-							const managerBranchName =
-								(manager.data.branchId &&
-									branchMap[manager.data.branchId]?.name) ||
-								"Filialsız";
-							const managerRole =
-								manager.data.role === "teacher" ? "Müəllim" : "Rəhbərlik";
-							return (
-								<option key={manager.id} value={manager.id}>
-									{manager.data.displayName ?? manager.data.login ?? manager.id} (
-									{managerRole}, {managerBranchName})
-								</option>
-							);
-						})}
-					</select>
-					<select
-						className="input"
-						value={departmentId}
-						onChange={(event) => setDepartmentId(event.target.value)}
-						disabled={!branchId}
-					>
-						<option value="">Bütün kafedralar</option>
-						{departments.map((department) => (
-							<option key={department.id} value={department.id}>
-								{department.data.name}
-							</option>
-						))}
-					</select>
-					<input
-						className="input"
-						placeholder="İl"
-						value={year}
-						onChange={(event) => setYear(event.target.value)}
-					/>
-					<button
-						className="btn primary"
-						type="button"
-						onClick={handleCreate}
-						disabled={!branchId}
-					>
-						Yarat
+				<div className="page-hero__aside">
+					<div className="stat-pill">Scope: {scopeLabel}</div>
+					<div className="stat-pill">Cəmi: {departmentHeads.length}</div>
+					<div className="stat-pill">Login hazır: {credentialReadyCount}</div>
+					<button className="btn primary" type="button" onClick={() => void handleExport()}>
+						Loginləri export et
 					</button>
 				</div>
-				{status && <div className="notice">{status}</div>}
 			</div>
 
-			<div className="data-table">
-				<div className="data-row header">
-					<div>Rəhbər</div>
-					<div>Rol</div>
-					<div>İşlədiyi filial</div>
-					<div>Qiymətləndirdiyi filial</div>
-					<div>Kafedra</div>
-					<div>İl</div>
-					<div></div>
-				</div>
-				{assignments.map((assignment) => {
-					const manager = managerMap[assignment.data.managerUid];
-					const managerDisplayName =
-						manager?.displayName ?? manager?.login ?? assignment.data.managerUid;
-					const managerRole = manager?.role === "teacher" ? "Müəllim" : "Rəhbərlik";
-					const managerBranchName =
-						(manager?.branchId && branchMap[manager.branchId]?.name) || "-";
-					const departmentName = assignment.data.departmentId
-						? (departmentMap[assignment.data.departmentId]?.name ??
-							assignment.data.departmentId)
-						: "Bütün kafedralar";
+			{status && <div className="notice">{status}</div>}
 
-					return (
-						<div className="data-row" key={assignment.id}>
-							<div>{managerDisplayName}</div>
-							<div>{managerRole}</div>
-							<div>{managerBranchName}</div>
-							<div>{displayTargetBranch}</div>
-							<div>{departmentName}</div>
-							<div>{assignment.data.year}</div>
-							<div>
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={() => void handleDelete(assignment.id)}
-								>
-									Sil
-								</button>
-							</div>
+			<div className="page-grid">
+				<div className="stack">
+					<div className="card">
+						<h3>Yeni kafedra müdiri</h3>
+						<p className="hint">
+							Bu əlavə etmə qlobal işləyir. Seçilmiş kafedra həmin kafedranın
+							olan bütün filiallarında eyni müdirə bağlanacaq.
+						</p>
+						<div className="form-grid">
+							<select
+								className="input"
+								value={managerUid}
+								onChange={(event) => setManagerUid(event.target.value)}
+							>
+								<option value="">Müdir seçin</option>
+								{managerCandidates.map((manager) => {
+									const managerBranchName =
+										(manager.data.branchId &&
+											branchMap[manager.data.branchId]?.name) ||
+										"Filialsız";
+									return (
+										<option key={manager.id} value={manager.id}>
+											{manager.data.displayName ?? manager.data.login ?? manager.id} (
+											{formatRoleLabel(manager.data.role)}, {managerBranchName})
+										</option>
+									);
+								})}
+							</select>
+
+							<select
+								className="input"
+								value={departmentName}
+								onChange={(event) => setDepartmentName(event.target.value)}
+							>
+								<option value="">Kafedra seçin</option>
+								{globalDepartments.map((department) => (
+									<option key={department.name} value={department.name}>
+										{department.name}
+									</option>
+								))}
+							</select>
+
+							<input
+								className="input"
+								placeholder="İl"
+								value={year}
+								onChange={(event) => setYear(event.target.value)}
+							/>
+
+							<button className="btn primary" type="button" onClick={handleCreate}>
+								Əlavə et
+							</button>
 						</div>
-					);
-				})}
+						<div className="hint">
+							Parol export zamanı login ilə eyni göstərilir. Sistem mövcud real
+							parolu oxumadığı üçün istifadəçi sonradan parol dəyişibsə, həmin
+							dəyişiklik exportda görünməyəcək.
+						</div>
+					</div>
+				</div>
+
+				<div className="stack">
+					<div className="card">
+						<div className="section-header">
+							<div>
+								<div className="section-kicker">Ayrı bölmə</div>
+								<div className="section-title">Aktiv kafedra müdirləri</div>
+							</div>
+							<div className="tag">Cəmi: {departmentHeads.length}</div>
+						</div>
+						<div className="data-table">
+							<div className="data-row header">
+								<div>Kafedra</div>
+								<div>Müdir</div>
+								<div>Login</div>
+								<div>Parol</div>
+								<div>Əhatə etdiyi filiallar</div>
+								<div>İl</div>
+								<div></div>
+							</div>
+							{departmentHeads.map((row) => {
+								const manager = managerMap[row.managerUid];
+								const managerDisplayName =
+									manager?.displayName ?? manager?.login ?? row.managerUid;
+								const coveredBranches = row.branchIds
+									.map((branchId) => branchMap[branchId]?.name ?? branchId)
+									.sort((a, b) => a.localeCompare(b, "az"))
+									.join(", ");
+								const login = manager?.login ?? "-";
+
+								return (
+									<div className="data-row" key={row.key}>
+										<div>{row.departmentName}</div>
+										<div className="stack">
+											<div className="list-title">{managerDisplayName}</div>
+											<div className="hint">{formatRoleLabel(manager?.role)}</div>
+										</div>
+										<div>{login}</div>
+										<div>{manager?.login ?? "-"}</div>
+										<div>{coveredBranches || "-"}</div>
+										<div>{row.year}</div>
+										<div>
+											<button
+												className="btn ghost"
+												type="button"
+												onClick={() => void handleDelete(row)}
+											>
+												Sil
+											</button>
+										</div>
+									</div>
+								);
+							})}
+							{departmentHeads.length === 0 && (
+								<div className="empty">
+									Bu scope üzrə aktiv kafedra müdiri görünmür.
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
 			</div>
 			{dialog}
 		</div>
 	);
 };
-

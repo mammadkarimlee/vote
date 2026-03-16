@@ -564,6 +564,22 @@
     @apply mt-1 text-xs text-muted-foreground;
   }
 
+  .task-card__context {
+    @apply mt-3 flex flex-wrap items-center gap-2;
+  }
+
+  .task-chip {
+    @apply inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground;
+  }
+
+  .task-card__reason-label {
+    @apply text-xs font-semibold text-foreground;
+  }
+
+  .task-card__reason {
+    @apply mt-2 text-xs leading-5 text-muted-foreground;
+  }
+
   .task-pill {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em];
   }

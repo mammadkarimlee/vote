@@ -950,10 +950,20 @@ export const AdminCyclesPage = () => {
 		const teacherMap = Object.fromEntries(
 			teachersScoped.map((teacher) => [teacher.id, teacher.data]),
 		);
-		const userMap = Object.fromEntries(
-			usersScoped.map((account) => [account.id, account.data]),
+		const userMapAll = Object.fromEntries(
+			users.map((account) => [account.id, account.data]),
 		);
 		const teacherIdByUserId = teachersScoped.reduce<Record<string, string>>(
+			(acc, teacher) => {
+				if (teacher.data.uid) {
+					acc[teacher.data.uid] = teacher.id;
+				}
+				acc[teacher.id] = teacher.id;
+				return acc;
+			},
+			{},
+		);
+		const teacherIdByUserIdAll = teachers.reduce<Record<string, string>>(
 			(acc, teacher) => {
 				if (teacher.data.uid) {
 					acc[teacher.data.uid] = teacher.id;
@@ -1132,7 +1142,7 @@ export const AdminCyclesPage = () => {
 			});
 		} else {
 			managementAssignmentsForYear.forEach((assignment) => {
-				const rater = userMap[assignment.data.managerUid];
+				const rater = userMapAll[assignment.data.managerUid];
 				if (!rater) {
 					skippedManagementAssignments += 1;
 					return;
@@ -1142,7 +1152,7 @@ export const AdminCyclesPage = () => {
 					return;
 				}
 
-				const raterTeacherId = teacherIdByUserId[assignment.data.managerUid];
+				const raterTeacherId = teacherIdByUserIdAll[assignment.data.managerUid];
 				const targetTeachers = teachersScoped.filter((teacher) => {
 					const inAssignmentBranch =
 						teacher.data.branchId === assignment.data.branchId ||
@@ -1205,7 +1215,7 @@ export const AdminCyclesPage = () => {
 		}
 		if (skippedManagementSelf > 0) {
 			warnings.push(
-				`${skippedManagementSelf} rəhbərlik tapşırığı özünüqiymətləndirməyə düşdüyü üçün buraxıldı`,
+				`${skippedManagementSelf} rəhbərlik tapşırığı həmin şəxslərin öz profili olduğu üçün yaradılmadı`,
 			);
 		}
 

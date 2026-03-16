@@ -1,0 +1,28 @@
+[
+  {
+    "id": "12340278-4ae8-4f66-9096-63724663d6d2",
+    "org_id": "default",
+    "manager_id": "d955529f-9c4b-42cb-9c2a-2f8b0c93151b",
+    "branch_id": "0a2bc8f0-4f43-4b7a-916d-72424f3d1b21",
+    "year": 2026,
+    "created_at": "2026-03-13T13:16:59.478963+00:00",
+    "deleted_at": null,
+    "deleted_by": null,
+    "archived_at": null,
+    "archived_by": null,
+    "department_id": "0c749bd8-6002-4691-87bb-383006b65828"
+  },
+  {
+    "id": "d9537ed8-393b-44f2-9ff3-43fba28b53cf",
+    "org_id": "default",
+    "manager_id": "32a1b5d6-a3e1-4b60-805c-b39b50849567",
+    "branch_id": "0a2bc8f0-4f43-4b7a-916d-72424f3d1b21",
+    "year": 2026,
+    "created_at": "2026-03-13T13:17:15.716306+00:00",
+    "deleted_at": null,
+    "deleted_by": null,
+    "archived_at": null,
+    "archived_by": null,
+    "department_id": "2e72d38f-7183-425a-b1c5-332de0838dfb"
+  }
+]

@@ -1,0 +1,16 @@
+department_name,head_name,home_branch,scope_kind,notes
+Azərbaycan dili və Ədəbiyyat,Sadıqova Zülfiyyə,Azadlıq,global_department,"Azərbaycan dili tədris dili, Azərbaycan dili Rus və İngilis bölmələrində"
+Riyaziyyat və məntiq,Kərimli Fatimə,Stars Campusu,global_department,
+İngilis dili və Alman dili,Quliyeva Nərgiz,Nəsimi,global_department,
+İbtidai Azərbaycan bölməsi,İsmayılova Könül,Nəsimi,global_department,
+İbtidai Rus bölməsi,Ramilə m,Qurtuluş,global_department,Ad tam deyil; dəqiqləşdirilməlidir
+Rus dili kafedrası,Cəfərova Zöhrə,Nəsimi,global_department,"Rus dili tədris dili, Rus dili Azərbaycan bölməsində"
+Təbiət fənləri kafedrası,Məmmədova Səadət,Nəsimi,global_department,"Həyat bilgisi, Təbiət, Biologiya"
+Fizika kafedrası,Mustafayeva Zamilə,Stars Campusu,global_department,
+Kimya kafedrası,Məhərrəmova Gövhər,Stars Campusu,global_department,
+Texnologiya (STEAM),Əmirgünəyev Rəşad,Nəsimi,global_department,
+İnformatika və Süni intellekt,Məmmədova Pərvanə,Qurtuluş,global_department,
+İdman,Bayramov Gündüz,Nəsimi,global_department,"Fiziki tərbiyə, şahmat, gimnastika"
+İncəsənət,Rzayeva Nigar,Qurtuluş,global_department,"Təsviri incəsənət, dram"
+Kembric məktəbi üzrə koordinator,Eren Kancilar XXX,Stars Campusu,global_department,Departament-kimi scope ilə işlənəcək
+Tarix və Coğrafiya,Vəli Vəlizadə,,global_department,İstifadəçi dəqiqləşdirməsinə əsasən əlavə edildi
