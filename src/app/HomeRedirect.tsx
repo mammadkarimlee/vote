@@ -20,6 +20,9 @@ const getLastPath = (role: string) => {
 			? stored
 			: null;
 	}
+	if (role === "hr") {
+		return stored.startsWith("/hr") || stored.startsWith("/me") ? stored : null;
+	}
 	if (role === "student" || role === "teacher" || role === "manager") {
 		return stored.startsWith("/vote") || stored.startsWith("/me")
 			? stored
@@ -45,6 +48,9 @@ export const HomeRedirect = () => {
 	}
 	if (userDoc.role === "moderator") {
 		return <Navigate to="/branch" replace />;
+	}
+	if (userDoc.role === "hr") {
+		return <Navigate to="/hr/cycles" replace />;
 	}
 	return <Navigate to="/vote" replace />;
 };

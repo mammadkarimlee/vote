@@ -70,6 +70,17 @@ const parseErrorMessage = async (response: Response) => {
 	return `HTTP ${response.status}`;
 };
 
+const isNetworkErrorMessage = (value: string) => {
+	const normalized = value.toLowerCase();
+	return (
+		normalized.includes("failed to fetch") ||
+		normalized.includes("network") ||
+		normalized.includes("timeout") ||
+		normalized.includes("econnrefused") ||
+		normalized.includes("load failed")
+	);
+};
+
 const postAiFeedback = async (
 	baseUrl: string,
 	token: string,
@@ -93,7 +104,7 @@ const postAiFeedback = async (
 		| TeacherAiFeedbackResponse
 		| null;
 	if (!body || typeof body.summary !== "string" || !body.summary.trim()) {
-		throw { retryable: false, error: "AI xidməti düzgün cavab qaytarmadı." };
+		throw { retryable: false, error: "AI xidmeti duzgun cavab qaytarmadi." };
 	}
 	return body;
 };
@@ -102,7 +113,7 @@ export const requestTeacherAiFeedback = async (
 	token: string,
 	payload: TeacherAiFeedbackRequest,
 ) => {
-	let lastError = "AI xidməti ilə əlaqə qurulmadı.";
+	let lastError = "AI xidmeti ile elaqe qurulmadi.";
 
 	for (const baseUrl of AI_HTTP_BASES) {
 		try {
@@ -118,7 +129,7 @@ export const requestTeacherAiFeedback = async (
 				lastError =
 					typeof wrapped.error === "string"
 						? wrapped.error
-						: "AI xidməti ilə əlaqə qurulmadı.";
+						: "AI xidmeti ile elaqe qurulmadi.";
 				if (!wrapped.retryable) {
 					break;
 				}
@@ -126,6 +137,12 @@ export const requestTeacherAiFeedback = async (
 			}
 			lastError = error instanceof Error ? error.message : lastError;
 		}
+	}
+
+	if (isNetworkErrorMessage(lastError)) {
+		throw new Error(
+			"AI server elcatan deyil. `npm run dev:server` isle ve OPENAI_API_KEY teyin et.",
+		);
 	}
 
 	throw new Error(lastError);

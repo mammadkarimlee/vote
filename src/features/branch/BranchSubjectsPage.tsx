@@ -12,6 +12,72 @@ import { useBranchScope } from "./useBranchScope";
 type DepartmentEntry = { id: string; data: DepartmentDoc };
 type SubjectEntry = { id: string; data: SubjectDoc };
 
+const normalizeForMatch = (value: string) =>
+	value
+		.toLocaleLowerCase("az")
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/\u0259/g, "e")
+		.replace(/\u0131/g, "i")
+		.replace(/\u015f/g, "s")
+		.replace(/\u00e7/g, "c")
+		.replace(/\u011f/g, "g")
+		.replace(/\u00f6/g, "o")
+		.replace(/\u00fc/g, "u")
+		.replace(/[^a-z0-9]/g, "");
+
+const CANONICAL_SUBJECT_NAMES: Record<string, string> = {
+	azerbaycandili: "Azərbaycan dili",
+	azerbt: "Azərb/T",
+	azrbaycandili: "Azərbaycan dili",
+	azrbt: "Azərb/T",
+	cografiya: "Coğrafiya",
+	corafiya: "Coğrafiya",
+	deyerler: "Dəyərlər",
+	dyrlr: "Dəyərlər",
+	dbiyyat: "Ədəbiyyat",
+	edebiyyat: "Ədəbiyyat",
+	informatika: "İnformatika",
+	nformatika: "İnformatika",
+	mentiq: "Məntiq",
+	mntiq: "Məntiq",
+	mumit: "Ümumi/T",
+	resm: "Rəsm",
+	rsm: "Rəsm",
+	rusdili: "Rus dili",
+	sahmat: "Şahmat",
+	ahmat: "Şahmat",
+	sinifsaati: "Sinif saatı",
+	sinifsaat: "Sinif saatı",
+	tbit: "Təbiət",
+	tebiet: "Təbiət",
+	umumit: "Ümumi/T",
+};
+
+const canonicalizeSubjectName = (value: string) => {
+	const trimmed = value.trim();
+	if (!trimmed) return "";
+	const normalized = normalizeForMatch(trimmed);
+	return CANONICAL_SUBJECT_NAMES[normalized] ?? trimmed;
+};
+
+const getRowValue = (row: Record<string, string>, aliases: string[]) => {
+	const normalizedRow = new Map<string, string>();
+	Object.entries(row).forEach(([key, rawValue]) => {
+		const normalizedKey = normalizeForMatch(key);
+		if (!normalizedRow.has(normalizedKey)) {
+			normalizedRow.set(normalizedKey, String(rawValue ?? "").trim());
+		}
+	});
+
+	for (const alias of aliases) {
+		const value = normalizedRow.get(normalizeForMatch(alias));
+		if (value) return value;
+	}
+
+	return "";
+};
+
 export const BranchSubjectsPage = () => {
 	const { user } = useAuth();
 	const { confirm, dialog } = useConfirmDialog();
@@ -127,17 +193,18 @@ export const BranchSubjectsPage = () => {
 	}, [loadSubjects]);
 
 	useEffect(() => {
-		if (departments.length === 0) return;
+		if (!departmentId) return;
+		if (!departments.some((department) => department.id === departmentId)) {
+			setDepartmentId("");
+		}
+	}, [departments, departmentId]);
 
-		const normalizedDefault = "Ümumi".toLowerCase();
-		const defaultDepartment =
-			departments.find(
-				(item) => item.data.name.trim().toLowerCase() === normalizedDefault,
-			) ?? departments[0];
-
-		if (!departmentId) setDepartmentId(defaultDepartment.id);
-		if (!importDepartmentId) setImportDepartmentId(defaultDepartment.id);
-	}, [departments, departmentId, importDepartmentId]);
+	useEffect(() => {
+		if (!importDepartmentId) return;
+		if (!departments.some((department) => department.id === importDepartmentId)) {
+			setImportDepartmentId("");
+		}
+	}, [departments, importDepartmentId]);
 
 	const handleCreate = async () => {
 		if (!branchId) {
@@ -153,11 +220,12 @@ export const BranchSubjectsPage = () => {
 			return;
 		}
 
+		const normalizedName = canonicalizeSubjectName(name);
 		const { error } = await supabase.from("subjects").insert({
 			id: createId(),
 			org_id: ORG_ID,
 			department_id: departmentId,
-			name: name.trim(),
+			name: normalizedName,
 			code: code.trim() || null,
 		});
 
@@ -221,10 +289,11 @@ export const BranchSubjectsPage = () => {
 		}
 
 		setSavingEdit(true);
+		const normalizedName = canonicalizeSubjectName(editName);
 		const { error } = await supabase
 			.from("subjects")
 			.update({
-				name: editName.trim(),
+				name: normalizedName,
 				code: editCode.trim() || null,
 				department_id: editDepartmentId,
 			})
@@ -248,49 +317,103 @@ export const BranchSubjectsPage = () => {
 			return;
 		}
 
-		const resolvedDepartmentId = importDepartmentId || departmentId;
-		if (!resolvedDepartmentId) {
-			setStatus("Bulk import üçün kafedra seçilməlidir");
-			return;
-		}
-
+		const fallbackDepartmentId = importDepartmentId || departmentId;
 		const rows = await parseSpreadsheet(file);
+		const departmentIds = new Set(departments.map((department) => department.id));
+		const departmentByName = new Map<string, string>();
+		departments.forEach((department) => {
+			departmentByName.set(normalizeForMatch(department.data.name), department.id);
+		});
+
 		const existing = new Set(
-			subjects.map((subject) => subject.data.name.toLowerCase()),
+			subjects.map((subject) => {
+				const normalizedName = normalizeForMatch(subject.data.name);
+				return `${subject.data.departmentId ?? ""}:${normalizedName}`;
+			}),
 		);
 		const seen = new Set<string>();
 
 		let missing = 0;
 		let duplicates = 0;
+		let missingDepartment = 0;
+		let unknownDepartment = 0;
 
-		const cleaned = rows.filter((row) => {
-			if (!row.name) {
-				missing += 1;
-				return false;
-			}
-			const key = row.name.toLowerCase();
-			if (seen.has(key) || existing.has(key)) {
-				duplicates += 1;
-				return false;
-			}
-			seen.add(key);
-			return true;
-		});
+		const cleaned = rows
+			.map((row) => {
+				const rowName = canonicalizeSubjectName(getRowValue(row, ["name"]));
+				const rowCode = getRowValue(row, ["code"]);
+				const rowDepartmentId = getRowValue(row, [
+					"department_id",
+					"departmentId",
+					"kafedra_id",
+					"kafedraid",
+				]);
+				const rowDepartmentName = getRowValue(row, [
+					"department_name",
+					"departmentName",
+					"department",
+					"kafedra",
+				]);
+
+				if (!rowName) {
+					missing += 1;
+					return null;
+				}
+
+				let resolvedDepartmentId = "";
+				if (rowDepartmentId && departmentIds.has(rowDepartmentId)) {
+					resolvedDepartmentId = rowDepartmentId;
+				}
+
+				if (!resolvedDepartmentId && rowDepartmentName) {
+					const byName = departmentByName.get(normalizeForMatch(rowDepartmentName));
+					if (byName) {
+						resolvedDepartmentId = byName;
+					}
+				}
+
+				const hasExplicitDepartment = Boolean(
+					rowDepartmentId || rowDepartmentName,
+				);
+				if (!resolvedDepartmentId && hasExplicitDepartment) {
+					unknownDepartment += 1;
+					return null;
+				}
+
+				if (!resolvedDepartmentId) {
+					resolvedDepartmentId = fallbackDepartmentId;
+				}
+				if (!resolvedDepartmentId) {
+					missingDepartment += 1;
+					return null;
+				}
+
+				const normalizedName = normalizeForMatch(rowName);
+				const key = `${resolvedDepartmentId}:${normalizedName}`;
+				if (seen.has(key) || existing.has(key)) {
+					duplicates += 1;
+					return null;
+				}
+				seen.add(key);
+
+				return {
+					id: createId(),
+					org_id: ORG_ID,
+					department_id: resolvedDepartmentId,
+					name: rowName,
+					code: rowCode || null,
+				};
+			})
+			.filter((row): row is NonNullable<typeof row> => Boolean(row));
 
 		if (cleaned.length === 0) {
-			setStatus(`Fayl boşdur. Missing: ${missing}, Duplicate: ${duplicates}`);
+			setStatus(
+				`Fayl boşdur. Missing: ${missing}, MissingDepartment: ${missingDepartment}, UnknownDepartment: ${unknownDepartment}, Duplicate: ${duplicates}`,
+			);
 			return;
 		}
 
-		const { error } = await supabase.from("subjects").insert(
-			cleaned.map((row) => ({
-				id: createId(),
-				org_id: ORG_ID,
-				department_id: resolvedDepartmentId,
-				name: row.name,
-				code: row.code || null,
-			})),
-		);
+		const { error } = await supabase.from("subjects").insert(cleaned);
 
 		if (error) {
 			setStatus(error.message || "Bulk import zamanı xəta oldu");
@@ -298,7 +421,7 @@ export const BranchSubjectsPage = () => {
 		}
 
 		setStatus(
-			`Bulk import tamamlandı. Missing: ${missing}, Duplicate: ${duplicates}`,
+			`Bulk import tamamlandı. Missing: ${missing}, MissingDepartment: ${missingDepartment}, UnknownDepartment: ${unknownDepartment}, Duplicate: ${duplicates}`,
 		);
 		await loadSubjects();
 	};
@@ -383,7 +506,9 @@ export const BranchSubjectsPage = () => {
 							if (file) void handleImport(file);
 						}}
 					/>
-					<span className="hint">Şablon sütunları: name, code</span>
+					<span className="hint">
+						Şablon sütunları: name, code, departmentName/departmentId
+					</span>
 				</div>
 
 				{status && <div className="notice">{status}</div>}
@@ -426,7 +551,7 @@ export const BranchSubjectsPage = () => {
 									onChange={(event) => setEditName(event.target.value)}
 								/>
 							) : (
-								subject.data.name
+								canonicalizeSubjectName(subject.data.name)
 							)}
 						</div>
 

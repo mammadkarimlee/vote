@@ -1145,6 +1145,49 @@ export const AdminCyclesPage = () => {
 		const subjectMap = Object.fromEntries(
 			subjects.map((subject) => [subject.id, subject.data]),
 		);
+		const normalizeClassLevel = (value?: string | null) =>
+			String(value ?? "").trim().replace(/[^0-9]/g, "");
+		const normalizeSubjectCode = (value?: string | null) =>
+			String(value ?? "")
+				.trim()
+				.toUpperCase()
+				.replace(/[^A-Z0-9]/g, "");
+		const normalizeSubjectName = (value?: string | null) =>
+			String(value ?? "")
+				.toLocaleLowerCase("az")
+				.normalize("NFKD")
+				.replace(/[\u0300-\u036f]/g, "")
+				.replace(/ə/g, "e")
+				.replace(/ı/g, "i")
+				.replace(/ş/g, "s")
+				.replace(/ç/g, "c")
+				.replace(/ğ/g, "g")
+				.replace(/ö/g, "o")
+				.replace(/ü/g, "u")
+				.replace(/[^a-z0-9]/g, "");
+		const noPhysicalEducationClassLevels = new Set(["5", "6", "7"]);
+		const physicalEducationCodes = new Set([
+			"PE",
+			"BEDENTERBIYE",
+			"FIZIKITERBIYE",
+			"PHYSICALEDUCATION",
+		]);
+		const isPhysicalEducationSubject = (
+			subject?: { code?: string | null; name?: string | null } | null,
+		) => {
+			const subjectCode = normalizeSubjectCode(subject?.code ?? null);
+			if (subjectCode && physicalEducationCodes.has(subjectCode)) {
+				return true;
+			}
+			if (subjectCode) return false;
+
+			const normalizedName = normalizeSubjectName(subject?.name ?? null);
+			return (
+				normalizedName.includes("fizikiterbiye") ||
+				normalizedName.includes("bedenterbiye") ||
+				normalizedName.includes("physicaleducation")
+			);
+		};
 		const teacherMap = Object.fromEntries(
 			teachersScoped.map((teacher) => [teacher.id, teacher.data]),
 		);
@@ -1176,6 +1219,7 @@ export const AdminCyclesPage = () => {
 		let skippedTeacherSelfWithoutProfile = 0;
 		let skippedManagementAssignments = 0;
 		let skippedManagementSelf = 0;
+		let skippedPhysicalEducationAssignments = 0;
 
 		if (!assignmentYear) {
 			setStatus("Tapşırıq yaradılmadı: dərs təyinatı tapılmadı");
@@ -1196,7 +1240,23 @@ export const AdminCyclesPage = () => {
 			);
 			if (!student) return;
 			const studentAssignments = assignmentsForYear.filter(
-				(assignment) => assignment.data.groupId === student.data.groupId,
+				(assignment) => {
+					if (assignment.data.groupId !== student.data.groupId) return false;
+
+					const groupClassLevel = normalizeClassLevel(
+						groupMap[assignment.data.groupId]?.classLevel ?? null,
+					);
+					const subject = subjectMap[assignment.data.subjectId] ?? null;
+					if (
+						noPhysicalEducationClassLevels.has(groupClassLevel) &&
+						isPhysicalEducationSubject(subject)
+					) {
+						skippedPhysicalEducationAssignments += 1;
+						return false;
+					}
+
+					return true;
+				},
 			);
 			const groupedTeacherAssignments = new Map<
 				string,
@@ -1414,6 +1474,11 @@ export const AdminCyclesPage = () => {
 		if (skippedManagementSelf > 0) {
 			warnings.push(
 				`${skippedManagementSelf} rəhbərlik tapşırığı həmin şəxslərin öz profili olduğu üçün yaradılmadı`,
+			);
+		}
+		if (skippedPhysicalEducationAssignments > 0) {
+			warnings.push(
+				`${skippedPhysicalEducationAssignments} fiziki tərbiyə təyinatı 5A/6A/7A sinif qaydasına görə buraxıldı`,
 			);
 		}
 

@@ -13,11 +13,14 @@ begin
     'manager',
     'moderator',
     'branch_admin',
+    'hr',
     'superadmin'
   );
 exception
   when duplicate_object then null;
 end $$;
+
+alter type public.user_role add value if not exists 'hr';
 
 do $$
 begin
@@ -931,7 +934,7 @@ as $$
   select exists (
     select 1 from public.users
     where id = auth.uid()::text
-      and role in ('branch_admin', 'moderator')
+      and role::text in ('branch_admin', 'moderator', 'hr')
   )
 $$;
 

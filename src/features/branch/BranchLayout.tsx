@@ -229,18 +229,31 @@ const MenuGroup = ({ title, items }: NavGroup) => (
 	</div>
 );
 
-export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
+export const BranchLayout = ({
+	isAdmin = false,
+	isHr = false,
+}: {
+	isAdmin?: boolean;
+	isHr?: boolean;
+}) => {
 	const location = useLocation();
-	const prefix = isAdmin ? "/admin" : "/branch";
+	const prefix = isAdmin ? "/admin" : isHr ? "/hr" : "/branch";
 	const normalizedPath = location.pathname.replace(/\/+$/, "") || "/";
-	const showMenu = normalizedPath === prefix;
+	const showMenu =
+		isAdmin || isHr
+			? normalizedPath.startsWith(prefix)
+			: normalizedPath === prefix;
 
 	useEffect(() => {
-		const key = isAdmin ? "last_admin_path" : "last_branch_path";
+		const key = isAdmin
+			? "last_admin_path"
+			: isHr
+				? "last_hr_path"
+				: "last_branch_path";
 		if (normalizedPath.startsWith(prefix) && normalizedPath !== prefix) {
 			localStorage.setItem(key, normalizedPath);
 		}
-	}, [isAdmin, normalizedPath, prefix]);
+	}, [isAdmin, isHr, normalizedPath, prefix]);
 
 	const adminGroups: NavGroup[] = [
 		{
@@ -272,6 +285,13 @@ export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 					icon: "calculator",
 				},
 			],
+		},
+	];
+
+	const hrGroups: NavGroup[] = [
+		{
+			title: "HR paneli",
+			items: [{ to: "/hr/cycles", label: "Sorğu dövrləri", icon: "cycles" }],
 		},
 	];
 
@@ -341,22 +361,30 @@ export const BranchLayout = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 							<>
 								<div className="icon-menu-header">
 									<div className="icon-menu-title">
-										{isAdmin ? "Mərkəzi idarə paneli" : "Filial paneli"}
+										{isAdmin
+											? "Mərkəzi idarə paneli"
+											: isHr
+												? "HR paneli"
+												: "Filial paneli"}
 									</div>
 									<div className="icon-menu-subtitle">
 										{isAdmin
 											? "Sistem idarəetməsi üçün əsas bölmələr"
-											: "Əsas əməliyyat bölmələri"}
+											: isHr
+												? "HR qiymətləndirmə bölmələri"
+												: "Əsas əməliyyat bölmələri"}
 									</div>
 								</div>
 								<div className="icon-menu-groups">
-									{(isAdmin ? adminGroups : branchGroups).map((group) => (
+									{(isAdmin ? adminGroups : isHr ? hrGroups : branchGroups).map(
+										(group) => (
 										<MenuGroup
 											key={group.title}
 											title={group.title}
 											items={group.items}
 										/>
-									))}
+										),
+									)}
 								</div>
 							</>
 						)}

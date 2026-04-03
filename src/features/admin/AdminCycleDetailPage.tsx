@@ -78,6 +78,8 @@ type TeacherRow = {
 	selfAvg: number | null;
 	selfDeclaredScore: number | null;
 	academicIndicator: number | null;
+	teacherCriteriaTotal: number | null;
+	hrEvaluationScore: number | null;
 	selfTotal: number | null;
 	biqAvg: number | null;
 	finalScore: number | null;
@@ -111,6 +113,9 @@ const averageNumbers = (values: number[]) =>
 		? values.reduce((acc, value) => acc + value, 0) / values.length
 		: null;
 
+const sumNumbers = (values: number[]) =>
+	values.length > 0 ? values.reduce((acc, value) => acc + value, 0) : null;
+
 const averageQuestionScores = (scores: Array<number | null | undefined>) => {
 	const numericScores = scores.filter(
 		(value): value is number => typeof value === "number" && !Number.isNaN(value),
@@ -118,10 +123,22 @@ const averageQuestionScores = (scores: Array<number | null | undefined>) => {
 	return averageNumbers(numericScores);
 };
 
+const sumQuestionScores = (scores: Array<number | null | undefined>) => {
+	const numericScores = scores.filter(
+		(value): value is number => typeof value === "number" && !Number.isNaN(value),
+	);
+	return sumNumbers(numericScores);
+};
+
 const getAcademicIndicator = (review?: PkpdSelfReviewDoc | null) => {
 	if (!review) return null;
-	const questionAverage = averageQuestionScores(Object.values(review.questionScores ?? {}));
-	return questionAverage ?? review.score ?? null;
+	return averageQuestionScores(Object.values(review.questionScores ?? {}));
+};
+
+const getTeacherCriteriaTotal = (review?: PkpdSelfReviewDoc | null) => {
+	if (!review) return null;
+	const questionTotal = sumQuestionScores(Object.values(review.questionScores ?? {}));
+	return questionTotal ?? null;
 };
 
 const normalizeScale = (
@@ -286,7 +303,10 @@ const fetchAllBatched = async <T,>(
 
 export const AdminCycleDetailPage = () => {
 	const { cycleId } = useParams<{ cycleId: string }>();
-	const { user } = useAuth();
+	const { user, userDoc } = useAuth();
+	const isHr = userDoc?.role === "hr";
+	const scopedBranchId = "";
+	const cycleListPath = isHr ? "/hr/cycles" : "/admin/cycles";
 
 	const [cycle, setCycle] = useState<SurveyCycleDoc | null>(null);
 	const [teachers, setTeachers] = useState<Array<DocEntry<TeacherDoc>>>([]);
@@ -322,6 +342,7 @@ export const AdminCycleDetailPage = () => {
 	const [selfReviewQuestionScores, setSelfReviewQuestionScores] = useState<
 		Record<string, string>
 	>({});
+	const [selfReviewHrScore, setSelfReviewHrScore] = useState("");
 	const [selfReviewNote, setSelfReviewNote] = useState("");
 	const [selfReviewStatus, setSelfReviewStatus] = useState<string | null>(null);
 	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
@@ -345,6 +366,31 @@ export const AdminCycleDetailPage = () => {
 		const loadLookups = async () => {
 			if (!cycleId) return;
 
+			const teacherQuery = supabase
+				.from("teachers")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.is("deleted_at", null);
+			const raterQuery = supabase
+				.from("users")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.is("deleted_at", null)
+				.in("role", ["student", "teacher", "manager"]);
+			const branchQuery = supabase.from("branches").select("*").eq("org_id", ORG_ID);
+			const departmentQuery = supabase
+				.from("departments")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.is("deleted_at", null);
+
+			if (scopedBranchId) {
+				teacherQuery.eq("branch_id", scopedBranchId);
+				raterQuery.eq("branch_id", scopedBranchId);
+				branchQuery.eq("id", scopedBranchId);
+				departmentQuery.eq("branch_id", scopedBranchId);
+			}
+
 			const [
 				cycleRes,
 				teacherRes,
@@ -359,24 +405,11 @@ export const AdminCycleDetailPage = () => {
 					.eq("org_id", ORG_ID)
 					.eq("id", cycleId)
 					.maybeSingle(),
-					supabase
-						.from("teachers")
-						.select("*")
-						.eq("org_id", ORG_ID)
-						.is("deleted_at", null),
+				teacherQuery,
 					supabase.from("questions").select("*").eq("org_id", ORG_ID),
-					supabase
-						.from("users")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null)
-					.in("role", ["student", "teacher", "manager"]),
-				supabase.from("branches").select("*").eq("org_id", ORG_ID),
-				supabase
-					.from("departments")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.is("deleted_at", null),
+				raterQuery,
+				branchQuery,
+				departmentQuery,
 			]);
 
 			setCycle(cycleRes.data ? mapSurveyCycleRow(cycleRes.data) : null);
@@ -415,7 +448,7 @@ export const AdminCycleDetailPage = () => {
 		};
 
 		void loadLookups();
-	}, [cycleId]);
+	}, [cycleId, scopedBranchId]);
 
 	useEffect(() => {
 		const loadCycleData = async () => {
@@ -425,44 +458,69 @@ export const AdminCycleDetailPage = () => {
 				const [taskRows, submissionRows, biqRows, teacherBiqRows, selfReviewRows] =
 					await Promise.all([
 						fetchAllBatched<any>(async (from, to) =>
-							await supabase
-								.from("tasks")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("cycle_id", cycleId)
-								.range(from, to),
+							await (() => {
+								let query = supabase
+									.from("tasks")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
 						),
 						fetchAllBatched<any>(async (from, to) =>
-							await supabase
-								.from("submissions")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("cycle_id", cycleId)
-								.range(from, to),
+							await (() => {
+								let query = supabase
+									.from("submissions")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
 						),
 						fetchAllBatched<any>(async (from, to) =>
-							await supabase
-								.from("biq_class_results")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("cycle_id", cycleId)
-								.range(from, to),
+							await (() => {
+								let query = supabase
+									.from("biq_class_results")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
 						),
 						fetchAllBatched<any>(async (from, to) =>
-							await supabase
-								.from("pkpd_teacher_biq_results")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("cycle_id", cycleId)
-								.range(from, to),
+							await (() => {
+								let query = supabase
+									.from("pkpd_teacher_biq_results")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
 						),
 						fetchAllBatched<any>(async (from, to) =>
-							await supabase
-								.from("pkpd_self_reviews")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("cycle_id", cycleId)
-								.range(from, to),
+							await (() => {
+								let query = supabase
+									.from("pkpd_self_reviews")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
 						),
 					]);
 
@@ -499,13 +557,18 @@ export const AdminCycleDetailPage = () => {
 
 				if (cycle?.year) {
 					const assignmentRows = await fetchAllBatched<any>(async (from, to) =>
-						await supabase
-							.from("teaching_assignments")
-							.select("*")
-							.eq("org_id", ORG_ID)
-							.eq("year", cycle.year)
-							.is("deleted_at", null)
-							.range(from, to),
+						await (() => {
+							let query = supabase
+								.from("teaching_assignments")
+								.select("*")
+								.eq("org_id", ORG_ID)
+								.eq("year", cycle.year)
+								.is("deleted_at", null);
+							if (scopedBranchId) {
+								query = query.eq("branch_id", scopedBranchId);
+							}
+							return query.range(from, to);
+						})(),
 					);
 
 					setAssignments(
@@ -555,7 +618,7 @@ export const AdminCycleDetailPage = () => {
 		};
 
 		void loadCycleData();
-	}, [cycleId, cycle?.year]);
+	}, [cycleId, cycle?.year, scopedBranchId]);
 
 	const teacherMap = useMemo(
 		() => Object.fromEntries(teachers.map((item) => [item.id, item.data])),
@@ -784,21 +847,28 @@ export const AdminCycleDetailPage = () => {
 				);
 				const managementAvg = average(flow.management);
 				const selfDeclaredScore = average(flow.self);
-				const academicIndicator = getAcademicIndicator(
-					selfReviewMap[teacher.id] ?? null,
-				);
+				const teacherSelfReview = selfReviewMap[teacher.id] ?? null;
+				const academicIndicator = getAcademicIndicator(teacherSelfReview);
+				const teacherCriteriaTotal = getTeacherCriteriaTotal(teacherSelfReview);
+				const hrEvaluationScore =
+					typeof teacherSelfReview?.score === "number" &&
+					!Number.isNaN(teacherSelfReview.score)
+						? teacherSelfReview.score
+						: null;
 				const selfAvg = averageNumbers(
 					[selfDeclaredScore, academicIndicator].filter(
 						(value): value is number =>
 							typeof value === "number" && !Number.isNaN(value),
 					),
 				);
-				const selfTotal = [selfDeclaredScore, academicIndicator].reduce<number>(
+				const selfTotal = [selfDeclaredScore, teacherCriteriaTotal].reduce<number>(
 					(acc, value) => acc + (typeof value === "number" ? value : 0),
 					0,
 				);
 				const resolvedSelfTotal =
-					selfDeclaredScore === null && academicIndicator === null ? null : selfTotal;
+					selfDeclaredScore === null && teacherCriteriaTotal === null
+						? null
+						: selfTotal;
 
 				const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
 				const biqValues = assignmentsForTeacher
@@ -818,10 +888,9 @@ export const AdminCycleDetailPage = () => {
 						: null;
 
 				const finalScoreParts = [
-					studentAvg,
-					managementAvg,
-					resolvedSelfTotal,
-					biqAvg,
+					selfDeclaredScore,
+					teacherCriteriaTotal,
+					hrEvaluationScore,
 				].filter(
 					(value): value is number =>
 						typeof value === "number" && !Number.isNaN(value),
@@ -854,6 +923,8 @@ export const AdminCycleDetailPage = () => {
 					selfAvg,
 					selfDeclaredScore,
 					academicIndicator,
+					teacherCriteriaTotal,
+					hrEvaluationScore,
 					selfTotal: resolvedSelfTotal,
 					biqAvg,
 					finalScore,
@@ -921,6 +992,7 @@ export const AdminCycleDetailPage = () => {
 	useEffect(() => {
 		if (!selectedTeacherId) {
 			setSelfReviewQuestionScores({});
+			setSelfReviewHrScore("");
 			setSelfReviewNote("");
 			setSelfReviewStatus(null);
 			setSelfReviewEditUnlocked(false);
@@ -941,6 +1013,11 @@ export const AdminCycleDetailPage = () => {
 			]),
 		);
 		setSelfReviewQuestionScores(nextScores);
+		setSelfReviewHrScore(
+			typeof selectedTeacherSelfReview?.score === "number"
+				? String(selectedTeacherSelfReview.score)
+				: "",
+		);
 		setSelfReviewNote(selectedTeacherSelfReview?.note ?? "");
 		setSelfReviewStatus(null);
 		setSelfReviewEditUnlocked(false);
@@ -1103,9 +1180,9 @@ export const AdminCycleDetailPage = () => {
 		const toListHtml = (items: string[]) =>
 			items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 		const academicIndicatorText = formatScore(selectedTeacherAcademicIndicator);
-		const selfDeclaredScoreText = formatScore(
-			selectedTeacherSelfResponse?.declaredScore ?? null,
-		);
+		const teacherCriteriaTotalText = formatScore(selectedTeacher.teacherCriteriaTotal);
+		const hrEvaluationText = formatScore(selectedTeacher.hrEvaluationScore);
+		const selfDeclaredScoreText = formatScore(selectedTeacher.selfDeclaredScore);
 		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
 			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
 			: null;
@@ -1324,17 +1401,20 @@ export const AdminCycleDetailPage = () => {
 							<div class="card"><div class="label">Rəhbərlik sorğusu</div><div class="value">${formatScore(selectedTeacher.managementAvg)}</div></div>
 							<div class="card"><div class="label">Özünüqiymətləndirmə (cəm)</div><div class="value">${formatScore(selectedTeacher.selfTotal)}</div></div>
 							<div class="card"><div class="label">BİQ nəticəsi</div><div class="value">${formatScore(selectedTeacher.biqAvg)}</div></div>
-							<div class="card"><div class="label">Müəllimin akademik göstəricisi</div><div class="value">${academicIndicatorText}</div></div>
+							<div class="card"><div class="label">Müəllimin 3 meyar üzrə orta balı</div><div class="value">${academicIndicatorText}</div></div>
+							<div class="card"><div class="label">Müəllimin 3 meyar üzrə cəmi</div><div class="value">${teacherCriteriaTotalText}</div></div>
 							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
+							<div class="card"><div class="label">HR qiymətləndirməsi</div><div class="value">${hrEvaluationText}</div></div>
 							<div class="card"><div class="label">Yekun bal</div><div class="value">${formatScore(selectedTeacher.finalScore)}</div></div>
 							<div class="card"><div class="label">Şagird cavab sayı</div><div class="value">${selectedTeacher.studentCount}</div></div>
 						</div>
 					</div>
 
 					<div class="section">
-						<h2>Akademik Göstərici və Açıq Cavablar</h2>
+						<h2>3 Meyar Cəmi və Açıq Cavablar</h2>
 						<div class="grid">
-							<div class="card"><div class="label">Müəllimin akademik göstəricisi</div><div class="value">${academicIndicatorText}</div></div>
+							<div class="card"><div class="label">Müəllimin 3 meyar üzrə cəmi</div><div class="value">${teacherCriteriaTotalText}</div></div>
+							<div class="card"><div class="label">HR qiymətləndirməsi</div><div class="value">${hrEvaluationText}</div></div>
 							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
 						</div>
 						<div class="meta-stack">
@@ -1446,6 +1526,7 @@ export const AdminCycleDetailPage = () => {
 		if (!open) {
 			setSelectedTeacherId(null);
 			setSelfReviewQuestionScores({});
+			setSelfReviewHrScore("");
 			setSelfReviewStatus(null);
 			setSelfReviewEditUnlocked(false);
 			setSelfReviewUnlockOpen(false);
@@ -1518,6 +1599,7 @@ export const AdminCycleDetailPage = () => {
 		}
 
 		const noteValue = selfReviewNote.trim() || null;
+		const hrScoreRaw = selfReviewHrScore.trim();
 		const questionScores = Object.fromEntries(
 			selectedTeacherOpenQuestionIds.map((questionId) => [
 				questionId,
@@ -1527,7 +1609,7 @@ export const AdminCycleDetailPage = () => {
 		const hasAnyScore = Object.values(questionScores).some((value) => value !== "");
 
 		if (!hasAnyScore) {
-			if (!noteValue) {
+			if (!noteValue && !hrScoreRaw) {
 				await supabase
 					.from("pkpd_self_reviews")
 					.delete()
@@ -1549,7 +1631,7 @@ export const AdminCycleDetailPage = () => {
 						data: mapPkpdSelfReviewRow(row),
 					})),
 				);
-				setSelfReviewStatus("Açıq sual balı silindi");
+				setSelfReviewStatus("Açıq sual cəmi və HR qiymətləndirməsi silindi");
 				return;
 			}
 
@@ -1571,11 +1653,20 @@ export const AdminCycleDetailPage = () => {
 			normalizedQuestionScores[questionId] = scoreValue;
 		}
 
-		const totalScore = averageQuestionScores(
+		const teacherCriteriaTotal = sumQuestionScores(
 			Object.values(normalizedQuestionScores),
 		);
-		if (totalScore === null) {
+		if (teacherCriteriaTotal === null) {
 			setSelfReviewStatus("Bal hesablanmadı");
+			return;
+		}
+		if (hrScoreRaw === "") {
+			setSelfReviewStatus("HR qiymətləndirməsi üçün 1-10 aralığında bal daxil edin");
+			return;
+		}
+		const hrScoreValue = Number(hrScoreRaw);
+		if (Number.isNaN(hrScoreValue) || hrScoreValue < 1 || hrScoreValue > 10) {
+			setSelfReviewStatus("HR qiymətləndirməsi 1-10 aralığında olmalıdır");
 			return;
 		}
 
@@ -1587,7 +1678,7 @@ export const AdminCycleDetailPage = () => {
 			branch_id: teacherBranchId,
 			cycle_id: cycleId,
 			teacher_id: selectedTeacherId,
-			score: totalScore,
+			score: hrScoreValue,
 			question_scores: normalizedQuestionScores,
 			note:
 				selectedTeacherHasSavedOpenReview && editReason
@@ -1640,7 +1731,9 @@ export const AdminCycleDetailPage = () => {
 				data: mapPkpdSelfReviewRow(row),
 			})),
 		);
-		setSelfReviewStatus("Açıq sual balı saxlanıldı");
+		setSelfReviewStatus(
+			`3 meyar üzrə cəm (${teacherCriteriaTotal.toFixed(1)}) və HR qiymətləndirməsi saxlanıldı`,
+		);
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
 	};
@@ -1653,7 +1746,7 @@ export const AdminCycleDetailPage = () => {
 					<p>Seçilmiş sorğu dövrü üzrə nəticələr və iştirak statistikası.</p>
 				</div>
 				<div className="actions">
-					<Link className="btn ghost" to="/admin/cycles">
+					<Link className="btn ghost" to={cycleListPath}>
 						Geri
 					</Link>
 					<button
@@ -1683,7 +1776,7 @@ export const AdminCycleDetailPage = () => {
 					<div className="stat-card">
 							<div className="stat-label">
 								Yekun orta cəm balı
-								<InfoTip text="Müəllimlər üzrə mövcud komponentlərin cəmi hesablanır, sonra müəllimlər üzrə orta göstərici göstərilir. Özünüqiymətləndirmə hissəsi müəllimin öz balı və akademik göstəricisinin cəmi kimi götürülür." />
+								<InfoTip text="Yekun bal: müəllimin özünə verdiyi bal + 3 meyar üzrə cəm + HR qiymətləndirməsi. Burada həmin yekun cəmin müəllimlər üzrə ortası göstərilir." />
 							</div>
 							<div className="stat-value">{formatScore(overallSummary.avg)}</div>
 							<div className="stat-meta">
@@ -1861,7 +1954,7 @@ export const AdminCycleDetailPage = () => {
 											{formatScore(selectedTeacher.selfTotal)}
 										</div>
 										<div className="stat-meta">
-											cavab sayı: {selectedTeacher.selfCount} • öz balı + akademik göstərici
+											cavab sayı: {selectedTeacher.selfCount} • öz balı + 3 meyar cəmi
 										</div>
 									</div>
 									<div className="stat-card">
@@ -1873,18 +1966,27 @@ export const AdminCycleDetailPage = () => {
 									</div>
 								</div>
 
-								<div className="grid gap-4 md:grid-cols-2">
+								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
 										<div className="stat-label">Yekun bal</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.finalScore)}
 										</div>
-										<div className="stat-meta">mövcud bütün komponentlərin cəmi</div>
+										<div className="stat-meta">
+											öz balı + 3 meyar cəmi + HR qiymətləndirməsi
+										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Müəllimin akademik göstəricisi</div>
+										<div className="stat-label">Müəllimin öz verdiyi bal</div>
 										<div className="stat-value">
-											{selectedTeacherAcademicIndicator?.toFixed(1) ?? "—"}
+											{formatScore(selectedTeacher.selfDeclaredScore)}
+										</div>
+										<div className="stat-meta">1-10</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Müəllimin 3 meyar üzrə cəmi</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.teacherCriteriaTotal)}
 										</div>
 										<div className="stat-meta">
 											{selectedTeacherSelfReview?.reviewedAt
@@ -1893,6 +1995,13 @@ export const AdminCycleDetailPage = () => {
 													).toLocaleString("az-AZ")}`
 												: "Hələ bal verilməyib"}
 										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">HR qiymətləndirməsi</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.hrEvaluationScore)}
+										</div>
+										<div className="stat-meta">1-10</div>
 									</div>
 								</div>
 
@@ -1936,9 +2045,9 @@ export const AdminCycleDetailPage = () => {
 										<div className="stat-meta">0-10</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Akademik göstərici üzrə orta bal</div>
+										<div className="stat-label">Müəllimin 3 meyar üzrə cəmi</div>
 										<div className="stat-value">
-											{averageQuestionScores(
+											{sumQuestionScores(
 												selectedTeacherOpenQuestionIds.map((questionId) => {
 													const value =
 														selfReviewQuestionScores[questionId]?.trim() ?? "";
@@ -1946,9 +2055,7 @@ export const AdminCycleDetailPage = () => {
 												}),
 											)?.toFixed(1) ?? "—"}
 										</div>
-										<div className="stat-meta">
-											Hər sual üzrə verilən balların ortalaması
-										</div>
+										<div className="stat-meta">3 açıq meyar üzrə cəm bal</div>
 									</div>
 									{selectedTeacherSelfReview?.editReason && (
 										<div className="hint">
@@ -1994,6 +2101,30 @@ export const AdminCycleDetailPage = () => {
 												Bu müəllim açıq suallara hələ cavab yazmayıb.
 											</div>
 										)}
+									</div>
+									<div className="question">
+										<div className="question-title">
+											HRın qiymətləndirməsi <span className="required">*</span>
+										</div>
+										<div className="hint">
+											Müəllimin yazılı cavablarına əsasən 1-10 aralığında yekun bal verin.
+										</div>
+										<div className="form-row">
+											<div className="field w-full max-w-40">
+												<span className="label">Bal</span>
+												<input
+													className="input"
+													type="number"
+													min="1"
+													max="10"
+													step="0.1"
+													placeholder="1-10"
+													value={selfReviewHrScore}
+													disabled={selectedTeacherOpenReviewLocked}
+													onChange={(event) => setSelfReviewHrScore(event.target.value)}
+												/>
+											</div>
+										</div>
 									</div>
 									<div className="form-row">
 										<input

@@ -25,6 +25,7 @@ import { BranchResultsPage } from "./features/branch/BranchResultsPage";
 import { BranchStudentsPage } from "./features/branch/BranchStudentsPage";
 import { BranchSubjectsPage } from "./features/branch/BranchSubjectsPage";
 import { BranchTeachersPage } from "./features/branch/BranchTeachersPage";
+import { HrCyclesPage } from "./features/hr/HrCyclesPage";
 import { PkpdCalculatorPage } from "./features/pkpd/PkpdCalculatorPage";
 import { PkpdDocumentPage } from "./features/pkpd/PkpdDocumentPage";
 import { TaskListPage } from "./features/tasks/TaskListPage";
@@ -123,6 +124,19 @@ const App = () => (
 				<Route path="cycles" element={<AdminCyclesPage />} />
 				<Route path="cycles/:cycleId" element={<AdminCycleDetailPage />} />
 				<Route path="questions" element={<AdminQuestionsPage />} />
+			</Route>
+			<Route
+				path="/hr"
+				element={
+					<RequireRole roles={["hr"]}>
+						<BranchLayout isHr />
+					</RequireRole>
+				}
+			>
+				<Route index element={<Navigate to="/hr/cycles" replace />} />
+				<Route path="cycles" element={<HrCyclesPage />} />
+				<Route path="cycles/:cycleId" element={<AdminCycleDetailPage />} />
+				<Route path="*" element={<Navigate to="/hr/cycles" replace />} />
 			</Route>
 		</Route>
 	</Routes>

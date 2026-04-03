@@ -23,6 +23,9 @@ export const CyclesRedirect = () => {
 	if (userDoc.role === "branch_admin" || userDoc.role === "moderator") {
 		return <Navigate to="/branch/cycles" replace />;
 	}
+	if (userDoc.role === "hr") {
+		return <Navigate to="/hr/cycles" replace />;
+	}
 
 	return <Navigate to="/vote" replace />;
 };

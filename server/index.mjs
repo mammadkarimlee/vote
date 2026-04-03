@@ -124,6 +124,7 @@ const ALLOWED_CREATE_ROLES = new Set([
 	"manager",
 	"moderator",
 	"branch_admin",
+	"hr",
 ]);
 
 const BRANCH_STAFF_CREATE_ROLES = new Set([
@@ -236,6 +237,57 @@ const parseJsonObject = (value) => {
 	} catch {
 		return null;
 	}
+};
+
+const isRecord = (value) => typeof value === "object" && value !== null;
+
+const extractProviderErrorMessage = (value) => {
+	if (!isRecord(value)) return null;
+	const error = value.error;
+	if (!isRecord(error)) return null;
+	const message = error.message;
+	return typeof message === "string" && message.trim() ? message : null;
+};
+
+const extractResponsesContent = (value) => {
+	if (!isRecord(value)) return null;
+	if (typeof value.output_text === "string" && value.output_text.trim()) {
+		return value.output_text;
+	}
+
+	const output = Array.isArray(value.output) ? value.output : [];
+	for (const item of output) {
+		if (!isRecord(item)) continue;
+		if (typeof item.text === "string" && item.text.trim()) {
+			return item.text;
+		}
+		const content = Array.isArray(item.content) ? item.content : [];
+		for (const entry of content) {
+			if (!isRecord(entry)) continue;
+			if (typeof entry.text === "string" && entry.text.trim()) {
+				return entry.text;
+			}
+			if (
+				typeof entry.output_text === "string" &&
+				entry.output_text.trim()
+			) {
+				return entry.output_text;
+			}
+		}
+	}
+	return null;
+};
+
+const extractChatCompletionContent = (value) => {
+	if (!isRecord(value)) return null;
+	const choices = value.choices;
+	if (!Array.isArray(choices) || choices.length === 0) return null;
+	const first = choices[0];
+	if (!isRecord(first)) return null;
+	const message = first.message;
+	if (!isRecord(message)) return null;
+	const content = message.content;
+	return typeof content === "string" && content.trim() ? content : null;
 };
 
 const normalizeList = (value) => {
@@ -359,42 +411,78 @@ const buildAiFeedbackDraft = async (payload) => {
 			"Yalnız verilən dataya əsaslan, heç nə uydurma.",
 		].join(" ");
 
-		const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${OPENAI_API_KEY}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
+		const requestOpenAi = async (path, body) => {
+			const response = await fetch(`${OPENAI_BASE_URL}${path}`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${OPENAI_API_KEY}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+				signal: controller.signal,
+			});
+
+			const responseBody = await response.json().catch(() => null);
+			if (!response.ok) {
+				const message =
+					extractProviderErrorMessage(responseBody) ??
+					`AI provider HTTP ${response.status}`;
+				throw new Error(message);
+			}
+
+			return responseBody;
+		};
+
+		const payloadText = JSON.stringify(payload);
+		let responsesError = null;
+
+		try {
+			const responsesBody = await requestOpenAi("/responses", {
 				model: OPENAI_MODEL,
 				temperature: 0.2,
-				messages: [
-					{ role: "system", content: systemPrompt },
-					{ role: "user", content: JSON.stringify(payload) },
+				input: [
+					{
+						role: "system",
+						content: [{ type: "input_text", text: systemPrompt }],
+					},
+					{
+						role: "user",
+						content: [{ type: "input_text", text: payloadText }],
+					},
 				],
-			}),
-			signal: controller.signal,
+			});
+			const responsesContent = extractResponsesContent(responsesBody);
+			const parsedResponses = parseJsonObject(responsesContent);
+			if (parsedResponses) {
+				return parsedResponses;
+			}
+			responsesError = new Error("AI responses endpoint JSON cavab qaytarmadı.");
+		} catch (error) {
+			responsesError =
+				error instanceof Error
+					? error
+					: new Error("AI responses endpoint xətası.");
+		}
+
+		const chatBody = await requestOpenAi("/chat/completions", {
+			model: OPENAI_MODEL,
+			temperature: 0.2,
+			messages: [
+				{ role: "system", content: systemPrompt },
+				{ role: "user", content: payloadText },
+			],
 		});
-
-		const body = await response.json().catch(() => null);
-		if (!response.ok) {
-			const message =
-				body &&
-				typeof body === "object" &&
-				"error" in body &&
-				body.error &&
-				typeof body.error.message === "string"
-					? body.error.message
-					: `AI provider HTTP ${response.status}`;
-			throw new Error(message);
+		const chatContent = extractChatCompletionContent(chatBody);
+		const parsedChat = parseJsonObject(chatContent);
+		if (parsedChat) {
+			return parsedChat;
 		}
-
-		const content = body?.choices?.[0]?.message?.content;
-		const parsed = parseJsonObject(content);
-		if (!parsed) {
-			throw new Error("AI xidməti JSON cavab qaytarmadı.");
+		if (responsesError) {
+			throw new Error(
+				`AI JSON cavab qaytarmadı. Responses xətası: ${responsesError.message}`,
+			);
 		}
-		return parsed;
+		throw new Error("AI xidməti JSON cavab qaytarmadı.");
 	} finally {
 		clearTimeout(timeoutId);
 	}
@@ -404,11 +492,7 @@ const generateTeacherFeedback = async (payload) => {
 	const fallbackDraft = buildRuleBasedFeedback(payload);
 
 	if (!OPENAI_API_KEY) {
-		return {
-			source: "rule_based",
-			summary: formatFeedbackSummary(fallbackDraft),
-			warning: "OPENAI_API_KEY təyin edilməyib. Qayda əsaslı rəy yaradıldı.",
-		};
+		throw new Error("OPENAI_API_KEY təyin edilməyib.");
 	}
 
 	try {
@@ -420,11 +504,9 @@ const generateTeacherFeedback = async (payload) => {
 		};
 	} catch (error) {
 		console.error("AI feedback failed:", error);
-		return {
-			source: "rule_based",
-			summary: formatFeedbackSummary(fallbackDraft),
-			warning: "AI xidməti əlçatan olmadı. Qayda əsaslı rəy yaradıldı.",
-		};
+		throw error instanceof Error
+			? error
+			: new Error("AI xidmətində naməlum xəta baş verdi.");
 	}
 };
 

@@ -4,6 +4,7 @@
 	| "manager"
 	| "moderator"
 	| "branch_admin"
+	| "hr"
 	| "superadmin";
 
 export type TargetFlow =

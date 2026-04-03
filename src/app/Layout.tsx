@@ -65,6 +65,11 @@ export const Layout = () => {
 								Filial paneli
 							</NavLink>
 						)}
+					{role === "hr" && (
+						<NavLink to="/hr/cycles" className={navClass}>
+							HR paneli
+						</NavLink>
+					)}
 					{role === "superadmin" && (
 						<NavLink to="/admin" className={navClass}>
 							Mərkəzi idarə paneli

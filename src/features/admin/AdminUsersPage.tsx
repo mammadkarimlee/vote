@@ -17,7 +17,9 @@ type RoleOption = {
 const roleOptions: RoleOption[] = [
 	{ value: "branch_admin", label: "Filial admini" },
 	{ value: "moderator", label: "Moderator" },
+	{ value: "hr", label: "HR" },
 ];
+const adminRoleSet = new Set<Role>(roleOptions.map((option) => option.value));
 
 export const AdminUsersPage = () => {
 	const { user } = useAuth();
@@ -30,6 +32,7 @@ export const AdminUsersPage = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [branchId, setBranchId] = useState("");
+	const [createRole, setCreateRole] = useState<Role>("branch_admin");
 	const [status, setStatus] = useState<string | null>(null);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
@@ -41,7 +44,7 @@ export const AdminUsersPage = () => {
 	const [pageSize, setPageSize] = useState(25);
 
 	const loadData = async () => {
-		const [branchesRes, adminsRes] = await Promise.all([
+		const [branchesRes, usersRes] = await Promise.all([
 			supabase
 				.from("branches")
 				.select("*")
@@ -51,10 +54,6 @@ export const AdminUsersPage = () => {
 				.from("users")
 				.select("*")
 				.eq("org_id", ORG_ID)
-				.in(
-					"role",
-					roleOptions.map((role) => role.value),
-				)
 				.is("deleted_at", null),
 		]);
 
@@ -66,11 +65,16 @@ export const AdminUsersPage = () => {
 				})),
 			);
 		}
-		if (adminsRes.data) {
-			setAdmins(
-				adminsRes.data.map((row) => ({ id: row.id, data: mapUserRow(row) })),
-			);
+		if (usersRes.error) {
+			setStatus(usersRes.error.message ?? "İstifadəçilər yüklənmədi");
+			setAdmins([]);
+			return;
 		}
+		setAdmins(
+			(usersRes.data ?? [])
+				.map((row) => ({ id: row.id, data: mapUserRow(row) }))
+				.filter((entry) => adminRoleSet.has(entry.data.role)),
+		);
 	};
 
 	useEffect(() => {
@@ -84,23 +88,26 @@ export const AdminUsersPage = () => {
 
 	const handleCreate = async () => {
 		if (!name.trim() || !email.trim() || !password.trim() || !branchId) {
-			setStatus("Bütün sahələri doldurun");
+			setStatus("Ad, email, şifrə və filial mütləqdir");
 			return;
 		}
 
 		try {
+			const selectedRole = roleOptions.find((item) => item.value === createRole);
 			await provisionEmailUser({
 				name: name.trim(),
 				email: email.trim(),
 				password,
-				role: "branch_admin",
+				role: createRole,
 				branchId,
 			});
+			setStatus(`${selectedRole?.label ?? "İstifadəçi"} yaradıldı`);
+
 			setName("");
 			setEmail("");
 			setPassword("");
 			setBranchId("");
-			setStatus("Filial admini yaradıldı");
+			setCreateRole("branch_admin");
 			await loadData();
 		} catch (error) {
 			setStatus(
@@ -183,14 +190,17 @@ export const AdminUsersPage = () => {
 		<div className="panel">
 			<div className="panel-header">
 				<div>
-					<h2>Filial adminləri</h2>
-					<p>Super admin tərəfindən yaradılan filial admin hesabları.</p>
+					<h2>İdarəçi istifadəçilər</h2>
+					<p>
+						Super admin tərəfindən yaradılan filial admin, moderator və HR
+						hesabları.
+					</p>
 				</div>
 				<div className="stat-pill">Cəmi: {summary}</div>
 			</div>
 
 			<div className="card">
-				<h3>Yeni filial admini</h3>
+				<h3>Yeni istifadəçi</h3>
 				<div className="form-grid">
 					<input
 						className="input"
@@ -198,6 +208,17 @@ export const AdminUsersPage = () => {
 						value={name}
 						onChange={(event) => setName(event.target.value)}
 					/>
+					<select
+						className="input"
+						value={createRole}
+						onChange={(event) => setCreateRole(event.target.value as Role)}
+					>
+						{roleOptions.map((role) => (
+							<option key={role.value} value={role.value}>
+								{role.label}
+							</option>
+						))}
+					</select>
 					<input
 						className="input"
 						placeholder="Email"

@@ -5,7 +5,13 @@ type ProvisionMode = "login" | "email";
 type ProvisionRequest = {
 	mode: ProvisionMode;
 	name: string;
-	role: "student" | "teacher" | "manager" | "moderator" | "branch_admin";
+	role:
+		| "student"
+		| "teacher"
+		| "manager"
+		| "moderator"
+		| "branch_admin"
+		| "hr";
 	branchId?: string | null;
 	email?: string;
 	password?: string;
@@ -149,8 +155,8 @@ Deno.serve(async (req) => {
 		return jsonResponse({ error: "Branch mismatch" }, 403);
 	}
 
-	if (!isSuperAdmin && payload.role === "branch_admin") {
-		return jsonResponse({ error: "Cannot create branch admin" }, 403);
+	if (!isSuperAdmin && ["branch_admin", "hr"].includes(payload.role)) {
+		return jsonResponse({ error: "Cannot create this role" }, 403);
 	}
 
 	if (payload.mode === "email" && (!payload.email || !payload.password)) {
