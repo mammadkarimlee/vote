@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link } from "react-router-dom";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -392,16 +393,16 @@ export const AdminCyclesPage = () => {
 	const [durationDays, setDurationDays] = useState("7");
 	const [thresholdY, setThresholdY] = useState("3");
 	const [thresholdP, setThresholdP] = useState("3");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [deleteCycle, setDeleteCycle] = useState<{
 		id: string;
 		year: number;
 	} | null>(null);
 	const [deletePassword, setDeletePassword] = useState("");
 	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const [deleteError, setDeleteError] = useFeedbackState();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(25);
+	const [pageSize, setPageSize] = useState(15);
 
 	const loadCycles = async () => {
 		const { data, error } = await supabase

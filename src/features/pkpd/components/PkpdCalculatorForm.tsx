@@ -1,4 +1,5 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useFeedbackState } from "../../../components/feedback/FeedbackProvider";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "../../../components/ui/button";
 import {
@@ -60,7 +61,7 @@ const buildParams = (fields: Record<FieldKey, string>, bonusIds: string[]) => {
 
 export const PkpdCalculatorForm = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [shareStatus, setShareStatus] = useState<string | null>(null);
+	const [shareStatus, setShareStatus] = useFeedbackState();
 
 	const [fields, setFields] = useState<Record<FieldKey, string>>(() => ({
 		biq: searchParams.get("biq") ?? "",

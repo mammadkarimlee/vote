@@ -1,8 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapGroupRow, mapStudentRow } from "../../lib/supabaseMappers";
 import type { GroupDoc, StudentDoc } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -24,7 +27,7 @@ export const BranchStudentsPage = () => {
 	const [name, setName] = useState("");
 	const [groupId, setGroupId] = useState("");
 	const [classLevel, setClassLevel] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	const loadData = useCallback(async () => {
 		if (!branchId) {
@@ -216,6 +219,7 @@ export const BranchStudentsPage = () => {
 		() => Object.fromEntries(groups.map((group) => [group.id, group.data])),
 		[groups],
 	);
+	const studentsPagination = usePagination(students);
 
 	const handleExportStudentCredentials = async () => {
 		if (!branchId) {
@@ -246,7 +250,7 @@ export const BranchStudentsPage = () => {
 			return;
 		}
 
-		const headers = ["Sinif", "Qrup", "Sagird", "Login", "Parol"];
+		const headers = ["Sinif", "Qrup", "Şagird", "Login", "Parol"];
 		const byClass = new Map<string, string[][]>();
 		entries.forEach((entry) => {
 			const row = [
@@ -263,7 +267,7 @@ export const BranchStudentsPage = () => {
 
 		const sheets = [
 			{
-				name: "Hamisi",
+				name: "Hamısı",
 				headers,
 				rows: entries.map((entry) => [
 					entry.classLevel,
@@ -401,7 +405,7 @@ export const BranchStudentsPage = () => {
 							<div>Login</div>
 							<div></div>
 						</div>
-						{students.map((student) => (
+						{studentsPagination.paginatedItems.map((student) => (
 							<div className="data-row" key={student.id}>
 								<div>{student.data.name}</div>
 								<div>{groupMap[student.data.groupId]?.name ?? student.data.groupId}</div>
@@ -419,6 +423,15 @@ export const BranchStudentsPage = () => {
 							</div>
 						))}
 					</div>
+					{studentsPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={studentsPagination.totalItems}
+							page={studentsPagination.page}
+							pageSize={studentsPagination.pageSize}
+							onPageChange={studentsPagination.setPage}
+							onPageSizeChange={studentsPagination.setPageSize}
+						/>
+					)}
 				</div>
 			</div>
 			{dialog}

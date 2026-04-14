@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
 import { PaginationControls } from "../../components/PaginationControls";
@@ -344,23 +345,21 @@ export const AdminCycleDetailPage = () => {
 	>({});
 	const [selfReviewHrScore, setSelfReviewHrScore] = useState("");
 	const [selfReviewNote, setSelfReviewNote] = useState("");
-	const [selfReviewStatus, setSelfReviewStatus] = useState<string | null>(null);
+	const [selfReviewStatus, setSelfReviewStatus] = useFeedbackState();
 	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
 	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
 	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
 	const [selfReviewUnlockReason, setSelfReviewUnlockReason] = useState("");
-	const [selfReviewUnlockError, setSelfReviewUnlockError] = useState<string | null>(
-		null,
-	);
+	const [selfReviewUnlockError, setSelfReviewUnlockError] = useFeedbackState();
 	const [selfReviewUnlockSubmitting, setSelfReviewUnlockSubmitting] =
 		useState(false);
 
 	const [teacherPage, setTeacherPage] = useState(1);
-	const [teacherPageSize, setTeacherPageSize] = useState(25);
+	const [teacherPageSize, setTeacherPageSize] = useState(15);
 	const [raterPage, setRaterPage] = useState(1);
-	const [raterPageSize, setRaterPageSize] = useState(25);
+	const [raterPageSize, setRaterPageSize] = useState(15);
 	const [commentPage, setCommentPage] = useState(1);
-	const [commentPageSize, setCommentPageSize] = useState(20);
+	const [commentPageSize, setCommentPageSize] = useState(15);
 
 	useEffect(() => {
 		const loadLookups = async () => {

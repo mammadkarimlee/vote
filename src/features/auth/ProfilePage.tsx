@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { useNavigate } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { useAuth } from "./AuthProvider";
@@ -8,10 +9,10 @@ export const ProfilePage = () => {
 	const { user, userDoc, signOutUser } = useAuth();
 	const [displayName, setDisplayName] = useState("");
 	const [branchName, setBranchName] = useState<string>("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [password, setPassword] = useState("");
 	const [passwordConfirm, setPasswordConfirm] = useState("");
-	const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+	const [passwordStatus, setPasswordStatus] = useFeedbackState();
 
 	useEffect(() => {
 		if (!user) return;

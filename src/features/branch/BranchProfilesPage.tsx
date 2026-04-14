@@ -1,4 +1,6 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapUserRow } from "../../lib/supabaseMappers";
@@ -6,6 +8,7 @@ import type { Role, UserDoc } from "../../lib/types";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
+import { usePagination } from "../../lib/usePagination";
 import { provisionEmailUser, provisionLoginUser } from "./userProvisioning";
 
 const roles: Role[] = ["manager", "moderator"];
@@ -19,7 +22,7 @@ export const BranchProfilesPage = () => {
 	const [role, setRole] = useState<Role>("manager");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	const loadUsers = useCallback(async () => {
 		if (!branchId) {
@@ -106,6 +109,7 @@ export const BranchProfilesPage = () => {
 	};
 
 	const summary = useMemo(() => users.length, [users]);
+	const usersPagination = usePagination(users);
 
 	return (
 		<div className="panel">
@@ -184,7 +188,7 @@ export const BranchProfilesPage = () => {
 					<div>Login/Email</div>
 					<div></div>
 				</div>
-				{users.map((userRow) => (
+				{usersPagination.paginatedItems.map((userRow) => (
 					<div className="data-row" key={userRow.id}>
 						<div>{userRow.data.displayName ?? "-"}</div>
 						<div>{userRow.data.role}</div>
@@ -201,6 +205,15 @@ export const BranchProfilesPage = () => {
 					</div>
 				))}
 			</div>
+			{usersPagination.totalItems > 0 && (
+				<PaginationControls
+					totalItems={usersPagination.totalItems}
+					page={usersPagination.page}
+					pageSize={usersPagination.pageSize}
+					onPageChange={usersPagination.setPage}
+					onPageSizeChange={usersPagination.setPageSize}
+				/>
+			)}
 			{dialog}
 		</div>
 	);

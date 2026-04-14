@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
+import { PaginationControls } from "../../components/PaginationControls";
 import { downloadCsv } from "../../lib/csv";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -27,6 +29,7 @@ import type {
 	TaskDoc,
 	TeacherDoc,
 } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
 
 type DocEntry<T> = { id: string; data: T };
@@ -96,7 +99,7 @@ export const AdminDashboardPage = () => {
 	const [selectedCycleId, setSelectedCycleId] = useState("");
 	const [selectedTeacherId, setSelectedTeacherId] = useState("");
 	const [loading, setLoading] = useState(false);
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [nowMs, setNowMs] = useState(() => Date.now());
 	const [exportMode, setExportMode] = useState<"summary" | "raw" | "comments">(
 		"summary",
@@ -534,6 +537,10 @@ export const AdminDashboardPage = () => {
 	const riskTeachers = teacherStats.filter(
 		(item) => item.avg !== null && item.avg < riskThreshold,
 	);
+	const topTeachersPagination = usePagination(teacherStats.slice(0, 8));
+	const riskTeachersPagination = usePagination(riskTeachers);
+	const branchStatsPagination = usePagination(branchStats);
+	const commentFeedPagination = usePagination(commentFeed);
 
 	const quality = useMemo(() => {
 		const bySubmission: Record<string, Array<DocEntry<AnswerDoc>>> = {};
@@ -622,6 +629,7 @@ export const AdminDashboardPage = () => {
 		() => filteredSubmissions.filter((item) => item.data.targetId === selectedTeacherId),
 		[filteredSubmissions, selectedTeacherId],
 	);
+	const teacherSubmissionsPagination = usePagination(selectedTeacherSubmissions);
 
 	const handleExport = () => {
 		if (!selectedCycleId) return;
@@ -989,7 +997,7 @@ export const AdminDashboardPage = () => {
 									<div>Orta</div>
 									<div>n</div>
 								</div>
-								{teacherStats.slice(0, 8).map((item) => (
+								{topTeachersPagination.paginatedItems.map((item) => (
 									<div className="data-row" key={item.teacherId}>
 										<div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
 										<div>{formatAvg(item.avg, item.submissions)}</div>
@@ -1000,6 +1008,15 @@ export const AdminDashboardPage = () => {
 									<div className="empty">Məlumat yoxdur.</div>
 								)}
 							</div>
+							{topTeachersPagination.totalItems > 0 && (
+								<PaginationControls
+									totalItems={topTeachersPagination.totalItems}
+									page={topTeachersPagination.page}
+									pageSize={topTeachersPagination.pageSize}
+									onPageChange={topTeachersPagination.setPage}
+									onPageSizeChange={topTeachersPagination.setPageSize}
+								/>
+							)}
 						</div>
 						<div className="card">
 							<h3>Risk siyahısı</h3>
@@ -1009,7 +1026,7 @@ export const AdminDashboardPage = () => {
 									<div>Orta</div>
 									<div>n</div>
 								</div>
-								{riskTeachers.map((item) => (
+								{riskTeachersPagination.paginatedItems.map((item) => (
 									<div className="data-row" key={item.teacherId}>
 										<div>{teacherMap[item.teacherId]?.name ?? item.teacherId}</div>
 										<div>{formatAvg(item.avg, item.submissions)}</div>
@@ -1018,6 +1035,15 @@ export const AdminDashboardPage = () => {
 								))}
 								{riskTeachers.length === 0 && <div className="empty">Risk yoxdur.</div>}
 							</div>
+							{riskTeachersPagination.totalItems > 0 && (
+								<PaginationControls
+									totalItems={riskTeachersPagination.totalItems}
+									page={riskTeachersPagination.page}
+									pageSize={riskTeachersPagination.pageSize}
+									onPageChange={riskTeachersPagination.setPage}
+									onPageSizeChange={riskTeachersPagination.setPageSize}
+								/>
+							)}
 						</div>
 					</div>
 				</>
@@ -1048,7 +1074,7 @@ export const AdminDashboardPage = () => {
 							<div>Fənn</div>
 							<div>Tarix</div>
 						</div>
-						{selectedTeacherSubmissions.map((submission) => (
+						{teacherSubmissionsPagination.paginatedItems.map((submission) => (
 							<div className="data-row" key={submission.id}>
 								<div>
 									{submission.data.groupId
@@ -1067,6 +1093,15 @@ export const AdminDashboardPage = () => {
 							<div className="empty">Səsvermə yoxdur.</div>
 						)}
 					</div>
+					{teacherSubmissionsPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={teacherSubmissionsPagination.totalItems}
+							page={teacherSubmissionsPagination.page}
+							pageSize={teacherSubmissionsPagination.pageSize}
+							onPageChange={teacherSubmissionsPagination.setPage}
+							onPageSizeChange={teacherSubmissionsPagination.setPageSize}
+						/>
+					)}
 				</div>
 			)}
 
@@ -1079,7 +1114,7 @@ export const AdminDashboardPage = () => {
 							<div>Orta</div>
 							<div>n</div>
 						</div>
-						{branchStats.map((item) => (
+						{branchStatsPagination.paginatedItems.map((item) => (
 							<div className="data-row" key={item.branchId}>
 								<div>{branchMap[item.branchId]?.name ?? item.branchId}</div>
 								<div>{formatAvg(item.avg, item.submissions)}</div>
@@ -1088,6 +1123,15 @@ export const AdminDashboardPage = () => {
 						))}
 						{branchStats.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
 					</div>
+					{branchStatsPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={branchStatsPagination.totalItems}
+							page={branchStatsPagination.page}
+							pageSize={branchStatsPagination.pageSize}
+							onPageChange={branchStatsPagination.setPage}
+							onPageSizeChange={branchStatsPagination.setPageSize}
+						/>
+					)}
 				</div>
 			)}
 
@@ -1095,7 +1139,7 @@ export const AdminDashboardPage = () => {
 				<div className="card">
 					<h3>Şərh siyahısı</h3>
 					<div className="comment-feed">
-						{commentFeed.map((item, index) => (
+						{commentFeedPagination.paginatedItems.map((item, index) => (
 							<div className="comment" key={`${item.submission?.id}_${index}`}>
 								<div className="comment-title">
 									{item.submission
@@ -1113,6 +1157,15 @@ export const AdminDashboardPage = () => {
 						))}
 						{commentFeed.length === 0 && <div className="empty">Şərh yoxdur.</div>}
 					</div>
+					{commentFeedPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={commentFeedPagination.totalItems}
+							page={commentFeedPagination.page}
+							pageSize={commentFeedPagination.pageSize}
+							onPageChange={commentFeedPagination.setPage}
+							onPageSizeChange={commentFeedPagination.setPageSize}
+						/>
+					)}
 				</div>
 			)}
 

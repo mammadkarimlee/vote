@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { useNavigate } from "react-router-dom";
 import { toLoginEmail } from "../../lib/authUtils";
 import { supabase } from "../../lib/supabase";
@@ -9,7 +10,7 @@ export const LoginPage = () => {
 	const { user, userDoc, loading, signOutUser } = useAuth();
 	const [login, setLogin] = useState("");
 	const [password, setPassword] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	useEffect(() => {
 		if (!user) return;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -14,9 +15,9 @@ export const AdminQuestionsPage = () => {
 	const [text, setText] = useState("");
 	const [required, setRequired] = useState(true);
 	const [category, setCategory] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(25);
+	const [pageSize, setPageSize] = useState(15);
 
 	const loadQuestions = async () => {
 		const { data, error } = await supabase

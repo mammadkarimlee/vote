@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapSurveyCycleRow } from "../../lib/supabaseMappers";
+import { usePagination } from "../../lib/usePagination";
 import type { SurveyCycleDoc } from "../../lib/types";
 
 type DocEntry<T> = { id: string; data: T };
 
 export const HrCyclesPage = () => {
 	const [cycles, setCycles] = useState<Array<DocEntry<SurveyCycleDoc>>>([]);
+	const cyclesPagination = usePagination(cycles);
 
 	useEffect(() => {
 		const loadCycles = async () => {
@@ -44,7 +47,7 @@ export const HrCyclesPage = () => {
 					<div>Vəziyyət</div>
 					<div></div>
 				</div>
-				{cycles.map((cycle) => (
+				{cyclesPagination.paginatedItems.map((cycle) => (
 					<div className="data-row" key={cycle.id}>
 						<div>{cycle.data.year}</div>
 						<div>{cycle.data.status}</div>
@@ -57,6 +60,15 @@ export const HrCyclesPage = () => {
 				))}
 				{cycles.length === 0 && <div className="empty">Sorğu dövrü tapılmadı.</div>}
 			</div>
+			{cyclesPagination.totalItems > 0 && (
+				<PaginationControls
+					totalItems={cyclesPagination.totalItems}
+					page={cyclesPagination.page}
+					pageSize={cyclesPagination.pageSize}
+					onPageChange={cyclesPagination.setPage}
+					onPageSizeChange={cyclesPagination.setPageSize}
+				/>
+			)}
 		</div>
 	);
 };

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -33,7 +34,7 @@ export const AdminUsersPage = () => {
 	const [password, setPassword] = useState("");
 	const [branchId, setBranchId] = useState("");
 	const [createRole, setCreateRole] = useState<Role>("branch_admin");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
 	const [editEmail, setEditEmail] = useState("");
@@ -41,7 +42,7 @@ export const AdminUsersPage = () => {
 	const [editRole, setEditRole] = useState<Role>("branch_admin");
 	const [savingEdit, setSavingEdit] = useState(false);
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(25);
+	const [pageSize, setPageSize] = useState(15);
 
 	const loadData = async () => {
 		const [branchesRes, usersRes] = await Promise.all([

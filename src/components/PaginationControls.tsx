@@ -21,7 +21,7 @@ export const PaginationControls = ({
 	pageSize,
 	onPageChange,
 	onPageSizeChange,
-	pageSizeOptions = [10, 25, 50, 100],
+	pageSizeOptions = [15, 30, 50, 100],
 }: PaginationControlsProps) => {
 	const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 	const safePage = Math.min(Math.max(page, 1), totalPages);

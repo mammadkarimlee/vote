@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -65,7 +66,7 @@ export const TaskVotePage = () => {
 	const [cycle, setCycle] = useState<SurveyCycleDoc | null>(null);
 	const [questionSet, setQuestionSet] = useState<QuestionSetDoc | null>(null);
 	const [answers, setAnswers] = useState<Record<string, string | number>>({});
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [draftLoaded, setDraftLoaded] = useState(false);

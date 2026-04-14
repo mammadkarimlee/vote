@@ -1,8 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapDepartmentRow } from "../../lib/supabaseMappers";
 import type { DepartmentDoc } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { createId } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -16,8 +19,8 @@ export const BranchDepartmentsPage = () => {
 	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
 	const [departments, setDepartments] = useState<DepartmentEntry[]>([]);
 	const [name, setName] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
-	const [loadError, setLoadError] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
+	const [loadError, setLoadError] = useFeedbackState();
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
@@ -130,6 +133,7 @@ export const BranchDepartmentsPage = () => {
 	};
 
 	const summary = useMemo(() => departments.length, [departments]);
+	const departmentsPagination = usePagination(departments);
 
 	return (
 		<div className="panel branch-page">
@@ -191,7 +195,7 @@ export const BranchDepartmentsPage = () => {
 							<div>Kafedra</div>
 							<div></div>
 						</div>
-						{departments.map((department) => (
+						{departmentsPagination.paginatedItems.map((department) => (
 							<div className="data-row" key={department.id}>
 								<div>
 									{editingId === department.id ? (
@@ -249,6 +253,15 @@ export const BranchDepartmentsPage = () => {
 							<div className="empty">Məlumat yoxdur.</div>
 						)}
 					</div>
+					{departmentsPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={departmentsPagination.totalItems}
+							page={departmentsPagination.page}
+							pageSize={departmentsPagination.pageSize}
+							onPageChange={departmentsPagination.setPage}
+							onPageSizeChange={departmentsPagination.setPageSize}
+						/>
+					)}
 				</div>
 			</div>
 			{dialog}

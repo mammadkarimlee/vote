@@ -1,8 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapSurveyCycleRow, mapUserRow } from "../../lib/supabaseMappers";
+import { usePagination } from "../../lib/usePagination";
 import type { SurveyCycleDoc, UserDoc } from "../../lib/types";
 import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
@@ -22,7 +25,7 @@ export const BranchCycleDetailPage = () => {
 	const [taskSummaryByStudent, setTaskSummaryByStudent] = useState<
 		Record<string, TaskSummary>
 	>({});
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	useEffect(() => {
 		const loadLookups = async () => {
@@ -120,6 +123,7 @@ export const BranchCycleDetailPage = () => {
 		const doneTasks = studentRows.reduce((acc, row) => acc + row.doneCount, 0);
 		return { doneStudents, pendingStudents, totalTasks, doneTasks };
 	}, [studentRows]);
+	const studentRowsPagination = usePagination(studentRows);
 
 	return (
 		<div className="panel">
@@ -192,7 +196,7 @@ export const BranchCycleDetailPage = () => {
 						<div>Tamamlanıb</div>
 						<div>Tapşırıq</div>
 					</div>
-					{studentRows.map((student) => (
+					{studentRowsPagination.paginatedItems.map((student) => (
 						<div className="data-row" key={student.id}>
 							<div>{student.name}</div>
 							<div>{student.done ? "Bəli" : "Xeyr"}</div>
@@ -205,7 +209,17 @@ export const BranchCycleDetailPage = () => {
 						<div className="empty">Məlumat yoxdur.</div>
 					)}
 				</div>
+				{studentRowsPagination.totalItems > 0 && (
+					<PaginationControls
+						totalItems={studentRowsPagination.totalItems}
+						page={studentRowsPagination.page}
+						pageSize={studentRowsPagination.pageSize}
+						onPageChange={studentRowsPagination.setPage}
+						onPageSizeChange={studentRowsPagination.setPageSize}
+					/>
+				)}
 			</div>
 		</div>
 	);
 };
+

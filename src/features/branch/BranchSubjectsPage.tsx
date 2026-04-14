@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapDepartmentRow, mapSubjectRow } from "../../lib/supabaseMappers";
 import type { DepartmentDoc, SubjectDoc } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { createId } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -90,8 +93,8 @@ export const BranchSubjectsPage = () => {
 
 	const [name, setName] = useState("");
 	const [code, setCode] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
-	const [loadError, setLoadError] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
+	const [loadError, setLoadError] = useFeedbackState();
 
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
@@ -431,6 +434,7 @@ export const BranchSubjectsPage = () => {
 		() => Object.fromEntries(departments.map((d) => [d.id, d.data])),
 		[departments],
 	);
+	const subjectsPagination = usePagination(subjects);
 
 	return (
 		<div className="panel">
@@ -522,7 +526,7 @@ export const BranchSubjectsPage = () => {
 					<div></div>
 				</div>
 
-				{subjects.map((subject) => (
+				{subjectsPagination.paginatedItems.map((subject) => (
 					<div className="data-row" key={subject.id}>
 						<div>
 							{editingId === subject.id ? (
@@ -617,6 +621,15 @@ export const BranchSubjectsPage = () => {
 					</div>
 				)}
 			</div>
+			{subjectsPagination.totalItems > 0 && (
+				<PaginationControls
+					totalItems={subjectsPagination.totalItems}
+					page={subjectsPagination.page}
+					pageSize={subjectsPagination.pageSize}
+					onPageChange={subjectsPagination.setPage}
+					onPageSizeChange={subjectsPagination.setPageSize}
+				/>
+			)}
 
 			{dialog}
 		</div>

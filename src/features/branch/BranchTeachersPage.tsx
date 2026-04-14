@@ -1,5 +1,7 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link } from "react-router-dom";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { toErrorMessage } from "../../lib/errorMessage";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -19,6 +21,7 @@ import type {
 	TeacherDoc,
 	TeachingAssignmentDoc,
 } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { createId } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -119,7 +122,7 @@ export const BranchTeachersPage = () => {
 	const [savingEdit, setSavingEdit] = useState(false);
 
 	const [importDepartmentId, setImportDepartmentId] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	const loadLookups = useCallback(async () => {
 		if (!branchId) {
@@ -289,9 +292,22 @@ export const BranchTeachersPage = () => {
 	]);
 
 	const summary = useMemo(() => filteredTeachers.length, [filteredTeachers]);
+const teachersPagination = usePagination(filteredTeachers);
+const resetTeachersPage = teachersPagination.resetPage;
 	const displayBranchName = branchName || "Filial";
 	const selectedAssignmentCount =
 		selectedGroupIds.length * selectedSubjectIds.length;
+
+	useEffect(() => {
+		resetTeachersPage();
+	}, [
+		branchId,
+		filterDepartmentId,
+		filterSubjectId,
+		filterGroupId,
+		filterClassLevel,
+		resetTeachersPage,
+	]);
 
 	const toggleSubject = (subjectId: string) => {
 		setSelectedSubjectIds((prev) =>
@@ -700,7 +716,7 @@ export const BranchTeachersPage = () => {
 			return;
 		}
 
-		const headers = ["Muellim", "Login", "Parol"];
+		const headers = ["Müəllim", "Login", "Parol"];
 		const byDepartment = new Map<string, string[][]>();
 		entries.forEach((entry) => {
 			const row = [entry.teacherName, entry.login, entry.login];
@@ -711,7 +727,7 @@ export const BranchTeachersPage = () => {
 
 		const sheets = [
 			{
-				name: "Hamisi",
+				name: "Hamısı",
 				headers,
 				rows: entries.map((entry) => [entry.teacherName, entry.login, entry.login]),
 			},
@@ -1124,7 +1140,7 @@ export const BranchTeachersPage = () => {
 							<div>Dərslər</div>
 							<div></div>
 						</div>
-						{filteredTeachers.map((teacher) => {
+						{teachersPagination.paginatedItems.map((teacher) => {
 							const teacherAssignments = assignmentMap[teacher.id] ?? [];
 							return (
 								<div className="data-row" key={teacher.id}>
@@ -1179,6 +1195,15 @@ export const BranchTeachersPage = () => {
 							<div className="empty">Məlumat yoxdur.</div>
 						)}
 					</div>
+					{teachersPagination.totalItems > 0 && (
+						<PaginationControls
+							totalItems={teachersPagination.totalItems}
+							page={teachersPagination.page}
+							pageSize={teachersPagination.pageSize}
+							onPageChange={teachersPagination.setPage}
+							onPageSizeChange={teachersPagination.setPageSize}
+						/>
+					)}
 				</div>
 			</div>
 			{dialog}

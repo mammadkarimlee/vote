@@ -1,6 +1,14 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link, useSearchParams } from "react-router-dom";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { PaginationControls } from "../../components/PaginationControls";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapGroupRow,
@@ -18,6 +26,23 @@ import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
 import { parseSpreadsheet } from "./importUtils";
 import { useBranchScope } from "./useBranchScope";
+
+type TeacherAssignmentDetail = {
+	assignmentId: string;
+	groupName: string;
+	subjectName: string;
+	year: number;
+};
+
+type TeacherAssignmentSummary = {
+	teacherId: string;
+	teacherName: string;
+	assignmentCount: number;
+	classCount: number;
+	subjectCount: number;
+	years: number[];
+	details: TeacherAssignmentDetail[];
+};
 
 export const BranchAssignmentsPage = () => {
 	const { user } = useAuth();
@@ -40,7 +65,13 @@ export const BranchAssignmentsPage = () => {
 	const [groupId, setGroupId] = useState("");
 	const [subjectId, setSubjectId] = useState("");
 	const [year, setYear] = useState(String(new Date().getFullYear()));
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
+	const [searchQuery, setSearchQuery] = useState("");
+	const [teacherPage, setTeacherPage] = useState(1);
+	const [teacherPageSize, setTeacherPageSize] = useState(15);
+	const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(
+		null,
+	);
 
 	const preselectedTeacherId = searchParams.get("teacherId") ?? "";
 
@@ -286,7 +317,7 @@ export const BranchAssignmentsPage = () => {
 		await loadData();
 	};
 
-	const summary = useMemo(() => assignments.length, [assignments]);
+	const assignmentSummary = useMemo(() => assignments.length, [assignments]);
 	const missingSetup = useMemo(() => {
 		const missing: string[] = [];
 		if (subjects.length === 0) missing.push("fənn");
@@ -294,8 +325,126 @@ export const BranchAssignmentsPage = () => {
 		if (groups.length === 0) missing.push("qrup");
 		return missing;
 	}, [subjects.length, teachers.length, groups.length]);
+	const teacherNameById = useMemo(() => {
+		const map: Record<string, string> = {};
+		teachers.forEach((teacher) => {
+			map[teacher.id] = teacher.data.name;
+		});
+		return map;
+	}, [teachers]);
+	const groupNameById = useMemo(() => {
+		const map: Record<string, string> = {};
+		groups.forEach((group) => {
+			map[group.id] = group.data.name;
+		});
+		return map;
+	}, [groups]);
+	const subjectNameById = useMemo(() => {
+		const map: Record<string, string> = {};
+		subjects.forEach((subject) => {
+			map[subject.id] = subject.data.name;
+		});
+		return map;
+	}, [subjects]);
+	const teacherAssignmentRows = useMemo<TeacherAssignmentSummary[]>(() => {
+		const rows = new Map<
+			string,
+			{
+				teacherId: string;
+				teacherName: string;
+				classIds: Set<string>;
+				subjectIds: Set<string>;
+				years: Set<number>;
+				details: TeacherAssignmentDetail[];
+			}
+		>();
+
+		assignments.forEach((assignment) => {
+			const teacherKey = assignment.data.teacherId;
+			const entry = rows.get(teacherKey) ?? {
+				teacherId: teacherKey,
+				teacherName: teacherNameById[teacherKey] ?? teacherKey,
+				classIds: new Set<string>(),
+				subjectIds: new Set<string>(),
+				years: new Set<number>(),
+				details: [],
+			};
+
+			entry.classIds.add(assignment.data.groupId);
+			entry.subjectIds.add(assignment.data.subjectId);
+			entry.years.add(assignment.data.year);
+			entry.details.push({
+				assignmentId: assignment.id,
+				groupName:
+					groupNameById[assignment.data.groupId] ?? assignment.data.groupId,
+				subjectName:
+					subjectNameById[assignment.data.subjectId] ?? assignment.data.subjectId,
+				year: assignment.data.year,
+			});
+
+			rows.set(teacherKey, entry);
+		});
+
+		return Array.from(rows.values())
+			.map((row) => ({
+				teacherId: row.teacherId,
+				teacherName: row.teacherName,
+				assignmentCount: row.details.length,
+				classCount: row.classIds.size,
+				subjectCount: row.subjectIds.size,
+				years: Array.from(row.years).sort((left, right) => right - left),
+				details: row.details.sort((left, right) => {
+					if (right.year !== left.year) return right.year - left.year;
+					const groupCompare = left.groupName.localeCompare(right.groupName, "az");
+					if (groupCompare !== 0) return groupCompare;
+					return left.subjectName.localeCompare(right.subjectName, "az");
+				}),
+			}))
+			.sort((left, right) =>
+				left.teacherName.localeCompare(right.teacherName, "az"),
+			);
+	}, [assignments, groupNameById, subjectNameById, teacherNameById]);
+	const filteredTeacherAssignmentRows = useMemo(() => {
+		const query = searchQuery.trim().toLowerCase();
+		if (!query) return teacherAssignmentRows;
+		return teacherAssignmentRows.filter((row) =>
+			[
+				row.teacherName,
+				...row.years.map(String),
+				...row.details.flatMap((detail) => [detail.groupName, detail.subjectName]),
+			]
+				.join(" ")
+				.toLowerCase()
+				.includes(query),
+		);
+	}, [searchQuery, teacherAssignmentRows]);
+	const teacherSummary = useMemo(
+		() => teacherAssignmentRows.length,
+		[teacherAssignmentRows],
+	);
+	const paginatedTeacherAssignmentRows = useMemo(() => {
+		const start = (teacherPage - 1) * teacherPageSize;
+		return filteredTeacherAssignmentRows.slice(start, start + teacherPageSize);
+	}, [filteredTeacherAssignmentRows, teacherPage, teacherPageSize]);
+	const selectedTeacherAssignments = useMemo(
+		() =>
+			teacherAssignmentRows.find(
+				(row) => row.teacherId === selectedTeacherId,
+			) ?? null,
+		[teacherAssignmentRows, selectedTeacherId],
+	);
 
 	const canCreate = missingSetup.length === 0;
+
+	useEffect(() => {
+		if (selectedTeacherId && !selectedTeacherAssignments) {
+			setSelectedTeacherId(null);
+		}
+	}, [selectedTeacherAssignments, selectedTeacherId]);
+
+	useEffect(() => {
+		setTeacherPage(1);
+	}, [searchQuery, branchId]);
 
 	return (
 		<div className="panel branch-page">
@@ -321,7 +470,8 @@ export const BranchAssignmentsPage = () => {
 							onChange={setBranchId}
 						/>
 					)}
-					<div className="stat-pill">Cəmi: {summary}</div>
+					<div className="stat-pill">Müəllim: {teacherSummary}</div>
+					<div className="stat-pill">Təyinat: {assignmentSummary}</div>
 				</div>
 			</div>
 			{isSuperAdmin && !branchId && (
@@ -415,7 +565,8 @@ export const BranchAssignmentsPage = () => {
 							}}
 						/>
 						<span className="hint">
-							Şablon sütunları: teacherId/teacherName, groupId/groupName, subjectId/subjectName, year, branchId (istəyə bağlı)
+							Şablon sütunları: teacherId/teacherName, groupId/groupName,
+							subjectId/subjectName, year, branchId (istəyə bağlı)
 						</span>
 					</div>
 					{status && <div className="notice">{status}</div>}
@@ -425,50 +576,144 @@ export const BranchAssignmentsPage = () => {
 					<div className="section-header">
 						<div>
 							<div className="section-kicker">Siyahı</div>
-							<div className="section-title">Dərs təyinatları</div>
+							<div className="section-title">Müəllim təyinatları</div>
+							<div className="meta">
+								Müəllim adına klik edin: sinif və fənn siyahısı drawer içində
+								açılacaq.
+							</div>
 						</div>
+					</div>
+					<div className="form-row">
+						<input
+							className="input"
+							placeholder="Müəllim, sinif və ya fənn axtar..."
+							value={searchQuery}
+							onChange={(event) => setSearchQuery(event.target.value)}
+						/>
 					</div>
 					<div className="data-table">
 						<div className="data-row header">
 							<div>Müəllim</div>
-							<div>Qrup</div>
-							<div>Fənn</div>
-							<div>İl</div>
+							<div>Sinif sayı</div>
+							<div>Fənn sayı</div>
+							<div>İllər</div>
 							<div></div>
 						</div>
-						{assignments.map((assignment) => (
-							<div className="data-row" key={assignment.id}>
-								<div>
-									{teachers.find(
-										(teacher) => teacher.id === assignment.data.teacherId,
-									)?.data.name ?? assignment.data.teacherId}
+						{paginatedTeacherAssignmentRows.map((row) => (
+							<div className="data-row" key={row.teacherId}>
+								<div className="stack">
+									<button
+										className="btn ghost"
+										type="button"
+										onClick={() => setSelectedTeacherId(row.teacherId)}
+									>
+										{row.teacherName}
+									</button>
+									<div className="meta">{row.assignmentCount} təyinat</div>
 								</div>
-								<div>
-									{groups.find((group) => group.id === assignment.data.groupId)
-										?.data.name ?? assignment.data.groupId}
-								</div>
-								<div>
-									{subjects.find(
-										(subject) => subject.id === assignment.data.subjectId,
-									)?.data.name ?? assignment.data.subjectId}
-								</div>
-								<div>{assignment.data.year}</div>
+								<div>{row.classCount}</div>
+								<div>{row.subjectCount}</div>
+								<div>{row.years.join(", ")}</div>
 								<div>
 									<button
 										className="btn ghost"
 										type="button"
-										onClick={() => void handleDelete(assignment.id)}
+										onClick={() => setSelectedTeacherId(row.teacherId)}
 									>
-										Sil
+										Bax
 									</button>
 								</div>
 							</div>
 						))}
+						{filteredTeacherAssignmentRows.length === 0 && (
+							<div className="empty">Göstərmək üçün müəllim təyinatı yoxdur.</div>
+						)}
 					</div>
+					{filteredTeacherAssignmentRows.length > 0 && (
+						<PaginationControls
+							totalItems={filteredTeacherAssignmentRows.length}
+							page={teacherPage}
+							pageSize={teacherPageSize}
+							onPageChange={setTeacherPage}
+							onPageSizeChange={(nextSize) => {
+								setTeacherPageSize(nextSize);
+								setTeacherPage(1);
+							}}
+							pageSizeOptions={[15, 30, 50, 100]}
+						/>
+					)}
 				</div>
 			</div>
+
+			<Dialog
+				open={Boolean(selectedTeacherAssignments)}
+				onOpenChange={(open) => {
+					if (!open) setSelectedTeacherId(null);
+				}}
+			>
+				<DialogContent className="left-auto right-0 top-0 h-screen max-h-screen w-full max-w-4xl translate-x-0 translate-y-0 overflow-y-auto rounded-none border-l p-0">
+					{selectedTeacherAssignments && (
+						<div className="panel gap-0">
+							<div className="panel-header sticky top-0 z-10 border-b border-border bg-card px-6 py-5">
+								<DialogHeader className="text-left">
+									<DialogTitle>
+										{selectedTeacherAssignments.teacherName}
+									</DialogTitle>
+									<div className="meta">
+										{selectedTeacherAssignments.classCount} sinif •{" "}
+										{selectedTeacherAssignments.subjectCount} fənn •{" "}
+										{selectedTeacherAssignments.assignmentCount} təyinat
+									</div>
+								</DialogHeader>
+								<div className="actions">
+									<button
+										className="btn"
+										type="button"
+										onClick={() => setSelectedTeacherId(null)}
+									>
+										Bağla
+									</button>
+								</div>
+							</div>
+
+							<div className="panel-content px-6 py-6">
+								<div className="form-row">
+									{selectedTeacherAssignments.years.map((itemYear) => (
+										<div className="stat-pill" key={itemYear}>
+											İl: {itemYear}
+										</div>
+									))}
+								</div>
+								<div className="data-table">
+									<div className="data-row header">
+										<div>Sinif</div>
+										<div>Fənn</div>
+										<div>İl</div>
+										<div></div>
+									</div>
+									{selectedTeacherAssignments.details.map((detail) => (
+										<div className="data-row" key={detail.assignmentId}>
+											<div>{detail.groupName}</div>
+											<div>{detail.subjectName}</div>
+											<div>{detail.year}</div>
+											<div>
+												<button
+													className="btn ghost"
+													type="button"
+													onClick={() => void handleDelete(detail.assignmentId)}
+												>
+													Sil
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
 			{dialog}
 		</div>
 	);
 };
-

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -8,6 +9,28 @@ import { createId } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 type BranchEntry = { id: string; data: BranchDoc };
+type CountRow = { branch_id: string | null };
+type UserCountRow = CountRow & { role: string | null };
+
+const BRANCH_ADMIN_ROLES = new Set(["branch_admin", "moderator", "hr"]);
+
+const countByBranch = <T extends CountRow>(
+	rows: T[] | null,
+	filter?: (row: T) => boolean,
+) => {
+	const counts = new Map<string, number>();
+
+	for (const row of rows ?? []) {
+		if (!row.branch_id) continue;
+		if (filter && !filter(row)) continue;
+		counts.set(row.branch_id, (counts.get(row.branch_id) ?? 0) + 1);
+	}
+
+	return counts;
+};
+
+const resolveCount = (stored: number | null | undefined, fallback: number | undefined) =>
+	stored ?? fallback ?? null;
 
 export const AdminBranchesPage = () => {
 	const { user } = useAuth();
@@ -18,7 +41,7 @@ export const AdminBranchesPage = () => {
 	const [studentCount, setStudentCount] = useState("");
 	const [teacherCount, setTeacherCount] = useState("");
 	const [adminCount, setAdminCount] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
 	const [editAddress, setEditAddress] = useState("");
@@ -27,19 +50,58 @@ export const AdminBranchesPage = () => {
 	const [editAdminCount, setEditAdminCount] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(25);
+	const [pageSize, setPageSize] = useState(15);
 
 	const loadBranches = async () => {
-		const { data, error } = await supabase
-			.from("branches")
-			.select("*")
-			.eq("org_id", ORG_ID)
-			.is("deleted_at", null);
-		if (error) return;
-		const items = (data ?? []).map((row) => ({
-			id: row.id,
-			data: mapBranchRow(row),
-		}));
+		const [branchesResult, studentsResult, teachersResult, usersResult] =
+			await Promise.all([
+				supabase
+					.from("branches")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+				supabase
+					.from("students")
+					.select("branch_id")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+				supabase
+					.from("teachers")
+					.select("branch_id")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+				supabase
+					.from("users")
+					.select("branch_id, role")
+					.eq("org_id", ORG_ID)
+					.is("deleted_at", null),
+			]);
+		if (branchesResult.error) return;
+
+		const studentCounts = studentsResult.error
+			? new Map<string, number>()
+			: countByBranch(studentsResult.data as CountRow[] | null);
+		const teacherCounts = teachersResult.error
+			? new Map<string, number>()
+			: countByBranch(teachersResult.data as CountRow[] | null);
+		const adminCounts = usersResult.error
+			? new Map<string, number>()
+			: countByBranch(usersResult.data as UserCountRow[] | null, (row) =>
+					BRANCH_ADMIN_ROLES.has(row.role ?? ""),
+				);
+
+		const items = (branchesResult.data ?? []).map((row) => {
+			const data = mapBranchRow(row);
+			return {
+				id: row.id,
+				data: {
+					...data,
+					studentCount: resolveCount(data.studentCount, studentCounts.get(row.id)),
+					teacherCount: resolveCount(data.teacherCount, teacherCounts.get(row.id)),
+					adminCount: resolveCount(data.adminCount, adminCounts.get(row.id)),
+				},
+			};
+		});
 		setBranches(items);
 	};
 

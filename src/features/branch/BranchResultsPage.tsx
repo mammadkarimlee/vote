@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
+import { PaginationControls } from "../../components/PaginationControls";
 import { downloadCsv } from "../../lib/csv";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -23,6 +24,7 @@ import type {
 	SurveyCycleDoc,
 	TeacherDoc,
 } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
 import { requestTeacherAiFeedback } from "./aiFeedback";
 import { BranchSelector } from "./BranchSelector";
@@ -424,6 +426,27 @@ export const BranchResultsPage = () => {
 		() => selectedTeacherQuestionStats.filter((stat) => stat.type !== "text"),
 		[selectedTeacherQuestionStats],
 	);
+	const teacherRowsPagination = usePagination(teacherRows);
+	const teacherStatsPagination = usePagination(selectedTeacherNonTextStats);
+	const submissionsPagination = usePagination(selectedTeacherSubmissions);
+	const commentsPagination = usePagination(selectedTeacherTexts);
+
+	useEffect(() => {
+		teacherRowsPagination.resetPage();
+	}, [selectedCycleId, branchId]);
+
+	useEffect(() => {
+		teacherStatsPagination.resetPage();
+		submissionsPagination.resetPage();
+		commentsPagination.resetPage();
+	}, [
+		activeSection,
+		selectedTeacherId,
+		selectedCycleId,
+		teacherStatsPagination.resetPage,
+		submissionsPagination.resetPage,
+		commentsPagination.resetPage,
+	]);
 
 	const selectedTeacherScaleStats = useMemo(
 		() =>
@@ -751,7 +774,7 @@ export const BranchResultsPage = () => {
 								<div>n</div>
 								<div></div>
 							</div>
-							{teacherRows.map((item) => (
+							{teacherRowsPagination.paginatedItems.map((item) => (
 								<div className="data-row" key={item.teacherId}>
 									<div>
 										{teacherMap[item.teacherId]?.name ?? item.teacherId}
@@ -773,6 +796,15 @@ export const BranchResultsPage = () => {
 								<div className="empty">Nəticə yoxdur.</div>
 							)}
 						</div>
+						{teacherRowsPagination.totalItems > 0 && (
+							<PaginationControls
+								totalItems={teacherRowsPagination.totalItems}
+								page={teacherRowsPagination.page}
+								pageSize={teacherRowsPagination.pageSize}
+								onPageChange={teacherRowsPagination.setPage}
+								onPageSizeChange={teacherRowsPagination.setPageSize}
+							/>
+						)}
 					</div>
 
 					<div className="card">
@@ -785,7 +817,7 @@ export const BranchResultsPage = () => {
 								<div>Nəticə</div>
 								<div>n</div>
 							</div>
-							{selectedTeacherNonTextStats.map((stat) => {
+							{teacherStatsPagination.paginatedItems.map((stat) => {
 								const choiceSummary = stat.choices
 									? Object.entries(stat.choices)
 											.map(([value, count]) => `${value} (${count})`)
@@ -808,6 +840,15 @@ export const BranchResultsPage = () => {
 								<div className="empty">Nəticə yoxdur.</div>
 							)}
 						</div>
+						{teacherStatsPagination.totalItems > 0 && (
+							<PaginationControls
+								totalItems={teacherStatsPagination.totalItems}
+								page={teacherStatsPagination.page}
+								pageSize={teacherStatsPagination.pageSize}
+								onPageChange={teacherStatsPagination.setPage}
+								onPageSizeChange={teacherStatsPagination.setPageSize}
+							/>
+						)}
 						<div className="divider" />
 						<div className="section-header">
 							<div>
@@ -858,31 +899,42 @@ export const BranchResultsPage = () => {
 					{!selectedTeacherId ? (
 						<div className="empty">Müəllim seçin.</div>
 					) : (
-						<div className="data-table">
-							<div className="data-row header">
-								<div>Qrup</div>
-								<div>Fənn</div>
-								<div>Tarix</div>
-							</div>
-							{selectedTeacherSubmissions.map((submission) => (
-								<div className="data-row" key={submission.id}>
-									<div>
-										{submission.data.groupId
-											? (groupMap[submission.data.groupId]?.name ?? "-")
-											: "-"}
-									</div>
-									<div>
-										{submission.data.subjectId
-											? (subjectMap[submission.data.subjectId]?.name ?? "-")
-											: "-"}
-									</div>
-									<div>{formatShortDate(toJsDate(submission.data.createdAt))}</div>
+						<>
+							<div className="data-table">
+								<div className="data-row header">
+									<div>Qrup</div>
+									<div>Fənn</div>
+									<div>Tarix</div>
 								</div>
-							))}
-							{selectedTeacherSubmissions.length === 0 && (
-								<div className="empty">Səsvermə yoxdur.</div>
+								{submissionsPagination.paginatedItems.map((submission) => (
+									<div className="data-row" key={submission.id}>
+										<div>
+											{submission.data.groupId
+												? (groupMap[submission.data.groupId]?.name ?? "-")
+												: "-"}
+										</div>
+										<div>
+											{submission.data.subjectId
+												? (subjectMap[submission.data.subjectId]?.name ?? "-")
+												: "-"}
+										</div>
+										<div>{formatShortDate(toJsDate(submission.data.createdAt))}</div>
+									</div>
+								))}
+								{selectedTeacherSubmissions.length === 0 && (
+									<div className="empty">Səsvermə yoxdur.</div>
+								)}
+							</div>
+							{submissionsPagination.totalItems > 0 && (
+								<PaginationControls
+									totalItems={submissionsPagination.totalItems}
+									page={submissionsPagination.page}
+									pageSize={submissionsPagination.pageSize}
+									onPageChange={submissionsPagination.setPage}
+									onPageSizeChange={submissionsPagination.setPageSize}
+								/>
 							)}
-						</div>
+						</>
 					)}
 				</div>
 			)}
@@ -894,13 +946,24 @@ export const BranchResultsPage = () => {
 					{!selectedTeacherId ? (
 						<div className="empty">Müəllim seçin.</div>
 					) : selectedTeacherTexts.length > 0 ? (
-						<div className="comment-feed">
-							{selectedTeacherTexts.map((text, index) => (
-								<div className="comment" key={`${selectedTeacherId}_${index}`}>
-									<div className="comment-text">{text}</div>
-								</div>
-							))}
-						</div>
+						<>
+							<div className="comment-feed">
+								{commentsPagination.paginatedItems.map((text, index) => (
+									<div className="comment" key={`${selectedTeacherId}_${index}`}>
+										<div className="comment-text">{text}</div>
+									</div>
+								))}
+							</div>
+							{commentsPagination.totalItems > 0 && (
+								<PaginationControls
+									totalItems={commentsPagination.totalItems}
+									page={commentsPagination.page}
+									pageSize={commentsPagination.pageSize}
+									onPageChange={commentsPagination.setPage}
+									onPageSizeChange={commentsPagination.setPageSize}
+								/>
+							)}
+						</>
 					) : (
 						<div className="empty">Şərh yoxdur.</div>
 					)}

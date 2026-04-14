@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link } from "react-router-dom";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -158,7 +159,7 @@ export const TaskListPage = () => {
 		Record<string, Record<string, string | number>>
 	>({});
 	const [studentSubmitting, setStudentSubmitting] = useState(false);
-	const [studentStatus, setStudentStatus] = useState<string | null>(null);
+	const [studentStatus, setStudentStatus] = useFeedbackState();
 	const [studentSubmitErrors, setStudentSubmitErrors] = useState<string[]>([]);
 
 	const loadTasks = useCallback(async () => {

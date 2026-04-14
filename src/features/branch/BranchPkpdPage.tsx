@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapAnswerRow,
@@ -40,6 +42,7 @@ import type {
 	TeacherDoc,
 	TeachingAssignmentDoc,
 } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -53,8 +56,23 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../../components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
 type DocEntry<T> = { id: string; data: T };
+type SummaryRow = {
+	teacherId: string;
+	name: string;
+	category: TeacherCategory;
+	studentScore: number | null;
+	managementScore: number | null;
+	selfScore: number | null;
+	hrSelfReviewScore: number | null;
+	biqScore: number | null;
+	examScore: number | null;
+	portfolioScore: number | null;
+	bonus: number;
+	total: number;
+};
 
 const teacherCategoryLabel = (category?: TeacherCategory) => {
 	switch (category) {
@@ -117,6 +135,9 @@ const portfolioLimits = (category?: TeacherCategory) => {
 	return { education: 3, attendance: 3, training: 5, olympiad: 4, events: 5 };
 };
 
+const formatScoreValue = (value: number | null) =>
+	value === null ? "-" : value.toFixed(1);
+
 export const BranchPkpdPage = () => {
 	const { user } = useAuth();
 	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
@@ -152,19 +173,17 @@ export const BranchPkpdPage = () => {
 	const [decisions, setDecisions] = useState<Array<DocEntry<PkpdDecisionDoc>>>(
 		[],
 	);
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	const [biqGroupId, setBiqGroupId] = useState("");
 	const [biqSubjectId, setBiqSubjectId] = useState("");
 	const [biqScore, setBiqScore] = useState("");
-	const [biqImportStatus, setBiqImportStatus] = useState<string | null>(null);
+	const [biqImportStatus, setBiqImportStatus] = useFeedbackState();
 	const [teacherBiqTeacherId, setTeacherBiqTeacherId] = useState("");
 	const [teacherBiqGroupId, setTeacherBiqGroupId] = useState("");
 	const [teacherBiqSubjectId, setTeacherBiqSubjectId] = useState("");
 	const [teacherBiqScore, setTeacherBiqScore] = useState("");
-	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useState<
-		string | null
-	>(null);
+	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useFeedbackState();
 
 	const [examDrafts, setExamDrafts] = useState<Record<string, string>>({});
 
@@ -182,9 +201,7 @@ export const BranchPkpdPage = () => {
 	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
 	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
 	const [selfReviewUnlockReason, setSelfReviewUnlockReason] = useState("");
-	const [selfReviewUnlockError, setSelfReviewUnlockError] = useState<string | null>(
-		null,
-	);
+	const [selfReviewUnlockError, setSelfReviewUnlockError] = useFeedbackState();
 	const [selfReviewUnlockSubmitting, setSelfReviewUnlockSubmitting] =
 		useState(false);
 
@@ -195,6 +212,9 @@ export const BranchPkpdPage = () => {
 	const [decisionDrafts, setDecisionDrafts] = useState<
 		Record<string, { status: PkpdDecisionStatus; note: string }>
 	>({});
+	const [selectedSummaryTeacherId, setSelectedSummaryTeacherId] = useState<
+		string | null
+	>(null);
 
 	useEffect(() => {
 		const loadLookups = async () => {
@@ -702,7 +722,7 @@ export const BranchPkpdPage = () => {
 		[teachers],
 	);
 
-	const summaryRows = useMemo(() => {
+	const summaryRows = useMemo<SummaryRow[]>(() => {
 		return teachers.map((teacher) => {
 			const category = teacher.data.category ?? "standard";
 			const weights =
@@ -816,6 +836,23 @@ export const BranchPkpdPage = () => {
 		teachers,
 	]);
 
+	const biqPagination = usePagination(biqResults);
+	const teacherBiqPagination = usePagination(teacherBiqResults);
+	const examPagination = usePagination(standardTeachers);
+	const achievementPagination = usePagination(achievements);
+	const summaryPagination = usePagination(summaryRows);
+
+	const selectedSummaryRow = useMemo(
+		() =>
+			selectedSummaryTeacherId
+				? (summaryRows.find((row) => row.teacherId === selectedSummaryTeacherId) ?? null)
+				: null,
+		[selectedSummaryTeacherId, summaryRows],
+	);
+	const selectedSummaryAssignments = selectedSummaryTeacherId
+		? (assignmentByTeacher[selectedSummaryTeacherId] ?? [])
+		: [];
+
 	const handleSaveBiq = async () => {
 		if (!branchId || !selectedCycleId) return;
 		if (!biqGroupId || !biqSubjectId) {
@@ -893,7 +930,7 @@ export const BranchPkpdPage = () => {
 				normalized.subject ||
 				normalized.subject_name ||
 				normalized.fenn ||
-				normalized.fənn ||
+				normalized["fənn"] ||
 				normalized.fen;
 			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
 
@@ -936,7 +973,7 @@ export const BranchPkpdPage = () => {
 		});
 
 		if (prepared.length === 0) {
-			setBiqImportStatus("Yüklənəcək düzgün sətr tapılmadı");
+			setBiqImportStatus("Yüklənəcək düzgün sətir tapılmadı");
 			return;
 		}
 
@@ -971,17 +1008,17 @@ export const BranchPkpdPage = () => {
 	const handleSaveTeacherBiq = async () => {
 		if (!branchId || !selectedCycleId) return;
 		if (!teacherBiqTeacherId || !teacherBiqGroupId || !teacherBiqSubjectId) {
-			setStatus("Muellim, qrup ve fenn secin");
+			setStatus("Müəllim, qrup və fənn seçin");
 			return;
 		}
 		const assignmentKey = `${teacherBiqTeacherId}_${teacherBiqGroupId}_${teacherBiqSubjectId}`;
 		if (!assignmentKeySet.has(assignmentKey)) {
-			setStatus("Secilen muellim ucun bu qrup/fenn teyinati yoxdur");
+			setStatus("Seçilən müəllim üçün bu qrup/fənn təyinatı yoxdur");
 			return;
 		}
 		const scoreValue = Number(teacherBiqScore);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
-			setStatus("BIQ bali 0-100 arasi olmalidir");
+			setStatus("BİQ balı 0-100 arası olmalıdır");
 			return;
 		}
 
@@ -1001,11 +1038,11 @@ export const BranchPkpdPage = () => {
 			},
 		);
 		if (error) {
-			setStatus("Muellim uzre BIQ neticesi saxlanmadi");
+			setStatus("Müəllim üzrə BİQ nəticəsi saxlanmadı");
 			return;
 		}
 		setTeacherBiqScore("");
-		setStatus("Muellim uzre BIQ neticesi saxlanildi");
+		setStatus("Müəllim üzrə BİQ nəticəsi saxlanıldı");
 		const { data } = await supabase
 			.from("pkpd_teacher_biq_results")
 			.select("*")
@@ -1123,7 +1160,7 @@ export const BranchPkpdPage = () => {
 		});
 
 		if (prepared.length === 0) {
-			setTeacherBiqImportStatus("Yuklenecek duzgun setr tapilmadi");
+			setTeacherBiqImportStatus("Yüklənəcək düzgün sətir tapılmadı");
 			return;
 		}
 
@@ -1136,7 +1173,7 @@ export const BranchPkpdPage = () => {
 						"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
 				});
 			if (error) {
-				setTeacherBiqImportStatus("Muellim uzre BIQ import zamani xeta oldu");
+				setTeacherBiqImportStatus("Müəllim üzrə BİQ import zamanı xəta oldu");
 				return;
 			}
 		}
@@ -1154,7 +1191,7 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 
-		const report = `Yuklendi: ${prepared.length}. Muellim tapilmadi: ${missingTeacher}. Qrup tapilmadi: ${missingGroup}. Fenn tapilmadi: ${missingSubject}. Teyinat tapilmadi: ${missingAssignment}. Bal sehv: ${invalidScore}.`;
+		const report = `Yükləndi: ${prepared.length}. Müəllim tapılmadı: ${missingTeacher}. Qrup tapılmadı: ${missingGroup}. Fənn tapılmadı: ${missingSubject}. Təyinat tapılmadı: ${missingAssignment}. Bal səhv: ${invalidScore}.`;
 		setTeacherBiqImportStatus(report);
 	};
 
@@ -1281,15 +1318,15 @@ export const BranchPkpdPage = () => {
 
 	const handleUnlockSelfReviewEdit = async () => {
 		if (!user?.email) {
-			setSelfReviewUnlockError("Hesab email-i tapilmadi. Yeniden daxil olun.");
+			setSelfReviewUnlockError("Hesab email-i tapılmadı. Yenidən daxil olun.");
 			return;
 		}
 		if (!selfReviewUnlockPassword.trim()) {
-			setSelfReviewUnlockError("Admin sifresini daxil edin.");
+			setSelfReviewUnlockError("Admin şifrəsini daxil edin.");
 			return;
 		}
 		if (!selfReviewUnlockReason.trim()) {
-			setSelfReviewUnlockError("Duzelis sebebini yazin.");
+			setSelfReviewUnlockError("Düzəliş səbəbini yazın.");
 			return;
 		}
 
@@ -1301,7 +1338,7 @@ export const BranchPkpdPage = () => {
 			password: selfReviewUnlockPassword,
 		});
 		if (error) {
-			setSelfReviewUnlockError("Sifre yanlisdir.");
+			setSelfReviewUnlockError("Şifrə yanlışdır.");
 			setSelfReviewUnlockSubmitting(false);
 			return;
 		}
@@ -1310,7 +1347,7 @@ export const BranchPkpdPage = () => {
 		setSelfReviewUnlockOpen(false);
 		setSelfReviewUnlockPassword("");
 		setSelfReviewUnlockError(null);
-		setStatus("Duzelis ucun sahələr achildi.");
+		setStatus("Düzəliş üçün sahələr açıldı.");
 		setSelfReviewUnlockSubmitting(false);
 	};
 
@@ -1374,7 +1411,7 @@ export const BranchPkpdPage = () => {
 		if (!branchId || !selectedCycleId || !selfReviewTeacherId) return;
 		if (selectedTeacherSelfReviewLocked) {
 			setStatus(
-				"Bu qiymetlendirme kilidlenib. Duzelis ucun admin sifresi teleb olunur.",
+				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün admin şifrəsi tələb olunur.",
 			);
 			return;
 		}
@@ -1407,13 +1444,13 @@ export const BranchPkpdPage = () => {
 				return;
 			}
 
-			setStatus("HR balı 0-10 arasında daxil edilməlidir");
+			setStatus("HR balı 0-10 aralığında daxil edilməlidir");
 			return;
 		}
 
 		const scoreValue = Number(scoreRaw);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
-			setStatus("HR balı 0-10 arasında daxil edilməlidir");
+			setStatus("HR balı 0-10 aralığında daxil edilməlidir");
 			return;
 		}
 
@@ -1464,7 +1501,7 @@ export const BranchPkpdPage = () => {
 		}
 		if (error) {
 			setStatus(
-				`HR qiymetlendirmesi saxlanmadi: ${error.message ?? "namelum xeta"}`,
+				`HR qiymətləndirməsi saxlanmadı: ${error.message ?? "naməlum xəta"}`,
 			);
 			return;
 		}
@@ -1481,7 +1518,7 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdSelfReviewRow(row),
 			})),
 		);
-		setStatus("HR qiymetlendirmesi saxlanildi");
+		setStatus("HR qiymətləndirməsi saxlanıldı");
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
 	};
@@ -1610,610 +1647,474 @@ export const BranchPkpdPage = () => {
 				</div>
 			</div>
 
-			{status && <div className="notice">{status}</div>}
+						{status && <div className="notice">{status}</div>}
 
-			<div className="card">
-				<h3>BİQ nəticələri (sinif + fənn)</h3>
-				<div className="form-row">
-					<select
-						className="input"
-						value={biqGroupId}
-						onChange={(event) => setBiqGroupId(event.target.value)}
-					>
-						<option value="">Qrup</option>
-						{groups.map((group) => (
-							<option key={group.id} value={group.id}>
-								{group.data.name} ({group.data.classLevel})
-							</option>
-						))}
-					</select>
-					<select
-						className="input"
-						value={biqSubjectId}
-						onChange={(event) => setBiqSubjectId(event.target.value)}
-					>
-						<option value="">Fənn</option>
-						{subjects.map((subject) => (
-							<option key={subject.id} value={subject.id}>
-								{subject.data.name}
-							</option>
-						))}
-					</select>
-				</div>
-				<div className="form-row">
-					<input
-						className="input"
-						type="number"
-						placeholder="BİQ balı (0-100)"
-						value={biqScore}
-						onChange={(event) => setBiqScore(event.target.value)}
-					/>
-					<button
-						className="btn primary"
-						type="button"
-						onClick={handleSaveBiq}
-						disabled={!selectedCycleId}
-					>
-						Saxla
-					</button>
-				</div>
-				<div className="form-row">
-					<input
-						className="input"
-						type="file"
-						accept=".csv,.xlsx"
-						onChange={(event) => {
-							const file = event.target.files?.[0];
-							if (file) void handleImportBiq(file);
-						}}
-					/>
-					<span className="hint">
-						Şablon: group/qrup, subject/fənn, score/biq/bal
-					</span>
-				</div>
-				{biqImportStatus && <div className="notice">{biqImportStatus}</div>}
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Qrup</div>
-						<div>Fənn</div>
-						<div>Bal</div>
-						<div></div>
-					</div>
-					{biqResults.map((item) => (
-						<div className="data-row" key={item.id}>
-							<div>
-								{groupMap[item.data.groupId]?.name ?? item.data.groupId}
-							</div>
-							<div>
-								{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}
-							</div>
-							<div>{item.data.score}</div>
-							<div className="actions">
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={() => void handleDeleteBiq(item.id)}
-								>
-									Sil
-								</button>
-							</div>
+			<Tabs defaultValue="inputs" className="stack">
+				<div className="card">
+					<div className="section-header">
+						<div>
+							<div className="section-kicker">PKPD idarəetməsi</div>
+							<h3 className="section-title">Bölmələr</h3>
 						</div>
-					))}
-					{biqResults.length === 0 && (
-						<div className="empty">Məlumat yoxdur.</div>
-					)}
-				</div>
-			</div>
-
-			<div className="card">
-				<h3>Müəllim üzrə BİQ nəticələri (override)</h3>
-				<div className="form-row">
-					<select
-						className="input"
-						value={teacherBiqTeacherId}
-						onChange={(event) => setTeacherBiqTeacherId(event.target.value)}
-					>
-						<option value="">Müəllim</option>
-						{teachers.map((teacher) => (
-							<option key={teacher.id} value={teacher.id}>
-								{teacher.data.name}
-							</option>
-						))}
-					</select>
-					<select
-						className="input"
-						value={teacherBiqGroupId}
-						onChange={(event) => setTeacherBiqGroupId(event.target.value)}
-					>
-						<option value="">Qrup</option>
-						{groups.map((group) => (
-							<option key={group.id} value={group.id}>
-								{group.data.name} ({group.data.classLevel})
-							</option>
-						))}
-					</select>
-					<select
-						className="input"
-						value={teacherBiqSubjectId}
-						onChange={(event) => setTeacherBiqSubjectId(event.target.value)}
-					>
-						<option value="">Fənn</option>
-						{subjects.map((subject) => (
-							<option key={subject.id} value={subject.id}>
-								{subject.data.name}
-							</option>
-						))}
-					</select>
-				</div>
-				<div className="form-row">
-					<input
-						className="input"
-						type="number"
-						placeholder="BİQ balı (0-100)"
-						value={teacherBiqScore}
-						onChange={(event) => setTeacherBiqScore(event.target.value)}
-					/>
-					<button
-						className="btn primary"
-						type="button"
-						onClick={handleSaveTeacherBiq}
-						disabled={!selectedCycleId}
-					>
-						Saxla
-					</button>
-				</div>
-				<div className="form-row">
-					<input
-						className="input"
-						type="file"
-						accept=".csv,.xlsx"
-						onChange={(event) => {
-							const file = event.target.files?.[0];
-							if (file) void handleImportTeacherBiq(file);
-						}}
-					/>
-					<span className="hint">
-						Şablon: teacher/teacher_id, group/qrup, subject/fənn, score/biq/bal
-					</span>
-				</div>
-				{teacherBiqImportStatus && (
-					<div className="notice">{teacherBiqImportStatus}</div>
-				)}
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div>
-						<div>Qrup</div>
-						<div>Fənn</div>
-						<div>Bal</div>
-						<div></div>
+						<TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+							<TabsTrigger value="inputs">Bal girişləri</TabsTrigger>
+							<TabsTrigger value="summary">Yekun cədvəl</TabsTrigger>
+							<TabsTrigger value="self-review">Özünüqiymətləndirmə</TabsTrigger>
+						</TabsList>
 					</div>
-					{teacherBiqResults.map((item) => (
-						<div className="data-row" key={item.id}>
-							<div>
-								{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}
-							</div>
-							<div>
-								{groupMap[item.data.groupId]?.name ?? item.data.groupId}
-							</div>
-							<div>
-								{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}
-							</div>
-							<div>{item.data.score}</div>
-							<div className="actions">
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={() => void handleDeleteTeacherBiq(item.id)}
-								>
-									Sil
-								</button>
-							</div>
-						</div>
-					))}
-					{teacherBiqResults.length === 0 && (
-						<div className="empty">Məlumat yoxdur.</div>
-					)}
 				</div>
-			</div>
 
-			<div className="card">
-				<h3>Attestasiya imtahanı (0-30)</h3>
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div>
-						<div>Bal</div>
-						<div></div>
-					</div>
-					{standardTeachers.map((teacher) => (
-						<div className="data-row" key={teacher.id}>
-							<div>{teacher.data.name}</div>
-							<div>
-								<input
-									className="input"
-									type="number"
-									min="0"
-									max="30"
-									value={examDrafts[teacher.id] ?? ""}
-									onChange={(event) =>
-										setExamDrafts((prev) => ({
-											...prev,
-											[teacher.id]: event.target.value,
-										}))
-									}
-								/>
-							</div>
-							<div className="actions">
-								<button
-									className="btn"
-									type="button"
-									onClick={() => void handleSaveExam(teacher.id)}
-								>
-									Saxla
-								</button>
-							</div>
-						</div>
-					))}
-					{standardTeachers.length === 0 && (
-						<div className="empty">Standart müəllim yoxdur.</div>
-					)}
-				</div>
-			</div>
-
-			<div className="card">
-				<h3>Portfolio (bal + qeyd)</h3>
-				<div className="form-row">
-					<select
-						className="input"
-						value={portfolioTeacherId}
-						onChange={(event) => loadPortfolioForTeacher(event.target.value)}
-					>
-						<option value="">Müəllim seçin</option>
-						{teachers.map((teacher) => (
-							<option key={teacher.id} value={teacher.id}>
-								{teacher.data.name} (
-								{teacherCategoryLabel(teacher.data.category)})
-							</option>
-						))}
-					</select>
-				</div>
-				{portfolioTeacherId && (
-					<>
-						<div className="form-grid">
-							<input
+				<TabsContent value="inputs" className="stack">
+					<div className="card">
+						<h3>BİQ nəticələri (sinif + fənn)</h3>
+						<div className="form-row">
+							<select
 								className="input"
-								type="number"
-								placeholder={`Təhsil pilləsi (max ${portfolioMax.education})`}
-								value={portfolioEducation}
-								onChange={(event) => setPortfolioEducation(event.target.value)}
-							/>
-							<input
+								value={biqGroupId}
+								onChange={(event) => setBiqGroupId(event.target.value)}
+							>
+								<option value="">Qrup</option>
+								{groups.map((group) => (
+									<option key={group.id} value={group.id}>
+										{group.data.name} ({group.data.classLevel})
+									</option>
+								))}
+							</select>
+							<select
 								className="input"
-								type="number"
-								placeholder={`Davamiyyət (max ${portfolioMax.attendance})`}
-								value={portfolioAttendance}
-								onChange={(event) => setPortfolioAttendance(event.target.value)}
-							/>
-							<input
-								className="input"
-								type="number"
-								placeholder={`Təlim/nəşr (max ${portfolioMax.training})`}
-								value={portfolioTraining}
-								onChange={(event) => setPortfolioTraining(event.target.value)}
-							/>
-							<input
-								className="input"
-								type="number"
-								placeholder={`Olimpiada (max ${portfolioMax.olympiad})`}
-								value={portfolioOlympiad}
-								onChange={(event) => setPortfolioOlympiad(event.target.value)}
-							/>
-							<input
-								className="input"
-								type="number"
-								placeholder={`Tədbir/layihə (max ${portfolioMax.events})`}
-								value={portfolioEvents}
-								onChange={(event) => setPortfolioEvents(event.target.value)}
-							/>
+								value={biqSubjectId}
+								onChange={(event) => setBiqSubjectId(event.target.value)}
+							>
+								<option value="">Fənn</option>
+								{subjects.map((subject) => (
+									<option key={subject.id} value={subject.id}>
+										{subject.data.name}
+									</option>
+								))}
+							</select>
 						</div>
 						<div className="form-row">
 							<input
 								className="input"
-								placeholder="Qeyd (istəyə bağlı)"
-								value={portfolioNote}
-								onChange={(event) => setPortfolioNote(event.target.value)}
+								type="number"
+								placeholder="BİQ balı (0-100)"
+								value={biqScore}
+								onChange={(event) => setBiqScore(event.target.value)}
 							/>
 							<button
 								className="btn primary"
 								type="button"
-								onClick={handleSavePortfolio}
+								onClick={handleSaveBiq}
+								disabled={!selectedCycleId}
 							>
 								Saxla
 							</button>
 						</div>
-					</>
-				)}
-			</div>
-
-			<div className="card">
-				<h3>Bonus nailiyyətlər</h3>
-				<div className="form-grid">
-					<select
-						className="input"
-						value={achievementTeacherId}
-						onChange={(event) => setAchievementTeacherId(event.target.value)}
-					>
-						<option value="">Müəllim</option>
-						{teachers.map((teacher) => (
-							<option key={teacher.id} value={teacher.id}>
-								{teacher.data.name}
-							</option>
-						))}
-					</select>
-					<input
-						className="input"
-						placeholder="Növ (məs: Dövlət təltifi)"
-						value={achievementType}
-						onChange={(event) => setAchievementType(event.target.value)}
-					/>
-					<input
-						className="input"
-						type="number"
-						placeholder="Bal (0-10)"
-						value={achievementPoints}
-						onChange={(event) => setAchievementPoints(event.target.value)}
-					/>
-				</div>
-				<div className="form-row">
-					<input
-						className="input"
-						placeholder="Qeyd (istəyə bağlı)"
-						value={achievementNote}
-						onChange={(event) => setAchievementNote(event.target.value)}
-					/>
-					<button
-						className="btn primary"
-						type="button"
-						onClick={handleAddAchievement}
-					>
-						Əlavə et
-					</button>
-				</div>
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div>
-						<div>Növ</div>
-						<div>Bal</div>
-						<div>Tarix</div>
-						<div></div>
-					</div>
-					{achievements.map((item) => (
-						<div className="data-row" key={item.id}>
-							<div>
-								{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}
-							</div>
-							<div>{item.data.type}</div>
-							<div>{item.data.points}</div>
-							<div>{formatShortDate(toJsDate(item.data.createdAt))}</div>
-							<div className="actions">
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={() => void handleDeleteAchievement(item.id)}
-								>
-									Sil
-								</button>
-							</div>
+						<div className="form-row">
+							<input
+								className="input"
+								type="file"
+								accept=".csv,.xlsx"
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									if (file) void handleImportBiq(file);
+								}}
+							/>
+							<span className="hint">Şablon: group/qrup, subject/fənn, score/biq/bal</span>
 						</div>
-					))}
-					{achievements.length === 0 && (
-						<div className="empty">Bonus yoxdur.</div>
-					)}
-				</div>
-			</div>
-
-			<div className="card">
-				<h3>PKPD yekun cədvəli</h3>
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div>
-						<div>Müəllim tipi</div>
-						<div>Şagird</div>
-						<div>Rəhbərlik</div>
-						<div>Özü</div>
-						<div>BİQ</div>
-						<div>İmtahan</div>
-						<div>Portfolio</div>
-						<div>HR</div>
-						<div>Bonus</div>
-						<div>Yekun</div>
-						<div>PKPD kateqoriyası</div>
-						<div>Qərar</div>
-						<div>Qeyd</div>
-						<div></div>
-					</div>
-					{summaryRows.map((row) => (
-						<div className="data-row" key={row.teacherId}>
-							<div>{row.name}</div>
-							<div>{teacherCategoryLabel(row.category)}</div>
-							<div>{row.studentScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.managementScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.selfScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.biqScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.examScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.portfolioScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.hrSelfReviewScore?.toFixed(1) ?? "-"}</div>
-							<div>{row.bonus?.toFixed(1) ?? "-"}</div>
-							<div>{row.total.toFixed(1)}</div>
-							<div>{pkpdBucket(row.total)}</div>
-							<div>
-								<select
-									className="input"
-									value={
-										decisionDrafts[row.teacherId]?.status ??
-										decisionMap[row.teacherId]?.status ??
-										"PENDING"
-									}
-									onChange={(event) =>
-										setDecisionDrafts((prev) => ({
-											...prev,
-											[row.teacherId]: {
-												status: event.target.value as PkpdDecisionStatus,
-												note:
-													prev[row.teacherId]?.note ??
-													decisionMap[row.teacherId]?.note ??
-													"",
-											},
-										}))
-									}
-								>
-									{Object.entries(decisionLabel).map(([value, label]) => (
-										<option key={value} value={value}>
-											{label}
-										</option>
-									))}
-								</select>
-							</div>
-							<div>
-								<input
-									className="input"
-									placeholder="Qeyd"
-									value={
-										decisionDrafts[row.teacherId]?.note ??
-										decisionMap[row.teacherId]?.note ??
-										""
-									}
-									onChange={(event) =>
-										setDecisionDrafts((prev) => ({
-											...prev,
-											[row.teacherId]: {
-												status:
-													prev[row.teacherId]?.status ??
-													decisionMap[row.teacherId]?.status ??
-													"PENDING",
-												note: event.target.value,
-											},
-										}))
-									}
-								/>
-							</div>
-							<div className="actions">
-								<button
-									className="btn"
-									type="button"
-									onClick={() => void handleSaveDecision(row.teacherId)}
-								>
-									Saxla
-								</button>
-							</div>
-						</div>
-					))}
-					{summaryRows.length === 0 && (
-						<div className="empty">Məlumat yoxdur.</div>
-					)}
-				</div>
-			</div>
-
-			<div className="card">
-				<h3>Özünüqiymətləndirmə cavabları və HR balı</h3>
-				<div className="form-row">
-					<select
-						className="input"
-						value={selfReviewTeacherId}
-						onChange={(event) => loadSelfReviewForTeacher(event.target.value)}
-					>
-						<option value="">Müəllim seçin</option>
-						{teachers.map((teacher) => (
-							<option key={teacher.id} value={teacher.id}>
-								{teacher.data.name}
-							</option>
-						))}
-					</select>
-				</div>
-				{selfReviewTeacherId && selectedTeacherHasSavedSelfReview && (
-					<div className="form-row">
-						{selectedTeacherSelfReviewLocked ? (
-							<button
-								className="btn ghost"
-								type="button"
-								onClick={handleRequestSelfReviewEdit}
-							>
-								Düzəliş et
-							</button>
-						) : (
-							<span className="tag success">Düzəliş açıqdır</span>
-						)}
-					</div>
-				)}
-				{selfReviewTeacherId && (
-					<>
-						{selectedTeacherHasSavedSelfReview && (
-							<div className="notice">
-								{selectedTeacherSelfReviewLocked
-									? "Bu HR qiymətləndirməsi kilidlənib. Dəyişiklik üçün admin şifrəsi və səbəb tələb olunur."
-									: "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}
-							</div>
-						)}
-						<div className="notice">
-							{selfReviewTeacher?.name ?? "Müəllim"} üçün müəllimin öz balı:{" "}
-							{selectedTeacherSelfResponse?.declaredScore ?? "-"} / 10
-						</div>
-						{selectedTeacherSelfReview?.editReason && (
-							<div className="hint">
-								Son düzəliş səbəbi: {selectedTeacherSelfReview.editReason}
-							</div>
-						)}
+						{biqImportStatus && <div className="notice">{biqImportStatus}</div>}
 						<div className="data-table">
 							<div className="data-row header">
-								<div>Sual</div>
-								<div>Cavab</div>
+								<div>Qrup</div>
+								<div>Fənn</div>
+								<div>Bal</div>
+								<div></div>
 							</div>
-							{selectedTeacherSelfResponse?.textAnswers.map((item) => (
-								<div className="data-row" key={item.questionId}>
-									<div>{item.questionText}</div>
-									<div>{item.answerText}</div>
+							{biqPagination.paginatedItems.map((item) => (
+								<div className="data-row" key={item.id}>
+									<div>{groupMap[item.data.groupId]?.name ?? item.data.groupId}</div>
+									<div>{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}</div>
+									<div>{item.data.score}</div>
+									<div className="actions">
+										<button className="btn ghost" type="button" onClick={() => void handleDeleteBiq(item.id)}>
+											Sil
+										</button>
+									</div>
 								</div>
 							))}
-							{(!selectedTeacherSelfResponse ||
-								selectedTeacherSelfResponse.textAnswers.length === 0) && (
-								<div className="empty">
-									Müəllim bu sorğuda hələ açıq cavab yazmayıb.
-								</div>
-							)}
+							{biqResults.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+						</div>
+						{biqResults.length > 0 && (
+							<PaginationControls
+								totalItems={biqPagination.totalItems}
+								page={biqPagination.page}
+								pageSize={biqPagination.pageSize}
+								onPageChange={biqPagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									biqPagination.setPageSize(nextSize);
+									biqPagination.setPage(1);
+								}}
+							/>
+						)}
+					</div>
+
+					<div className="card">
+						<h3>Müəllim üzrə BİQ nəticələri (override)</h3>
+						<div className="form-row">
+							<select className="input" value={teacherBiqTeacherId} onChange={(event) => setTeacherBiqTeacherId(event.target.value)}>
+								<option value="">Müəllim</option>
+								{teachers.map((teacher) => (
+									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
+								))}
+							</select>
+							<select className="input" value={teacherBiqGroupId} onChange={(event) => setTeacherBiqGroupId(event.target.value)}>
+								<option value="">Qrup</option>
+								{groups.map((group) => (
+									<option key={group.id} value={group.id}>{group.data.name} ({group.data.classLevel})</option>
+								))}
+							</select>
+							<select className="input" value={teacherBiqSubjectId} onChange={(event) => setTeacherBiqSubjectId(event.target.value)}>
+								<option value="">Fənn</option>
+								{subjects.map((subject) => (
+									<option key={subject.id} value={subject.id}>{subject.data.name}</option>
+								))}
+							</select>
+						</div>
+						<div className="form-row">
+							<input className="input" type="number" placeholder="BİQ balı (0-100)" value={teacherBiqScore} onChange={(event) => setTeacherBiqScore(event.target.value)} />
+							<button className="btn primary" type="button" onClick={handleSaveTeacherBiq} disabled={!selectedCycleId}>Saxla</button>
 						</div>
 						<div className="form-row">
 							<input
 								className="input"
-								type="number"
-								min="0"
-								max="10"
-								step="0.1"
-								placeholder="HR balı (0-10)"
-								value={selfReviewScore}
-								disabled={selectedTeacherSelfReviewLocked}
-								onChange={(event) => setSelfReviewScore(event.target.value)}
+								type="file"
+								accept=".csv,.xlsx"
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									if (file) void handleImportTeacherBiq(file);
+								}}
 							/>
-							<input
-								className="input"
-								placeholder="HR qeydi (istəyə bağlı)"
-								value={selfReviewNote}
-								disabled={selectedTeacherSelfReviewLocked}
-								onChange={(event) => setSelfReviewNote(event.target.value)}
+							<span className="hint">Şablon: teacher/teacher_id, group/qrup, subject/fənn, score/biq/bal</span>
+						</div>
+						{teacherBiqImportStatus && <div className="notice">{teacherBiqImportStatus}</div>}
+						<div className="data-table">
+							<div className="data-row header">
+								<div>Müəllim</div>
+								<div>Qrup</div>
+								<div>Fənn</div>
+								<div>Bal</div>
+								<div></div>
+							</div>
+							{teacherBiqPagination.paginatedItems.map((item) => (
+								<div className="data-row" key={item.id}>
+									<div>{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}</div>
+									<div>{groupMap[item.data.groupId]?.name ?? item.data.groupId}</div>
+									<div>{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}</div>
+									<div>{item.data.score}</div>
+									<div className="actions">
+										<button className="btn ghost" type="button" onClick={() => void handleDeleteTeacherBiq(item.id)}>Sil</button>
+									</div>
+								</div>
+							))}
+							{teacherBiqResults.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+						</div>
+						{teacherBiqResults.length > 0 && (
+							<PaginationControls
+								totalItems={teacherBiqPagination.totalItems}
+								page={teacherBiqPagination.page}
+								pageSize={teacherBiqPagination.pageSize}
+								onPageChange={teacherBiqPagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									teacherBiqPagination.setPageSize(nextSize);
+									teacherBiqPagination.setPage(1);
+								}}
 							/>
-							<button
-								className="btn primary"
-								type="button"
-								onClick={handleSaveSelfReview}
-								disabled={selectedTeacherSelfReviewLocked}
-							>
-								Saxla
-							</button>
+						)}
+					</div>
+
+					<div className="card">
+						<div className="section-header">
+							<div>
+								<h3>Attestasiya imtahanı (0-30)</h3>
+								<p className="hint">Bu siyahı 15-li səhifələnir ki, imtahan balları daha rahat idarə olunsun.</p>
+							</div>
+							<div className="stat-pill">Cəmi: {standardTeachers.length}</div>
 						</div>
-						<div className="hint">
-							HR balı müəllimin yekun PKPD cəminin üzərinə əlavə olunur.
+						<div className="data-table">
+							<div className="data-row header"><div>Müəllim</div><div>Bal</div><div></div></div>
+							{examPagination.paginatedItems.map((teacher) => (
+								<div className="data-row" key={teacher.id}>
+									<div>{teacher.data.name}</div>
+									<div>
+										<input
+											className="input"
+											type="number"
+											min="0"
+											max="30"
+											value={examDrafts[teacher.id] ?? ""}
+											onChange={(event) =>
+												setExamDrafts((prev) => ({
+													...prev,
+													[teacher.id]: event.target.value,
+												}))
+											}
+										/>
+									</div>
+									<div className="actions"><button className="btn" type="button" onClick={() => void handleSaveExam(teacher.id)}>Saxla</button></div>
+								</div>
+							))}
+							{standardTeachers.length === 0 && <div className="empty">Standart müəllim yoxdur.</div>}
 						</div>
-					</>
-				)}
-			</div>
+						{standardTeachers.length > 0 && (
+							<PaginationControls
+								totalItems={examPagination.totalItems}
+								page={examPagination.page}
+								pageSize={examPagination.pageSize}
+								onPageChange={examPagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									examPagination.setPageSize(nextSize);
+									examPagination.setPage(1);
+								}}
+							/>
+						)}
+					</div>
+
+					<div className="card">
+						<h3>Portfolio (bal + qeyd)</h3>
+						<div className="form-row">
+							<select className="input" value={portfolioTeacherId} onChange={(event) => loadPortfolioForTeacher(event.target.value)}>
+								<option value="">Müəllim seçin</option>
+								{teachers.map((teacher) => (
+									<option key={teacher.id} value={teacher.id}>
+										{teacher.data.name} ({teacherCategoryLabel(teacher.data.category)})
+									</option>
+								))}
+							</select>
+						</div>
+						{portfolioTeacherId && (
+							<>
+								<div className="form-grid">
+									<input className="input" type="number" placeholder={`Təhsil pilləsi (max ${portfolioMax.education})`} value={portfolioEducation} onChange={(event) => setPortfolioEducation(event.target.value)} />
+									<input className="input" type="number" placeholder={`Davamiyyət (max ${portfolioMax.attendance})`} value={portfolioAttendance} onChange={(event) => setPortfolioAttendance(event.target.value)} />
+									<input className="input" type="number" placeholder={`Təlim/nəşr (max ${portfolioMax.training})`} value={portfolioTraining} onChange={(event) => setPortfolioTraining(event.target.value)} />
+									<input className="input" type="number" placeholder={`Olimpiada (max ${portfolioMax.olympiad})`} value={portfolioOlympiad} onChange={(event) => setPortfolioOlympiad(event.target.value)} />
+									<input className="input" type="number" placeholder={`Tədbir/layihə (max ${portfolioMax.events})`} value={portfolioEvents} onChange={(event) => setPortfolioEvents(event.target.value)} />
+								</div>
+								<div className="form-row">
+									<input className="input" placeholder="Qeyd (istəyə bağlı)" value={portfolioNote} onChange={(event) => setPortfolioNote(event.target.value)} />
+									<button className="btn primary" type="button" onClick={handleSavePortfolio}>Saxla</button>
+								</div>
+							</>
+						)}
+					</div>
+
+					<div className="card">
+						<h3>Bonus nailiyyətlər</h3>
+						<div className="form-grid">
+							<select className="input" value={achievementTeacherId} onChange={(event) => setAchievementTeacherId(event.target.value)}>
+								<option value="">Müəllim</option>
+								{teachers.map((teacher) => (
+									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
+								))}
+							</select>
+							<input className="input" placeholder="Növ (məs: Dövlət təltifi)" value={achievementType} onChange={(event) => setAchievementType(event.target.value)} />
+							<input className="input" type="number" placeholder="Bal (0-10)" value={achievementPoints} onChange={(event) => setAchievementPoints(event.target.value)} />
+						</div>
+						<div className="form-row">
+							<input className="input" placeholder="Qeyd (istəyə bağlı)" value={achievementNote} onChange={(event) => setAchievementNote(event.target.value)} />
+							<button className="btn primary" type="button" onClick={handleAddAchievement}>Əlavə et</button>
+						</div>
+						<div className="data-table">
+							<div className="data-row header"><div>Müəllim</div><div>Növ</div><div>Bal</div><div>Tarix</div><div></div></div>
+							{achievementPagination.paginatedItems.map((item) => (
+								<div className="data-row" key={item.id}>
+									<div>{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}</div>
+									<div>{item.data.type}</div>
+									<div>{item.data.points}</div>
+									<div>{formatShortDate(toJsDate(item.data.createdAt))}</div>
+									<div className="actions"><button className="btn ghost" type="button" onClick={() => void handleDeleteAchievement(item.id)}>Sil</button></div>
+								</div>
+							))}
+							{achievements.length === 0 && <div className="empty">Bonus yoxdur.</div>}
+						</div>
+						{achievements.length > 0 && (
+							<PaginationControls
+								totalItems={achievementPagination.totalItems}
+								page={achievementPagination.page}
+								pageSize={achievementPagination.pageSize}
+								onPageChange={achievementPagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									achievementPagination.setPageSize(nextSize);
+									achievementPagination.setPage(1);
+								}}
+							/>
+						)}
+					</div>
+				</TabsContent>
+
+				<TabsContent value="summary" className="stack">
+					<div className="card">
+						<div className="section-header">
+							<div>
+								<h3>PKPD yekun cədvəli</h3>
+								<p className="hint">Ətraflı bal bölgüsü və qərar redaktəsi üçün hər müəllimdə <code>Detallar</code> düyməsini açın.</p>
+							</div>
+							<div className="stat-pill">Cəmi: {summaryRows.length}</div>
+						</div>
+						<div className="data-table">
+							<div className="data-row header"><div>Müəllim</div><div>Müəllim tipi</div><div>Yekun</div><div>PKPD kateqoriyası</div><div>Qərar</div><div>Qeyd</div><div></div></div>
+							{summaryPagination.paginatedItems.map((row) => {
+								const decision = decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId] ?? null;
+								const notePreview = decision?.note?.trim() || '-';
+								return (
+									<div className="data-row" key={row.teacherId}>
+										<div>{row.name}</div>
+										<div>{teacherCategoryLabel(row.category)}</div>
+										<div>{row.total.toFixed(1)}</div>
+										<div>{pkpdBucket(row.total)}</div>
+										<div>{decisionLabel[decision?.status ?? 'PENDING']}</div>
+										<div>{notePreview}</div>
+										<div className="actions"><button className="btn" type="button" onClick={() => setSelectedSummaryTeacherId(row.teacherId)}>Detallar</button></div>
+									</div>
+								);
+							})}
+							{summaryRows.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+						</div>
+						{summaryRows.length > 0 && (
+							<PaginationControls
+								totalItems={summaryPagination.totalItems}
+								page={summaryPagination.page}
+								pageSize={summaryPagination.pageSize}
+								onPageChange={summaryPagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									summaryPagination.setPageSize(nextSize);
+									summaryPagination.setPage(1);
+								}}
+							/>
+						)}
+					</div>
+				</TabsContent>
+
+				<TabsContent value="self-review" className="stack">
+					<div className="card">
+						<h3>Özünüqiymətləndirmə cavabları və HR balı</h3>
+						<div className="form-row">
+							<select className="input" value={selfReviewTeacherId} onChange={(event) => loadSelfReviewForTeacher(event.target.value)}>
+								<option value="">Müəllim seçin</option>
+								{teachers.map((teacher) => (
+									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
+								))}
+							</select>
+						</div>
+						{selfReviewTeacherId && selectedTeacherHasSavedSelfReview && (
+							<div className="form-row">
+								{selectedTeacherSelfReviewLocked ? (
+									<button className="btn ghost" type="button" onClick={handleRequestSelfReviewEdit}>Düzəliş et</button>
+								) : (
+									<span className="tag success">Düzəliş açıqdır</span>
+								)}
+							</div>
+						)}
+						{selfReviewTeacherId && (
+							<>
+								{selectedTeacherHasSavedSelfReview && (
+									<div className="notice">{selectedTeacherSelfReviewLocked ? "Bu HR qiymətləndirməsi kilidlənib. Dəyişiklik üçün admin şifrəsi və səbəb tələb olunur." : "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}</div>
+								)}
+								<div className="notice">{selfReviewTeacher?.name ?? "Müəllim"} üçün müəllimin öz balı: {selectedTeacherSelfResponse?.declaredScore ?? "-"} / 10</div>
+								{selectedTeacherSelfReview?.editReason && <div className="hint">Son düzəliş səbəbi: {selectedTeacherSelfReview.editReason}</div>}
+								<div className="data-table">
+									<div className="data-row header"><div>Sual</div><div>Cavab</div></div>
+									{selectedTeacherSelfResponse?.textAnswers.map((item) => (
+										<div className="data-row" key={item.questionId}><div>{item.questionText}</div><div>{item.answerText}</div></div>
+									))}
+									{(!selectedTeacherSelfResponse || selectedTeacherSelfResponse.textAnswers.length === 0) && <div className="empty">Müəllim bu sorğuda hələ açıq cavab yazmayıb.</div>}
+								</div>
+								<div className="form-row">
+									<input className="input" type="number" min="0" max="10" step="0.1" placeholder="HR balı (0-10)" value={selfReviewScore} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewScore(event.target.value)} />
+									<input className="input" placeholder="HR qeydi (istəyə bağlı)" value={selfReviewNote} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewNote(event.target.value)} />
+									<button className="btn primary" type="button" onClick={handleSaveSelfReview} disabled={selectedTeacherSelfReviewLocked}>Saxla</button>
+								</div>
+								<div className="hint">HR balı müəllimin yekun PKPD cəminin üzərinə əlavə olunur.</div>
+							</>
+						)}
+					</div>
+				</TabsContent>
+			</Tabs>
+			<Dialog open={Boolean(selectedSummaryRow)} onOpenChange={(open) => { if (!open) setSelectedSummaryTeacherId(null); }}>
+				<DialogContent className="max-w-4xl">
+					{selectedSummaryRow && (
+						<>
+							<DialogHeader>
+								<DialogTitle>{selectedSummaryRow.name}</DialogTitle>
+								<DialogDescription>{cycleYear} dövrü üçün PKPD detal görünüşü və qərar redaktəsi.</DialogDescription>
+							</DialogHeader>
+							<div className="grid three">
+								<div className="stat-card"><div className="stat-label">Şagird</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Rəhbərlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Özü</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">BIQ</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">İmtahan</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">HR</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Bonus</div><div className="stat-value">{selectedSummaryRow.bonus.toFixed(1)}</div></div>
+								<div className="stat-card"><div className="stat-label">Yekun</div><div className="stat-value">{selectedSummaryRow.total.toFixed(1)}</div><div className="stat-meta">{pkpdBucket(selectedSummaryRow.total)}</div></div>
+							</div>
+							<div className="card">
+								<div className="section-header">
+									<div><div className="section-kicker">Cari il</div><h3 className="section-title">Dərs təyinatları</h3></div>
+									<div className="tag">{teacherCategoryLabel(selectedSummaryRow.category)}</div>
+								</div>
+								<div className="list">
+									{selectedSummaryAssignments.map((assignment) => (
+										<div className="list-item" key={`${assignment.teacherId}_${assignment.groupId}_${assignment.subjectId}`}>
+											<div><div className="list-title">{subjectMap[assignment.subjectId]?.name ?? assignment.subjectId}</div><div className="list-meta">{groupMap[assignment.groupId]?.name ?? assignment.groupId}</div></div>
+											<div className="tag">{cycleYear}</div>
+										</div>
+									))}
+									{selectedSummaryAssignments.length === 0 && <div className="empty">Bu müəllim üçün cari ildə dərs təyinatı yoxdur.</div>}
+								</div>
+							</div>
+							<div className="card">
+								<h3>Qərar və qeyd</h3>
+								<div className="form-row">
+									<select
+										className="input"
+										value={decisionDrafts[selectedSummaryRow.teacherId]?.status ?? decisionMap[selectedSummaryRow.teacherId]?.status ?? 'PENDING'}
+										onChange={(event) =>
+											setDecisionDrafts((prev) => ({
+												...prev,
+												[selectedSummaryRow.teacherId]: {
+													status: event.target.value as PkpdDecisionStatus,
+													note: prev[selectedSummaryRow.teacherId]?.note ?? decisionMap[selectedSummaryRow.teacherId]?.note ?? '',
+												},
+											}))
+										}
+									>
+										{Object.entries(decisionLabel).map(([value, label]) => (
+											<option key={value} value={value}>{label}</option>
+										))}
+									</select>
+									<input
+										className="input"
+										placeholder="Qeyd"
+										value={decisionDrafts[selectedSummaryRow.teacherId]?.note ?? decisionMap[selectedSummaryRow.teacherId]?.note ?? ''}
+										onChange={(event) =>
+											setDecisionDrafts((prev) => ({
+												...prev,
+												[selectedSummaryRow.teacherId]: {
+													status: prev[selectedSummaryRow.teacherId]?.status ?? decisionMap[selectedSummaryRow.teacherId]?.status ?? 'PENDING',
+													note: event.target.value,
+												},
+											}))
+										}
+									/>
+									<button className="btn primary" type="button" onClick={() => void handleSaveDecision(selectedSummaryRow.teacherId)}>Saxla</button>
+								</div>
+							</div>
+						</>
+					)}
+				</DialogContent>
+			</Dialog>
 			<Dialog open={selfReviewUnlockOpen} onOpenChange={setSelfReviewUnlockOpen}>
 				<DialogContent className="max-w-md">
 					<DialogHeader>
@@ -2273,3 +2174,5 @@ export const BranchPkpdPage = () => {
 		</div>
 	);
 };
+
+

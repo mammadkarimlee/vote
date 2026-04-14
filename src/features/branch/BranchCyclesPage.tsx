@@ -1,7 +1,9 @@
 ﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapSurveyCycleRow } from "../../lib/supabaseMappers";
+import { usePagination } from "../../lib/usePagination";
 import type { SurveyCycleDoc } from "../../lib/types";
 import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
@@ -11,6 +13,7 @@ type DocEntry<T> = { id: string; data: T };
 export const BranchCyclesPage = () => {
 	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
 	const [cycles, setCycles] = useState<Array<DocEntry<SurveyCycleDoc>>>([]);
+	const cyclesPagination = usePagination(cycles);
 
 	useEffect(() => {
 		const loadCycles = async () => {
@@ -61,7 +64,7 @@ export const BranchCyclesPage = () => {
 					<div>Vəziyyət</div>
 					<div></div>
 				</div>
-				{cycles.map((cycle) => (
+				{cyclesPagination.paginatedItems.map((cycle) => (
 					<div className="data-row" key={cycle.id}>
 						<div>{cycle.data.year}</div>
 						<div>{cycle.data.status}</div>
@@ -76,6 +79,15 @@ export const BranchCyclesPage = () => {
 					<div className="empty">Sorğu dövrü yoxdur.</div>
 				)}
 			</div>
+			{cyclesPagination.totalItems > 0 && (
+				<PaginationControls
+					totalItems={cyclesPagination.totalItems}
+					page={cyclesPagination.page}
+					pageSize={cyclesPagination.pageSize}
+					onPageChange={cyclesPagination.setPage}
+					onPageSizeChange={cyclesPagination.setPageSize}
+				/>
+			)}
 		</div>
 	);
 };

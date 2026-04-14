@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -13,6 +15,7 @@ import type {
 	ManagementAssignmentDoc,
 	UserDoc,
 } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -60,7 +63,7 @@ export const BranchManagementAssignmentsPage = () => {
 	const [managerUid, setManagerUid] = useState("");
 	const [departmentName, setDepartmentName] = useState("");
 	const [year, setYear] = useState(String(new Date().getFullYear()));
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 
 	const loadData = useCallback(async () => {
 		if (Array.isArray(scopedBranchIds) && scopedBranchIds.length === 0) {
@@ -277,6 +280,7 @@ export const BranchManagementAssignmentsPage = () => {
 		if (!scopedBranchIds || scopedBranchIds.length === 0) return "Filial təyin edilməyib";
 		return branchMap[scopedBranchIds[0]]?.name ?? "Filial";
 	}, [branchMap, isSuperAdmin, scopedBranchIds]);
+	const departmentHeadsPagination = usePagination(departmentHeads);
 
 	const handleCreate = async () => {
 		if (!managerUid || !departmentName || !year) {
@@ -533,7 +537,7 @@ export const BranchManagementAssignmentsPage = () => {
 								<div>İl</div>
 								<div></div>
 							</div>
-							{departmentHeads.map((row) => {
+							{departmentHeadsPagination.paginatedItems.map((row) => {
 								const manager = managerMap[row.managerUid];
 								const managerDisplayName =
 									manager?.displayName ?? manager?.login ?? row.managerUid;
@@ -572,6 +576,15 @@ export const BranchManagementAssignmentsPage = () => {
 								</div>
 							)}
 						</div>
+						{departmentHeadsPagination.totalItems > 0 && (
+							<PaginationControls
+								totalItems={departmentHeadsPagination.totalItems}
+								page={departmentHeadsPagination.page}
+								pageSize={departmentHeadsPagination.pageSize}
+								onPageChange={departmentHeadsPagination.setPage}
+								onPageSizeChange={departmentHeadsPagination.setPageSize}
+							/>
+						)}
 					</div>
 				</div>
 			</div>

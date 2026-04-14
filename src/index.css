@@ -679,6 +679,110 @@
     @apply rounded-2xl border border-border bg-secondary px-4 py-3 text-sm;
   }
 
+  .app-toast-viewport {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 80;
+    display: flex;
+    width: min(26rem, calc(100vw - 2rem));
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+  }
+
+  .app-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    @apply rounded-2xl border bg-card px-4 py-3 text-sm text-foreground shadow-strong;
+    border-width: 1.5px;
+    animation: toast-slide-in 0.18s ease-out both;
+  }
+
+  .app-toast::before {
+    content: "";
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    background: hsl(var(--muted-foreground));
+  }
+
+  .app-toast.info {
+    @apply border-border bg-card;
+  }
+
+  .app-toast.info::before {
+    background: hsl(var(--primary));
+  }
+
+  .app-toast.success {
+    @apply border-emerald-500/30 bg-emerald-500/10;
+  }
+
+  .app-toast.success::before {
+    background: rgb(16 185 129);
+  }
+
+  .app-toast.error {
+    border-color: hsl(var(--destructive));
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    box-shadow: 0 24px 48px rgba(153, 27, 27, 0.38);
+  }
+
+  .app-toast.error::before {
+    background: hsl(var(--destructive-foreground));
+  }
+
+  .app-toast.error .app-toast__close {
+    color: hsl(var(--destructive-foreground));
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .app-toast.error .app-toast__close:hover {
+    color: hsl(var(--destructive-foreground));
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .app-toast__message {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .app-toast__close {
+    @apply inline-flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-transparent text-base leading-none text-muted-foreground transition hover:border-border hover:bg-background hover:text-foreground;
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 640px) {
+    .app-toast-viewport {
+      right: 0.75rem;
+      left: 0.75rem;
+      bottom: 0.75rem;
+      width: auto;
+    }
+  }
+
+  @keyframes toast-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   .modal-overlay {
     @apply fixed inset-0 z-50 grid place-items-center bg-slate-900/45 p-4 backdrop-blur-sm;
   }

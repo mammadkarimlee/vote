@@ -1,8 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
+import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapGroupRow } from "../../lib/supabaseMappers";
 import type { GroupDoc } from "../../lib/types";
+import { usePagination } from "../../lib/usePagination";
 import { createId } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
@@ -19,7 +22,7 @@ export const BranchGroupsPage = () => {
 	);
 	const [name, setName] = useState("");
 	const [classLevel, setClassLevel] = useState("");
-	const [status, setStatus] = useState<string | null>(null);
+	const [status, setStatus] = useFeedbackState();
 	const [localBranchName, setLocalBranchName] = useState("");
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
@@ -203,6 +206,7 @@ export const BranchGroupsPage = () => {
 
 	const summary = useMemo(() => groups.length, [groups]);
 	const displayBranchName = localBranchName || branchName || "Filial tapılmadı";
+	const groupsPagination = usePagination(groups);
 
 	return (
 		<div className="panel">
@@ -271,7 +275,7 @@ export const BranchGroupsPage = () => {
 					<div>Filial</div>
 					<div></div>
 				</div>
-				{groups.map((group) => (
+				{groupsPagination.paginatedItems.map((group) => (
 					<div className="data-row" key={group.id}>
 						<div>
 							{editingId === group.id ? (
@@ -338,6 +342,15 @@ export const BranchGroupsPage = () => {
 					</div>
 				))}
 			</div>
+			{groupsPagination.totalItems > 0 && (
+				<PaginationControls
+					totalItems={groupsPagination.totalItems}
+					page={groupsPagination.page}
+					pageSize={groupsPagination.pageSize}
+					onPageChange={groupsPagination.setPage}
+					onPageSizeChange={groupsPagination.setPageSize}
+				/>
+			)}
 			{dialog}
 		</div>
 	);
