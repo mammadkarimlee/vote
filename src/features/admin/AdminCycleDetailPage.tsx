@@ -723,6 +723,26 @@ export const AdminCycleDetailPage = () => {
 		return result;
 	}, [submissions, submissionScoreById, taskMap]);
 
+	const studentSubmissionStatsByTeacher = useMemo(() => {
+		const stats: Record<string, FlowAggregate> = {};
+
+		submissions.forEach((submission) => {
+			const task = taskMap[submission.id];
+			if (!task || task.targetType !== "teacher" || task.raterRole !== "student") {
+				return;
+			}
+
+			const submissionScore = submissionScoreById[submission.id];
+			if (typeof submissionScore !== "number") return;
+
+			stats[task.targetId] = stats[task.targetId] ?? { sum: 0, count: 0 };
+			stats[task.targetId].sum += submissionScore;
+			stats[task.targetId].count += 1;
+		});
+
+		return stats;
+	}, [submissions, submissionScoreById, taskMap]);
+
 	const flowStats = useMemo(() => {
 		const stats: Record<string, TeacherFlowAggregate> = {};
 		teachers.forEach((teacher) => {
@@ -839,11 +859,12 @@ export const AdminCycleDetailPage = () => {
 			.map((teacher) => {
 				const flow = flowStats[teacher.id] ?? emptyFlowAggregate();
 				const classScores = studentClassScoresByTeacher[teacher.id] ?? [];
-				const studentAvg = averageNumbers(classScores.map((item) => item.avg));
-				const studentCount = classScores.reduce(
-					(acc, item) => acc + item.submissionCount,
-					0,
-				);
+				const studentStats = studentSubmissionStatsByTeacher[teacher.id] ?? {
+					sum: 0,
+					count: 0,
+				};
+				const studentAvg = average(studentStats);
+				const studentCount = studentStats.count;
 				const managementAvg = average(flow.management);
 				const selfDeclaredScore = average(flow.self);
 				const teacherSelfReview = selfReviewMap[teacher.id] ?? null;
@@ -952,6 +973,7 @@ export const AdminCycleDetailPage = () => {
 		flowStats,
 		selfReviewMap,
 		submissionCountByTeacher,
+		studentSubmissionStatsByTeacher,
 		studentClassScoresByTeacher,
 		teacherBiqByKey,
 		teachers,
@@ -1225,7 +1247,7 @@ export const AdminCycleDetailPage = () => {
 						.join("")
 				: `
 					<tr>
-						<td colspan="3">Sinif üzrə şagird nəticəsi yoxdur.</td>
+						<td colspan="3">Sinif/blok üzrə şagird nəticəsi yoxdur.</td>
 					</tr>
 				`;
 
@@ -1396,7 +1418,7 @@ export const AdminCycleDetailPage = () => {
 					<div class="section">
 						<h2>Yekun Göstəricilər</h2>
 						<div class="grid">
-							<div class="card"><div class="label">Şagird sorğusu (sinif ort.)</div><div class="value">${formatScore(selectedTeacher.studentAvg)}</div></div>
+							<div class="card"><div class="label">Şagird sorğusu (ümumi orta)</div><div class="value">${formatScore(selectedTeacher.studentAvg)}</div></div>
 							<div class="card"><div class="label">Rəhbərlik sorğusu</div><div class="value">${formatScore(selectedTeacher.managementAvg)}</div></div>
 							<div class="card"><div class="label">Özünüqiymətləndirmə (cəm)</div><div class="value">${formatScore(selectedTeacher.selfTotal)}</div></div>
 							<div class="card"><div class="label">BİQ nəticəsi</div><div class="value">${formatScore(selectedTeacher.biqAvg)}</div></div>
@@ -1436,11 +1458,11 @@ export const AdminCycleDetailPage = () => {
 					</div>
 
 					<div class="section">
-						<h2>Sinif Üzrə Şagird Balları</h2>
+						<h2>Sinif/Blok Üzrə Şagird Balları</h2>
 						<table>
 							<thead>
 								<tr>
-									<th>Sinif</th>
+									<th>Sinif / blok</th>
 									<th>Cavab sayı</th>
 									<th>Sinif orta balı</th>
 								</tr>
@@ -1929,12 +1951,12 @@ export const AdminCycleDetailPage = () => {
 							<div className="panel-content px-6 py-6">
 								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
-										<div className="stat-label">Şagird sorğusu (sinif ort.)</div>
+										<div className="stat-label">Şagird sorğusu (ümumi orta)</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.studentAvg)}
 										</div>
 										<div className="stat-meta">
-											sinif sayı: {selectedTeacher.studentClassCount} • cavab sayı:{" "}
+											sinif/blok sayı: {selectedTeacher.studentClassCount} • cavab sayı:{" "}
 											{selectedTeacher.studentCount}
 										</div>
 									</div>
@@ -2152,13 +2174,13 @@ export const AdminCycleDetailPage = () => {
 									<div className="card">
 										<div className="section-header">
 											<div>
-												<h3>Sinif üzrə şagird balları</h3>
+												<h3>Sinif/blok üzrə şagird balları</h3>
 												<p>Hər sinif üçün orta bal və cavab sayı.</p>
 											</div>
 										</div>
 										<div className="data-table">
 											<div className="data-row header">
-												<div>Sinif</div>
+												<div>Sinif / blok</div>
 												<div>Cavab sayı</div>
 												<div>Sinif orta balı</div>
 											</div>

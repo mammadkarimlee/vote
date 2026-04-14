@@ -1,0 +1,78 @@
+Aisa D — L/A: 2R2 | L/A Dernek: 2R2 | Library Time: 1E5 | Science: 1A2, 1A3, 1R2, 2R2
+Ariza M — Info/SI: 2A3, 3A3 | Texno/STEAM: 1A2, 1A3, 2A2, 2A3, 3A2, 3A3, 4A2, 4A3, 5A2
+Arzu E — FI: 1R2 | Heyat. b: 1R2, 2R2, 4R3 | Mentiq: 1R2 | Mütalie saati: 1R2 | Riyaziyyat: 1R2 | Rus dili: 2A2, 2A3, 3A2, 3A3 | Tedqiqat: 1R2
+Arzu M — Biologiya: 7A2, 8A2 | Tebiet: 5A2, 5A3, 5R3, 6A2, 6A3, 6R2
+Aysel A — Info/Kimya: 9A3 (Q-1), 11A3 (Q-1) | Info/SI: 4A2, 4A3 | Informatika: 10A3 (Q-1)
+Aysel Ab — L/A: 2E2, 3A2, 4A3 | L/A Clubs: 2E2 | Library Time: 6E2 | PHSCE: 6E2
+Aysel E — Azerb. dili: 1A3, 2A2 | Mentiq: 3A3 | Riyaziyyat: 3A3
+Aysel R — Azerb. T: 6A2, 6A3, 6R2, 8A2 | Azerbaijan History: 6E2 | Tarix: 10A3 (Q-2), 10A3 (Q-3) | Ümumi.T: 6A2, 6A3, 8A2
+Aysen.A — FI: 5R3 | Mütalie saati: 5R3 | Ritorika/Ted Debat: 5R3
+Aytac C — Azerb. dili: 5A3, 6A3, 7A2 | Edebiyyat: 5A2, 5A3, 6A2, 6A3 | FI: 6A2 | Mütalie saati: 6A2 | Ritorika/Ted Debat: 6A2
+Aytac E — Physics: 6E2 | Science: 1E4, 1E5, 2E2, 3A3, 3E2, 4A2, 4A3, 4R3, 5A2, 5E1 | STEMLabs: 5E1, 6E2
+Aytac N — FI: 1A3
+Ayten E — FI: 3R2 | Heyat. b: 3R2 | Mentiq: 2R2, 3R2 | Mütalie saati: 3R2 | Tedqiqat: 3R2
+Azer.I — Azerb. dili: 3A2, 4A2 | Azerb. dili Dernek: 4A2 | Heyat. b: 3A2, 4A2 | Riyaziyyat: 1A3
+Cemile P — Mentiq: 4R3, 5R3, 6R2 | Riyaziyyat: 4R3, 5R3, 6R2
+Cemile T — Computing/AI: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2
+Ceyhune D — Deyerler: 4A3 | FI: 4A3 | Heyat. b: 4A3 | Mütalie saati: 4A3 | Tedqiqat: 4A3
+Diana S — Fizik. T: 1A2, 1A3, 1R2, 2A2, 2R2, 3A2, 3A3, 3R2, 4A2, 4A3, 4R3, 5R3, 6R2 | Fizik. T Dernek: 2A3
+Efruz S — Azerb. dili: 4A3 | Heyat. b: 1A2, 1A3, 2A2, 2A3 | Riyaziyyat: 1A2, 3A2
+Ehmed B — Technology: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2 | Texno/STEAM: 5A3, 6A2, 6A3, 7A2, 8A2
+Elmar.A — Azerb. dili: 3A3 | Biznes: 8A2
+Elnare F — Cografiya: 6R2 | Geography: 6E2 | History: 5E1, 6E2 | Ümumi.T: 6R2
+Esmer B — Eng. Literature: 5E1, 6E2 | Grammar: 5R3, 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3), 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4) | L/A: 5R3
+Ezim H — Fizika: 9A3 (Q-1), 10A3 (Q-1), 10A3 (Q-4), 11A3 (Q-1)
+Fatime R — Global P: 1E5, 2E2, 3E2 | Library Time: 3E2 | PHSCE: 3E2
+Feteli F — Riyaziyyat: 6A3, 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3), 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4), 11A3 (Q-1), 11A3 (Q-2) | Riyaziyyat Dernek: 6A3
+Fezile P — Art&Design: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2 | FI: 4A2 | Tesv. incs: 1A2, 1A3, 1R2, 2A3, 2R2, 3R2, 4A2, 4A3, 4R3, 5A2, 5A3, 5R3 | Tesv. incs Dernek: 2A2, 3A2, 3A3
+Gülgez A — Azerb. dili: 1R2 | Azerb. dili Dernek: 1R2 | Deyerler: 1R2, 3A3 | FI: 3A3 | Mütalie saati: 3A3 | Tedqiqat: 3A3
+Gülsabah I — Biologiya: 10A3 (Q-4)
+Gülsen O — FI: 6R2 | Mütalie saati: 6R2 | Ritorika/Ted Debat: 6R2 | Rus dili: 4A2, 4A3, 5A2, 5A3, 6A2, 6A3, 7A2, 8A2
+Gülsen S — Math: 1E4, 1E5, 3E2, 5E1
+Gülsüm T — Deyerler: 3A2, 4A2 | FI: 3A2 | Mütalie saati: 3A2, 4A2 | Tedqiqat: 3A2, 4A2
+Gülyaz B — Azerb. dili: 3R2 | Azerb. dili Dernek: 3R2 | Deyerler: 1A2, 4R3 | Deyerler Dernek: 3R2 | FI: 1A2 | Mütalie saati: 1A2 | Tedqiqat: 1A2
+Günay T — Info/SI: 1R2, 2A2, 2R2, 3A2, 3R2, 4R3, 5A2, 5A3, 5R3, 6A2, 6A3, 6R2
+Günel C — Deyerler: 2A2 | FI: 2A2 | Mütalie saati: 2A2 | Tedqiqat: 2A2
+Ilahe E — Mentiq: 4A3, 5A3, 6A2, 6A3 | Riyaziyyat: 5A3, 6A2, 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3)
+Ismayil F — Cografiya: 7A2, 9A3 (Q-2), 10A3 (Q-2), 11A3 (Q-2)
+Jale I — FI: 8A2 | Riyaziyyat: 8A2
+Leman A — Library Time: 2E2 | PHSCE: 2E2 | Wellbeing: 1E4, 1E5, 2E2, 3E2, 4E2
+Leyla H — Dram: 1A2, 1A3, 1R2, 2A2, 2A3, 2R2, 3A2, 3A3, 3R2, 4A2, 4A3, 4R3
+Metanet H — Mentiq: 2A2 | Riyaziyyat: 2A2
+Natavan Y — Chess: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2
+Nergiz N — L/A: 1A3, 2A2, 2A3, 4A2
+Nezrin Q — Azerb. T: 5A2, 5A3, 5R3 | Azerbaijan History: 5E1
+Nigar E — Sahmat: 1A2, 1A3, 1R2, 2A2, 2A3, 2R2, 3A2, 3A3, 3R2, 4A2, 4A3, 4R3, 5A2, 5A3, 5R3, 6A2, 6A3, 6R2
+Nurane.H — CCES: 3E2 | Creat Ess Wri: 3E2 | L/A: 1A2, 3A3, 3E2, 3R2
+Nuray A — Logic: 1E5, 2E2, 3E2, 4E2 | Math: 2E2, 4E2, 6E2
+Nurida A — CCES: 5E1 | Creat Ess Wri: 1E5 | L/A: 1E5
+Nuru A — Azerb. T: 7A2 | OTT: 8A2 | Tarix: 9A3 (Q-2), 9A3 (Q-3) | Ümumi.T: 7A2
+Pervane M — Info/SI: 1A2, 1A3, 7A2, 8A2 | Robotics: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2 | Texno/STEAM: 1R2, 2R2, 3R2, 4R3, 5R3, 6R2
+Qafar H — Edebiyyat: 5R3, 6R2 | Rus dili: 5R3, 6R2
+Ramila Q — FI: 4R3 | Mütalie saati: 4R3 | Riyaziyyat: 3R2 | Rus dili: 3R2, 4R3 | Tedqiqat: 4R3
+Ramina A — Music: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2 | Musiqi: 1A2, 1A3, 1R2, 2A2, 2A3, 2R2, 3A2, 3A3, 3R2, 4A2, 4A3, 4R3, 5A2, 5A3, 5R3
+Ruzigar D — Fizik. T: 5A2, 5A3, 6A2, 6A3, 7A2, 8A2 | Fizik. T Dernek: 6A2, 6A3 | Physical Ed: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2
+Röya H — FI: 6A3 | Kimya: 8A2, 10A3 (Q-4) | Mentiq: 4A2 | Mütalie saati: 6A3
+Rüzgar A — Grammar: 5A3, 6A2, 7A2 | L/A: 4R3, 5A2, 5A3, 6A2, 6A3, 7A2, 8A2
+Sakir H — Tarix: 11A3 (Q-2), 11A3 (Q-3)
+Sekine M — Azerbaijani L: 1E4, 3E2 | Dernek FI: 1A3 | Deyerler: 1A3 | FI: 1A3 | Heyat. b: 3A3 | Mentiq: 1A2, 1A3, 2A3, 3A2 | Mütalie saati: 1A3 | Tedqiqat: 1A3 | Values: 1E4, 3E2
+Servinaz C — Azerb. dili: 8A2, 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3), 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4) | Edebiyyat: 10A3 (Q-3)
+Sevda A — Riyaziyyat: 2R2 | Rus dili: 1R2, 2R2
+Sevinc B — Riyaziyyat: 4A3, 7A2, 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4), 11A3 (Q-1), 11A3 (Q-2) | Riyaziyyat Dernek: 4A3
+Sevinc E — Info/Kimya: 9A3 (Q-1), 11A3 (Q-1) | Kimya: 7A2
+Sevinc I — Deyerler: 2A3 | FI: 2A3 | Mütalie saati: 2A3 | Tedqiqat: 2A3
+Sevinc Q — Fizika: 7A2, 8A2 | Grammar: 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3), 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4) | Science: 4E2, 6A2, 6A3, 7A2
+Seyrane E — Azerb. dili: 2R2 | Azerbaijani L: 1E5, 2E2, 4E2 | Deyerler: 2R2 | FI: 5A2 | Mütalie saati: 5A2 | Ritorika/Ted Debat: 5A2 | Values: 1E5, 2E2, 4E2
+Tunara R — Creat Ess Wri: 2E2, 5E1 | Global P: 5E1 | Grammar: 5A2 | L/A: 5A2, 5A3, 5E1 | Library Time: 5E1 | PHSCE: 5E1
+Tuqay A — Cografiya: 6A2, 6A3, 8A2
+Ulker.S — Azerb. dili: 5A2, 5R3, 6R2 | Azerbaijani L: 5E1, 6E2 | Edebiyyat: 7A2, 8A2 | FI: 7A2 | Ritorika/Ted Debat: 6A3, 7A2
+Valeh H — Azerb. dili: 10A3 (Q-1), 10A3 (Q-2), 10A3 (Q-3), 10A3 (Q-4), 11A3 (Q-3) | Edebiyyat: 11A3 (Q-3)
+Vusale E — CCES: 4E2 | Creat Ess Wri: 1E4, 4E2 | Global P: 4E2 | L/A: 1E4, 4E2 | Library Time: 4E2 | PHSCE: 4E2
+Vüqar M — Mentiq: 5A2 | Riyaziyyat: 4A2, 5A2
+Xatire E — German Language: 1E4, 1E5, 2E2, 3E2, 4E2, 5E1, 6E2
+Xaver H — CCES: 6E2 | Creat Ess Wri: 6E2 | Grammar: 6A3, 6R2, 8A2 | L/A: 6A2, 6A3, 6E2, 6R2
+Xaver M — Biology: 6E2 | Chemistry: 6E2 | PHSCE: 1E5 | Science: 5A3, 5R3, 6R2 | Science KFB: 5A2, 5A3, 5R3, 6A2, 6A3, 6R2, 7A2, 8A2
+Yegane R — Azerb. dili: 1A2, 2A3 | Riyaziyyat: 2A3
+Yelizaveta X — FI: 2R2 | Mütalie saati: 2R2 | Tedqiqat: 2R2
+Zehra C — Global P: 1E4 | L/A: 1R2 | L/A Dernek: 1R2 | Library Time: 1E4 | PHSCE: 1E4 | Science: 2A2, 2A3, 3A2, 3R2
+Zerine Z — Azerb. dili: 6A2, 9A3 (Q-1), 9A3 (Q-2), 9A3 (Q-3) | Azerb. dili Dernek: 4R3 | Edebiyyat: 9A3 (Q-3) | FI: 5A3 | Mütalie saati: 5A3 | Ritorika/Ted Debat: 5A3

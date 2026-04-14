@@ -1,35 +1,35 @@
 teacher_id,name,branch_id,login,password,email,user_id,status
-abseron-teacher-arzu-memmedova-vaqif-qizi,Arzu Məmmədova Vaqif Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,arzqi1,arzqi1,arzqi1@vote.local,ef517984-1809-4cd1-958b-b5c671f53886,skipped-existing
-abseron-teacher-ayse-demirciyeva-elcin-qizi,Ayşə Dəmirçiyeva Elçin Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi3,aysqi3,aysqi3@vote.local,362c5999-239e-4505-ba94-f4a68628cd33,skipped-existing
-abseron-teacher-aysel-abbasova-asef-qizi,Aysel Abbasova Asəf Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi4,aysqi4,aysqi4@vote.local,3a95afe7-bb23-443a-9942-af2bfb2ada99,skipped-existing
-abseron-teacher-aysel-abutalibova-elsad-qizi,Aysel Abutalıbova Elşad Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi5,aysqi5,aysqi5@vote.local,8e963b05-9006-4b67-af4b-49b4a124e18e,skipped-existing
-abseron-teacher-aysel-esgerova-xandadas-qizi,Aysel Əsgərova Xandadaş Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi6,aysqi6,aysqi6@vote.local,26ee33a6-06e5-4466-b3a5-5feb999faa94,skipped-existing
-abseron-teacher-aysel-rehimli-vuqar-qizi,Aysel Rəhimli Vüqar Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi7,aysqi7,aysqi7@vote.local,5bf1863f-fba6-4a7e-86aa-f34d7066b40b,skipped-existing
-abseron-teacher-aysen-abdulezimova-yaqub-qizi,Ayşən Abduləzimova Yaqub Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi8,aysqi8,aysqi8@vote.local,9211c389-8698-44a3-9a8f-6e1989083bbd,skipped-existing
-abseron-teacher-aytac-ceferova-ramiz-qizi,Aytac Cəfərova Ramiz Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi1,aytqi1,aytqi1@vote.local,b3c751a6-bd7a-4862-84e8-201ded942350,skipped-existing
-abseron-teacher-aytac-eylazli-hafiz-qizi,Aytac Eylazlı Hafiz Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi2,aytqi2,aytqi2@vote.local,92147222-5840-4725-8750-551a7b91184e,skipped-existing
-abseron-teacher-ayten-edilova-qasim-qizi,Aytən Ədilova Qasım Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi3,aytqi3,aytqi3@vote.local,91e23d9b-e841-4dc5-9d91-c49af6f34ce4,skipped-existing
-abseron-teacher-cemile-tagiyeva-ceyhun-qizi,Cəmilə Tağıyeva Ceyhun Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cemqi1,cemqi1,cemqi1@vote.local,e2ee21f4-fee5-40f8-86a0-a3a67b14607a,skipped-existing
-abseron-teacher-fatime-refizade-hicran-qizi,Fatimə Rəfizadə Hicran Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,fatqi4,fatqi4,fatqi4@vote.local,08146087-9cfa-4b85-8b65-b7564fbf49bf,skipped-existing
-abseron-teacher-gulgez-emreliyeva-mezahir-qizi,Gülgəz Əmrəliyeva Məzahir Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi3,gulqi3,gulqi3@vote.local,b4c3a497-bd96-458c-afd6-8c26df92bf39,skipped-existing
-abseron-teacher-gulsen-osmanova-elcin-qizi,Gülşən Osmanova Elçin Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi4,gulqi4,gulqi4@vote.local,25a12518-b072-4012-99bc-2549ecd6d448,skipped-existing
-abseron-teacher-gulsen-sadixova-qedim-qizi,Gülşən Sadıxova Qədim Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi5,gulqi5,gulqi5@vote.local,35406589-a450-4a97-8a59-b39953594577,skipped-existing
-abseron-teacher-gulsum-tahirova-elxan-qizi,Gülsüm Tahirova Elxan Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi6,gulqi6,gulqi6@vote.local,fcc8d566-2898-46bb-a5c9-3c9c8c7f72fb,skipped-existing
-abseron-teacher-gulyaz-behremova-pervaz-qizi,Gülyaz Bəhrəmova Pərvaz Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi7,gulqi7,gulqi7@vote.local,9a3d8d18-70e8-4fdd-b69b-c9bd20241343,skipped-existing
-abseron-teacher-gunay-tehmezova-tofiq-qizi,Günay Təhməzova Tofiq Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gunqi1,gunqi1,gunqi1@vote.local,2a6be475-3c78-45f1-9b4c-0d2ad153fcc2,skipped-existing
-abseron-teacher-gunel-ceferova-nizami-qizi,Günel Cəfərova Nizami Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gunqi2,gunqi2,gunqi2@vote.local,9964ce2a-c0ff-485c-aaa3-72ff902f2c1b,skipped-existing
-abseron-teacher-leyla-hesenova-vidadi-qizi,Leyla Həsənova Vidadi Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,leyqi1,leyqi1,leyqi1@vote.local,f3522145-7ef0-4faa-9442-d02ab647ea20,skipped-existing
-abseron-teacher-nigar-eliyeva-nizami-qizi,Nigar Əliyeva Nizami Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nigqi1,nigqi1,nigqi1@vote.local,fd7eb780-9a00-4b37-a455-6c783d705955,skipped-existing
-abseron-teacher-nigar-rzayeva-arif-qizi,Nigar Rzayeva Arif Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nigqi2,nigqi2,nigqi2@vote.local,1c4fd43d-1213-48c9-bb66-8741349ac911,skipped-existing
-abseron-teacher-nuray-abdullazade-natiq-qizi,Nuray Abdullazadə Natiq Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurqi1,nurqi1,nurqi1@vote.local,6a4f7637-5a26-4101-b01e-7f83bf620053,skipped-existing
-abseron-teacher-nuride-esedova-iman-qizi,Nuridə Əsədova İman Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurqi2,nurqi2,nurqi2@vote.local,b17b9614-f501-4515-b089-6031cd76877c,skipped-existing
-abseron-teacher-sevinc-bagirzade-oruc-qizi,Sevinc Bağırzadə Oruc Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi1,sevqi1,sevqi1@vote.local,2470159e-852a-4de7-af8a-e8e237071b71,skipped-existing
-abseron-teacher-sevinc-eliyeva-allahverdi-qizi,Sevinc Əliyeva Allahverdi Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi2,sevqi2,sevqi2@vote.local,3e2ccad0-13f9-4874-9900-0087174d3d8b,skipped-existing
-abseron-teacher-sevinc-ismayilova-mustafa-qizi,Sevinc İsmayılova Mustafa Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi3,sevqi3,sevqi3@vote.local,1028cfcb-ebca-4ce4-bb4d-da6edaece28d,skipped-existing
-abseron-teacher-sevinc-qenberova-veli-qizi,Sevinc Qənbərova Vəli Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi4,sevqi4,sevqi4@vote.local,bdb08e21-cfd7-43f5-bdea-0ac434ea4d46,skipped-existing
-abseron-teacher-xaver-hesenzade-kamran-qizi,Xavər Həsənzadə Kamran Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xavqi1,xavqi1,xavqi1@vote.local,368c2a11-e8a8-4756-ba24-a31cb656cb33,skipped-existing
-abseron-teacher-xaver-memmedli-nesimi-qizi,Xavər Məmmədli Nəsimi Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xavqi2,xavqi2,xavqi2@vote.local,dc819a30-defe-469d-9d39-d29d301ce638,skipped-existing
-abseron-teacher-zerine-zubahirova-mayiz-qizi,Zərinə Zubahirova Mayiz Qızı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zerqi1,zerqi1,zerqi1@vote.local,38ab708b-f0cf-4c9b-ac53-d072d3d9f589,skipped-existing
+abseron-teacher-arzu-memmedova-vaqif-qizi,Arzu Məmmədova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,arzqi1,arzqi1,arzqi1@vote.local,ef517984-1809-4cd1-958b-b5c671f53886,skipped-existing
+abseron-teacher-ayse-demirciyeva-elcin-qizi,Ayşə Dəmirçiyeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi3,aysqi3,aysqi3@vote.local,362c5999-239e-4505-ba94-f4a68628cd33,skipped-existing
+abseron-teacher-aysel-abbasova-asef-qizi,Aysel Abbasova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi4,aysqi4,aysqi4@vote.local,3a95afe7-bb23-443a-9942-af2bfb2ada99,skipped-existing
+abseron-teacher-aysel-abutalibova-elsad-qizi,Aysel Abutalıbova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi5,aysqi5,aysqi5@vote.local,8e963b05-9006-4b67-af4b-49b4a124e18e,skipped-existing
+abseron-teacher-aysel-esgerova-xandadas-qizi,Aysel Əsgərova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi6,aysqi6,aysqi6@vote.local,26ee33a6-06e5-4466-b3a5-5feb999faa94,skipped-existing
+abseron-teacher-aysel-rehimli-vuqar-qizi,Aysel Rəhimli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi7,aysqi7,aysqi7@vote.local,5bf1863f-fba6-4a7e-86aa-f34d7066b40b,skipped-existing
+abseron-teacher-aysen-abdulezimova-yaqub-qizi,Ayşən Abduləzimova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aysqi8,aysqi8,aysqi8@vote.local,9211c389-8698-44a3-9a8f-6e1989083bbd,skipped-existing
+abseron-teacher-aytac-ceferova-ramiz-qizi,Aytac Cəfərova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi1,aytqi1,aytqi1@vote.local,b3c751a6-bd7a-4862-84e8-201ded942350,skipped-existing
+abseron-teacher-aytac-eylazli-hafiz-qizi,Aytac Eylazlı,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi2,aytqi2,aytqi2@vote.local,92147222-5840-4725-8750-551a7b91184e,skipped-existing
+abseron-teacher-ayten-edilova-qasim-qizi,Aytən Ədilova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytqi3,aytqi3,aytqi3@vote.local,91e23d9b-e841-4dc5-9d91-c49af6f34ce4,skipped-existing
+abseron-teacher-cemile-tagiyeva-ceyhun-qizi,Cəmilə Tağıyeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,cemqi1,cemqi1,cemqi1@vote.local,e2ee21f4-fee5-40f8-86a0-a3a67b14607a,skipped-existing
+abseron-teacher-fatime-refizade-hicran-qizi,Fatimə Rəfizadə,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,fatqi4,fatqi4,fatqi4@vote.local,08146087-9cfa-4b85-8b65-b7564fbf49bf,skipped-existing
+abseron-teacher-gulgez-emreliyeva-mezahir-qizi,Gülgəz Əmrəliyeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi3,gulqi3,gulqi3@vote.local,b4c3a497-bd96-458c-afd6-8c26df92bf39,skipped-existing
+abseron-teacher-gulsen-osmanova-elcin-qizi,Gülşən Osmanova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi4,gulqi4,gulqi4@vote.local,25a12518-b072-4012-99bc-2549ecd6d448,skipped-existing
+abseron-teacher-gulsen-sadixova-qedim-qizi,Gülşən Sadıxova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi5,gulqi5,gulqi5@vote.local,35406589-a450-4a97-8a59-b39953594577,skipped-existing
+abseron-teacher-gulsum-tahirova-elxan-qizi,Gülsüm Tahirova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi6,gulqi6,gulqi6@vote.local,fcc8d566-2898-46bb-a5c9-3c9c8c7f72fb,skipped-existing
+abseron-teacher-gulyaz-behremova-pervaz-qizi,Gülyaz Bəhrəmova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulqi7,gulqi7,gulqi7@vote.local,9a3d8d18-70e8-4fdd-b69b-c9bd20241343,skipped-existing
+abseron-teacher-gunay-tehmezova-tofiq-qizi,Günay Təhməzova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gunqi1,gunqi1,gunqi1@vote.local,2a6be475-3c78-45f1-9b4c-0d2ad153fcc2,skipped-existing
+abseron-teacher-gunel-ceferova-nizami-qizi,Günel Cəfərova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gunqi2,gunqi2,gunqi2@vote.local,9964ce2a-c0ff-485c-aaa3-72ff902f2c1b,skipped-existing
+abseron-teacher-leyla-hesenova-vidadi-qizi,Leyla Həsənova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,leyqi1,leyqi1,leyqi1@vote.local,f3522145-7ef0-4faa-9442-d02ab647ea20,skipped-existing
+abseron-teacher-nigar-eliyeva-nizami-qizi,Nigar Əliyeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nigqi1,nigqi1,nigqi1@vote.local,fd7eb780-9a00-4b37-a455-6c783d705955,skipped-existing
+abseron-teacher-nigar-rzayeva-arif-qizi,Nigar Rzayeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nigqi2,nigqi2,nigqi2@vote.local,1c4fd43d-1213-48c9-bb66-8741349ac911,skipped-existing
+abseron-teacher-nuray-abdullazade-natiq-qizi,Nuray Abdullazadə,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurqi1,nurqi1,nurqi1@vote.local,6a4f7637-5a26-4101-b01e-7f83bf620053,skipped-existing
+abseron-teacher-nuride-esedova-iman-qizi,Nuridə Əsədova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,nurqi2,nurqi2,nurqi2@vote.local,b17b9614-f501-4515-b089-6031cd76877c,skipped-existing
+abseron-teacher-sevinc-bagirzade-oruc-qizi,Sevinc Bağırzadə,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi1,sevqi1,sevqi1@vote.local,2470159e-852a-4de7-af8a-e8e237071b71,skipped-existing
+abseron-teacher-sevinc-eliyeva-allahverdi-qizi,Sevinc Əliyeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi2,sevqi2,sevqi2@vote.local,3e2ccad0-13f9-4874-9900-0087174d3d8b,skipped-existing
+abseron-teacher-sevinc-ismayilova-mustafa-qizi,Sevinc İsmayılova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi3,sevqi3,sevqi3@vote.local,1028cfcb-ebca-4ce4-bb4d-da6edaece28d,skipped-existing
+abseron-teacher-sevinc-qenberova-veli-qizi,Sevinc Qənbərova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,sevqi4,sevqi4,sevqi4@vote.local,bdb08e21-cfd7-43f5-bdea-0ac434ea4d46,skipped-existing
+abseron-teacher-xaver-hesenzade-kamran-qizi,Xavər Həsənzadə,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xavqi1,xavqi1,xavqi1@vote.local,368c2a11-e8a8-4756-ba24-a31cb656cb33,skipped-existing
+abseron-teacher-xaver-memmedli-nesimi-qizi,Xavər Məmmədli,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,xavqi2,xavqi2,xavqi2@vote.local,dc819a30-defe-469d-9d39-d29d301ce638,skipped-existing
+abseron-teacher-zerine-zubahirova-mayiz-qizi,Zərinə Zübahirova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,zerqi1,zerqi1,zerqi1@vote.local,38ab708b-f0cf-4c9b-ac53-d072d3d9f589,skipped-existing
 azadliq-teacher-aynur-xelilzade-azer-qizi,Aynur Xəlilzadə Azər Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aynqi1,aynqi1,aynqi1@vote.local,93ec917a-fb2e-4b07-bb84-9b9200dc1c93,skipped-existing
 azadliq-teacher-aysel-haciyeva-elvan-qizi,Aysel Hacıyeva Əlvan Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aysqi9,aysqi9,aysqi9@vote.local,85b0f614-6311-4f03-846c-b74f99702843,skipped-existing
 azadliq-teacher-aysel-huseynli-novruz-qizi,Aysel Hüseynli Novruz Qızı,3caf18c6-4a42-47d7-a3dc-139501f356e1,aysqi10,aysqi10,aysqi10@vote.local,f8c85139-204b-4a18-8af3-4e54540ff0ed,skipped-existing
