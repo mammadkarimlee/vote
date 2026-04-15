@@ -1,7 +1,7 @@
 ﻿import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
-
+import { useAuth } from "../auth/AuthProvider";
 type IconName =
 	| "dashboard"
 	| "branches"
@@ -236,6 +236,7 @@ export const BranchLayout = ({
 	isAdmin?: boolean;
 	isHr?: boolean;
 }) => {
+	const { userDoc } = useAuth();
 	const location = useLocation();
 	const prefix = isAdmin ? "/admin" : isHr ? "/hr" : "/branch";
 	const normalizedPath = location.pathname.replace(/\/+$/, "") || "/";
@@ -295,8 +296,10 @@ export const BranchLayout = ({
 		},
 	];
 
-	const branchGroups: NavGroup[] = [
-		{
+	const isBranchSuperAdmin =
+		!isAdmin && !isHr && userDoc?.role === "superadmin";
+
+	const branchGroups: NavGroup[] = [		{
 			title: "Struktur",
 			items: [
 				{ to: "/branch/teachers", label: "Müəllimlər", icon: "teachers" },
@@ -326,7 +329,15 @@ export const BranchLayout = ({
 			items: [
 				{ to: "/branch/cycles", label: "Sorğu dövrləri", icon: "cycles" },
 				{ to: "/branch/results/teachers", label: "Nəticələr", icon: "results" },
-			],
+				...(isBranchSuperAdmin
+					? [
+							{
+								to: "/branch/audit",
+								label: "Audit / Debug",
+								icon: "dashboard" as const,
+							},
+						]
+					: []),			],
 		},
 		{
 			title: "İstifadəçilər",
@@ -395,3 +406,4 @@ export const BranchLayout = ({
 		</div>
 	);
 };
+

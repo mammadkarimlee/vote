@@ -16,7 +16,13 @@ type WrappedProvisionError = {
 	error?: unknown;
 };
 
+type ProvisionAttempt = {
+	run: () => Promise<unknown>;
+};
+
 const SESSION_EXPIRED_MESSAGE = "Sessiya bitib. Yenidən daxil olun.";
+const PROVISION_UNAVAILABLE_MESSAGE =
+	"Provision xidməti ilə əlaqə qurulmadı. `npm run dev:server` ilə serveri başladın və ya `VITE_PROVISION_API_URL` dəyərini yoxlayın.";
 
 const normalizeBaseUrl = (value: string) => {
 	const trimmed = value.trim();
@@ -206,68 +212,103 @@ const postProvisionEdgeFunction = async (
 	return data;
 };
 
+const buildProvisionAttempts = (
+	token: string,
+	payload: ProvisionPayload,
+): ProvisionAttempt[] => {
+	const httpAttempts: ProvisionAttempt[] = PROVISION_HTTP_BASES.map((baseUrl) => ({
+		run: () => postProvisionHttp(baseUrl, token, payload),
+	}));
+	const edgeAttempts: ProvisionAttempt[] =
+		EDGE_FUNCTION_URL && supabaseAnonKey
+			? [
+					{
+						run: () => postProvisionEdgeFunction(token, payload),
+					},
+				]
+			: [];
+
+	return import.meta.env.DEV
+		? [...httpAttempts, ...edgeAttempts]
+		: [...edgeAttempts, ...httpAttempts];
+};
+
+const shouldTryNextEndpoint = (error: Error, retryable: boolean) =>
+	retryable || isAuthMessage(error.message);
+
 const provisionViaAnyEndpoint = async (token: string, payload: ProvisionPayload) => {
 	let lastError: Error | null = null;
+	let sawAuthError = false;
+	let sawNonAuthError = false;
 
-	try {
-		return await postProvisionEdgeFunction(token, payload);
-	} catch (rawError) {
-		const { retryable, error } = await unwrapProvisionError(rawError);
-		lastError = error;
-		if (!retryable) {
-			throw error;
-		}
-	}
-
-	for (const baseUrl of PROVISION_HTTP_BASES) {
+	for (const attempt of buildProvisionAttempts(token, payload)) {
 		try {
-			return await postProvisionHttp(baseUrl, token, payload);
+			return await attempt.run();
 		} catch (rawError) {
 			const { retryable, error } = await unwrapProvisionError(rawError);
 			lastError = error;
-			if (!retryable) {
+			const authError = isAuthMessage(error.message);
+			sawAuthError = sawAuthError || authError;
+			sawNonAuthError = sawNonAuthError || !authError;
+			if (!shouldTryNextEndpoint(error, retryable)) {
 				throw error;
 			}
 		}
 	}
 
-	throw (
-		lastError ??
-		new Error(
-			"Provision xidməti ilə əlaqə qurulmadı. `npm run dev:server` ilə serveri başladın və ya `VITE_PROVISION_API_URL` dəyərini yoxlayın.",
-		)
-	);
+	if (sawAuthError && !sawNonAuthError) {
+		throw new Error(SESSION_EXPIRED_MESSAGE);
+	}
+
+	throw lastError ?? new Error(PROVISION_UNAVAILABLE_MESSAGE);
+};
+
+const readCurrentAccessToken = async () => {
+	const { data, error } = await supabase.auth.getSession();
+	if (error || !data.session?.access_token) {
+		return null;
+	}
+
+	return {
+		accessToken: data.session.access_token,
+		expiresAt: data.session.expires_at ?? null,
+	};
 };
 
 const getAccessToken = async (forceRefresh = false): Promise<string> => {
 	if (forceRefresh) {
 		const { data, error } = await supabase.auth.refreshSession();
-		if (error || !data.session?.access_token) {
-			throw new Error(SESSION_EXPIRED_MESSAGE);
+		if (!error && data.session?.access_token) {
+			return data.session.access_token;
 		}
-		return data.session.access_token;
-	}
 
-	const { data, error } = await supabase.auth.getSession();
-	if (error || !data.session?.access_token) {
+		const current = await readCurrentAccessToken();
+		if (current?.accessToken) {
+			return current.accessToken;
+		}
+
 		throw new Error(SESSION_EXPIRED_MESSAGE);
 	}
 
-	const expiresAtSeconds = data.session.expires_at ?? null;
+	const current = await readCurrentAccessToken();
+	if (!current?.accessToken) {
+		throw new Error(SESSION_EXPIRED_MESSAGE);
+	}
+
+	const expiresAtSeconds = current.expiresAt;
 	if (expiresAtSeconds) {
 		const expiresAtMs = expiresAtSeconds * 1000;
 		const nearExpiry = expiresAtMs - Date.now() < 60_000;
 		if (nearExpiry) {
 			try {
-				const refreshed: string = await getAccessToken(true);
-				return refreshed;
+				return await getAccessToken(true);
 			} catch {
 				// ignore and fall back to current token
 			}
 		}
 	}
 
-	return data.session.access_token;
+	return current.accessToken;
 };
 
 const runProvisionWithSessionRetry = async (payload: ProvisionPayload) => {

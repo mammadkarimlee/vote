@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -79,9 +79,9 @@ const teacherCategoryLabel = (category?: TeacherCategory) => {
 		case "drama_gym":
 			return "Dram/Gimnastika";
 		case "chess":
-			return "Şahmat";
+			return "Åžahmat";
 		default:
-			return "Əsas";
+			return "Æsas";
 	}
 };
 
@@ -99,18 +99,18 @@ const normalizeScale = (
 
 const pkpdBucket = (score: number | null) => {
 	if (score === null) return "-";
-	if (score >= 90) return "Tələblərə tam cavab verən";
-	if (score >= 80) return "Tələblərə cavab verən";
-	if (score >= 60) return "Tələblərə əsasən cavab verən";
-	if (score >= 50) return "İnkişaf etdirilməsi zəruri olan";
-	if (score >= 30) return "İnkişafı aşağı olan";
-	return "İnkişafı çox aşağı olan";
+	if (score >= 90) return "TÉ™lÉ™blÉ™rÉ™ tam cavab verÉ™n";
+	if (score >= 80) return "TÉ™lÉ™blÉ™rÉ™ cavab verÉ™n";
+	if (score >= 60) return "TÉ™lÉ™blÉ™rÉ™ É™sasÉ™n cavab verÉ™n";
+	if (score >= 50) return "Ä°nkiÅŸaf etdirilmÉ™si zÉ™ruri olan";
+	if (score >= 30) return "Ä°nkiÅŸafÄ± aÅŸaÄŸÄ± olan";
+	return "Ä°nkiÅŸafÄ± Ã§ox aÅŸaÄŸÄ± olan";
 };
 
 const decisionLabel: Record<PkpdDecisionStatus, string> = {
-	PENDING: "Gözləmədə",
-	APPROVED: "Uyğundur",
-	REJECTED: "Uyğun deyil",
+	PENDING: "GÃ¶zlÉ™mÉ™dÉ™",
+	APPROVED: "UyÄŸundur",
+	REJECTED: "UyÄŸun deyil",
 };
 
 const portfolioLimits = (category?: TeacherCategory) => {
@@ -186,6 +186,7 @@ export const BranchPkpdPage = () => {
 	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useFeedbackState();
 
 	const [examDrafts, setExamDrafts] = useState<Record<string, string>>({});
+	const [examImportStatus, setExamImportStatus] = useFeedbackState();
 
 	const [portfolioTeacherId, setPortfolioTeacherId] = useState("");
 	const [portfolioEducation, setPortfolioEducation] = useState("");
@@ -856,12 +857,12 @@ export const BranchPkpdPage = () => {
 	const handleSaveBiq = async () => {
 		if (!branchId || !selectedCycleId) return;
 		if (!biqGroupId || !biqSubjectId) {
-			setStatus("Qrup və fənn seçin");
+			setStatus("Qrup vÉ™ fÉ™nn seÃ§in");
 			return;
 		}
 		const scoreValue = Number(biqScore);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
-			setStatus("BİQ balı 0-100 arası olmalıdır");
+			setStatus("BÄ°Q balÄ± 0-100 arasÄ± olmalÄ±dÄ±r");
 			return;
 		}
 
@@ -877,11 +878,11 @@ export const BranchPkpdPage = () => {
 			{ onConflict: "org_id,branch_id,cycle_id,group_id,subject_id" },
 		);
 		if (error) {
-			setStatus("BİQ nəticəsi saxlanmadı");
+			setStatus("BÄ°Q nÉ™ticÉ™si saxlanmadÄ±");
 			return;
 		}
 		setBiqScore("");
-		setStatus("BİQ nəticəsi saxlanıldı");
+		setStatus("BÄ°Q nÉ™ticÉ™si saxlanÄ±ldÄ±");
 		const { data } = await supabase
 			.from("biq_class_results")
 			.select("*")
@@ -930,7 +931,7 @@ export const BranchPkpdPage = () => {
 				normalized.subject ||
 				normalized.subject_name ||
 				normalized.fenn ||
-				normalized["fənn"] ||
+				normalized["fÉ™nn"] ||
 				normalized.fen;
 			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
 
@@ -973,7 +974,7 @@ export const BranchPkpdPage = () => {
 		});
 
 		if (prepared.length === 0) {
-			setBiqImportStatus("Yüklənəcək düzgün sətir tapılmadı");
+			setBiqImportStatus("YÃ¼klÉ™nÉ™cÉ™k dÃ¼zgÃ¼n sÉ™tir tapÄ±lmadÄ±");
 			return;
 		}
 
@@ -983,7 +984,7 @@ export const BranchPkpdPage = () => {
 				onConflict: "org_id,branch_id,cycle_id,group_id,subject_id",
 			});
 			if (error) {
-				setBiqImportStatus("BİQ import zamanı xəta oldu");
+				setBiqImportStatus("BÄ°Q import zamanÄ± xÉ™ta oldu");
 				return;
 			}
 		}
@@ -1001,24 +1002,24 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 
-		const report = `Yükləndi: ${prepared.length}. Qrup tapılmadı: ${missingGroup}. Fənn tapılmadı: ${missingSubject}. Bal səhv: ${invalidScore}.`;
+		const report = `YÃ¼klÉ™ndi: ${prepared.length}. Qrup tapÄ±lmadÄ±: ${missingGroup}. FÉ™nn tapÄ±lmadÄ±: ${missingSubject}. Bal sÉ™hv: ${invalidScore}.`;
 		setBiqImportStatus(report);
 	};
 
 	const handleSaveTeacherBiq = async () => {
 		if (!branchId || !selectedCycleId) return;
 		if (!teacherBiqTeacherId || !teacherBiqGroupId || !teacherBiqSubjectId) {
-			setStatus("Müəllim, qrup və fənn seçin");
+			setStatus("MÃ¼É™llim, qrup vÉ™ fÉ™nn seÃ§in");
 			return;
 		}
 		const assignmentKey = `${teacherBiqTeacherId}_${teacherBiqGroupId}_${teacherBiqSubjectId}`;
 		if (!assignmentKeySet.has(assignmentKey)) {
-			setStatus("Seçilən müəllim üçün bu qrup/fənn təyinatı yoxdur");
+			setStatus("SeÃ§ilÉ™n mÃ¼É™llim Ã¼Ã§Ã¼n bu qrup/fÉ™nn tÉ™yinatÄ± yoxdur");
 			return;
 		}
 		const scoreValue = Number(teacherBiqScore);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
-			setStatus("BİQ balı 0-100 arası olmalıdır");
+			setStatus("BÄ°Q balÄ± 0-100 arasÄ± olmalÄ±dÄ±r");
 			return;
 		}
 
@@ -1038,11 +1039,11 @@ export const BranchPkpdPage = () => {
 			},
 		);
 		if (error) {
-			setStatus("Müəllim üzrə BİQ nəticəsi saxlanmadı");
+			setStatus("MÃ¼É™llim Ã¼zrÉ™ BÄ°Q nÉ™ticÉ™si saxlanmadÄ±");
 			return;
 		}
 		setTeacherBiqScore("");
-		setStatus("Müəllim üzrə BİQ nəticəsi saxlanıldı");
+		setStatus("MÃ¼É™llim Ã¼zrÉ™ BÄ°Q nÉ™ticÉ™si saxlanÄ±ldÄ±");
 		const { data } = await supabase
 			.from("pkpd_teacher_biq_results")
 			.select("*")
@@ -1087,7 +1088,7 @@ export const BranchPkpdPage = () => {
 				normalized.teacher ||
 				normalized.teacher_name ||
 				normalized.muellim ||
-				normalized["müəllim"];
+				normalized["mÃ¼É™llim"];
 			const groupRaw =
 				normalized.group_id ||
 				normalized.group ||
@@ -1100,7 +1101,7 @@ export const BranchPkpdPage = () => {
 				normalized.subject ||
 				normalized.subject_name ||
 				normalized.fenn ||
-				normalized["fənn"] ||
+				normalized["fÉ™nn"] ||
 				normalized.fen;
 			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
 
@@ -1160,7 +1161,7 @@ export const BranchPkpdPage = () => {
 		});
 
 		if (prepared.length === 0) {
-			setTeacherBiqImportStatus("Yüklənəcək düzgün sətir tapılmadı");
+			setTeacherBiqImportStatus("YÃ¼klÉ™nÉ™cÉ™k dÃ¼zgÃ¼n sÉ™tir tapÄ±lmadÄ±");
 			return;
 		}
 
@@ -1173,7 +1174,7 @@ export const BranchPkpdPage = () => {
 						"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
 				});
 			if (error) {
-				setTeacherBiqImportStatus("Müəllim üzrə BİQ import zamanı xəta oldu");
+				setTeacherBiqImportStatus("MÃ¼É™llim Ã¼zrÉ™ BÄ°Q import zamanÄ± xÉ™ta oldu");
 				return;
 			}
 		}
@@ -1191,7 +1192,7 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 
-		const report = `Yükləndi: ${prepared.length}. Müəllim tapılmadı: ${missingTeacher}. Qrup tapılmadı: ${missingGroup}. Fənn tapılmadı: ${missingSubject}. Təyinat tapılmadı: ${missingAssignment}. Bal səhv: ${invalidScore}.`;
+		const report = `YÃ¼klÉ™ndi: ${prepared.length}. MÃ¼É™llim tapÄ±lmadÄ±: ${missingTeacher}. Qrup tapÄ±lmadÄ±: ${missingGroup}. FÉ™nn tapÄ±lmadÄ±: ${missingSubject}. TÉ™yinat tapÄ±lmadÄ±: ${missingAssignment}. Bal sÉ™hv: ${invalidScore}.`;
 		setTeacherBiqImportStatus(report);
 	};
 
@@ -1232,7 +1233,7 @@ export const BranchPkpdPage = () => {
 		}
 		const scoreValue = Number(raw);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 30) {
-			setStatus("İmtahan balı 0-30 arası olmalıdır");
+			setStatus("Ä°mtahan balÄ± 0-30 arasÄ± olmalÄ±dÄ±r");
 			return;
 		}
 		const { error } = await supabase.from("pkpd_exam_results").upsert(
@@ -1246,7 +1247,7 @@ export const BranchPkpdPage = () => {
 			{ onConflict: "org_id,cycle_id,teacher_id" },
 		);
 		if (error) {
-			setStatus("İmtahan balı saxlanmadı");
+			setStatus("Ä°mtahan balÄ± saxlanmadÄ±");
 			return;
 		}
 		const { data } = await supabase
@@ -1257,6 +1258,129 @@ export const BranchPkpdPage = () => {
 			.eq("branch_id", branchId);
 		setExamResults(
 			(data ?? []).map((row) => ({ id: row.id, data: mapPkpdExamRow(row) })),
+		);
+		setExamDrafts(
+			Object.fromEntries(
+				(data ?? []).map((row) => [
+					row.teacher_id,
+					row.score !== null && row.score !== undefined ? String(row.score) : "",
+				]),
+			),
+		);
+	};
+
+	const handleImportExam = async (file: File) => {
+		if (!branchId || !selectedCycleId) return;
+
+		const rows = await parseSpreadsheet(file);
+		const prepared: Array<{
+			org_id: string;
+			branch_id: string;
+			cycle_id: string;
+			teacher_id: string;
+			score: number;
+		}> = [];
+
+		let missingTeacher = 0;
+		let nonStandardTeacher = 0;
+		let invalidScore = 0;
+
+		rows.forEach((row) => {
+			const normalized: Record<string, string> = {};
+			Object.entries(row).forEach(([key, value]) => {
+				normalized[key.trim().toLowerCase()] = String(value ?? "").trim();
+			});
+
+			const teacherRaw =
+				normalized.teacher_id ||
+				normalized.teacher ||
+				normalized.teacher_name ||
+				normalized.muellim ||
+				normalized["mÃ¼É™llim"];
+			const scoreRaw =
+				normalized.score ||
+				normalized.exam ||
+				normalized.exam_score ||
+				normalized.imtahan ||
+				normalized.imtahan_bali ||
+				normalized.attestasiya ||
+				normalized.attestasiya_imtahani ||
+				normalized.bal;
+
+			const teacherId =
+				(teacherRaw && teacherMap[teacherRaw] ? teacherRaw : null) ||
+				(teacherRaw
+					? (teacherNameMap.get(teacherRaw.toLowerCase()) ?? null)
+					: null);
+			if (!teacherId) {
+				missingTeacher += 1;
+				return;
+			}
+
+			if ((teacherMap[teacherId]?.category ?? "standard") !== "standard") {
+				nonStandardTeacher += 1;
+				return;
+			}
+
+			const numericScore = Number(String(scoreRaw ?? "").replace(",", "."));
+			if (
+				Number.isNaN(numericScore) ||
+				numericScore < 0 ||
+				numericScore > 30
+			) {
+				invalidScore += 1;
+				return;
+			}
+
+			prepared.push({
+				org_id: ORG_ID,
+				branch_id: branchId,
+				cycle_id: selectedCycleId,
+				teacher_id: teacherId,
+				score: numericScore,
+			});
+		});
+
+		if (prepared.length === 0) {
+			setExamImportStatus("YÃ¼klÉ™nÉ™cÉ™k dÃ¼zgÃ¼n sÉ™tir tapÄ±lmadÄ±");
+			return;
+		}
+
+		const chunks = chunkArray(prepared, 200);
+		for (const chunk of chunks) {
+			const { error } = await supabase.from("pkpd_exam_results").upsert(chunk, {
+				onConflict: "org_id,cycle_id,teacher_id",
+			});
+			if (error) {
+				setExamImportStatus("Ä°mtahan import zamanÄ± xÉ™ta oldu");
+				return;
+			}
+		}
+
+		const { data } = await supabase
+			.from("pkpd_exam_results")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		const examDocs = (data ?? []).map((row) => ({
+			id: row.id,
+			data: mapPkpdExamRow(row),
+		}));
+		setExamResults(examDocs);
+		setExamDrafts(
+			Object.fromEntries(
+				examDocs.map((row) => [
+					row.data.teacherId,
+					row.data.score !== null && row.data.score !== undefined
+						? String(row.data.score)
+						: "",
+				]),
+			),
+		);
+
+		setExamImportStatus(
+			`YÃ¼klÉ™ndi: ${prepared.length}. MÃ¼É™llim tapÄ±lmadÄ±: ${missingTeacher}. Standart olmayan mÃ¼É™llim: ${nonStandardTeacher}. Bal sÉ™hv: ${invalidScore}.`,
 		);
 	};
 
@@ -1318,15 +1442,15 @@ export const BranchPkpdPage = () => {
 
 	const handleUnlockSelfReviewEdit = async () => {
 		if (!user?.email) {
-			setSelfReviewUnlockError("Hesab email-i tapılmadı. Yenidən daxil olun.");
+			setSelfReviewUnlockError("Hesab email-i tapÄ±lmadÄ±. YenidÉ™n daxil olun.");
 			return;
 		}
 		if (!selfReviewUnlockPassword.trim()) {
-			setSelfReviewUnlockError("Admin şifrəsini daxil edin.");
+			setSelfReviewUnlockError("Admin ÅŸifrÉ™sini daxil edin.");
 			return;
 		}
 		if (!selfReviewUnlockReason.trim()) {
-			setSelfReviewUnlockError("Düzəliş səbəbini yazın.");
+			setSelfReviewUnlockError("DÃ¼zÉ™liÅŸ sÉ™bÉ™bini yazÄ±n.");
 			return;
 		}
 
@@ -1338,7 +1462,7 @@ export const BranchPkpdPage = () => {
 			password: selfReviewUnlockPassword,
 		});
 		if (error) {
-			setSelfReviewUnlockError("Şifrə yanlışdır.");
+			setSelfReviewUnlockError("ÅžifrÉ™ yanlÄ±ÅŸdÄ±r.");
 			setSelfReviewUnlockSubmitting(false);
 			return;
 		}
@@ -1347,7 +1471,7 @@ export const BranchPkpdPage = () => {
 		setSelfReviewUnlockOpen(false);
 		setSelfReviewUnlockPassword("");
 		setSelfReviewUnlockError(null);
-		setStatus("Düzəliş üçün sahələr açıldı.");
+		setStatus("DÃ¼zÉ™liÅŸ Ã¼Ã§Ã¼n sahÉ™lÉ™r aÃ§Ä±ldÄ±.");
 		setSelfReviewUnlockSubmitting(false);
 	};
 
@@ -1369,7 +1493,7 @@ export const BranchPkpdPage = () => {
 			(olympiadValue !== null && olympiadValue > limits.olympiad) ||
 			(eventsValue !== null && eventsValue > limits.events)
 		) {
-			setStatus("Portfolio balları kateqoriyanın limitlərini aşır");
+			setStatus("Portfolio ballarÄ± kateqoriyanÄ±n limitlÉ™rini aÅŸÄ±r");
 			return;
 		}
 
@@ -1389,7 +1513,7 @@ export const BranchPkpdPage = () => {
 			onConflict: "org_id,cycle_id,teacher_id",
 		});
 		if (error) {
-			setStatus("Portfolio saxlanmadı");
+			setStatus("Portfolio saxlanmadÄ±");
 			return;
 		}
 		const { data } = await supabase
@@ -1404,14 +1528,14 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdPortfolioRow(row),
 			})),
 		);
-		setStatus("Portfolio saxlanıldı");
+		setStatus("Portfolio saxlanÄ±ldÄ±");
 	};
 
 	const handleSaveSelfReview = async () => {
 		if (!branchId || !selectedCycleId || !selfReviewTeacherId) return;
 		if (selectedTeacherSelfReviewLocked) {
 			setStatus(
-				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün admin şifrəsi tələb olunur.",
+				"Bu qiymÉ™tlÉ™ndirmÉ™ kilidlÉ™nib. DÃ¼zÉ™liÅŸ Ã¼Ã§Ã¼n admin ÅŸifrÉ™si tÉ™lÉ™b olunur.",
 			);
 			return;
 		}
@@ -1440,17 +1564,17 @@ export const BranchPkpdPage = () => {
 						data: mapPkpdSelfReviewRow(row),
 					})),
 				);
-				setStatus("HR qiymətləndirməsi silindi");
+				setStatus("HR qiymÉ™tlÉ™ndirmÉ™si silindi");
 				return;
 			}
 
-			setStatus("HR balı 0-10 aralığında daxil edilməlidir");
+			setStatus("HR balÄ± 0-10 aralÄ±ÄŸÄ±nda daxil edilmÉ™lidir");
 			return;
 		}
 
 		const scoreValue = Number(scoreRaw);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
-			setStatus("HR balı 0-10 aralığında daxil edilməlidir");
+			setStatus("HR balÄ± 0-10 aralÄ±ÄŸÄ±nda daxil edilmÉ™lidir");
 			return;
 		}
 
@@ -1501,7 +1625,7 @@ export const BranchPkpdPage = () => {
 		}
 		if (error) {
 			setStatus(
-				`HR qiymətləndirməsi saxlanmadı: ${error.message ?? "naməlum xəta"}`,
+				`HR qiymÉ™tlÉ™ndirmÉ™si saxlanmadÄ±: ${error.message ?? "namÉ™lum xÉ™ta"}`,
 			);
 			return;
 		}
@@ -1518,7 +1642,7 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdSelfReviewRow(row),
 			})),
 		);
-		setStatus("HR qiymətləndirməsi saxlanıldı");
+		setStatus("HR qiymÉ™tlÉ™ndirmÉ™si saxlanÄ±ldÄ±");
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
 	};
@@ -1526,12 +1650,12 @@ export const BranchPkpdPage = () => {
 	const handleAddAchievement = async () => {
 		if (!branchId || !selectedCycleId) return;
 		if (!achievementTeacherId || !achievementType.trim()) {
-			setStatus("Müəllim və növ seçin");
+			setStatus("MÃ¼É™llim vÉ™ nÃ¶v seÃ§in");
 			return;
 		}
 		const pointsValue = Number(achievementPoints);
 		if (Number.isNaN(pointsValue) || pointsValue < 0 || pointsValue > 10) {
-			setStatus("Bonus balı 0-10 arası olmalıdır");
+			setStatus("Bonus balÄ± 0-10 arasÄ± olmalÄ±dÄ±r");
 			return;
 		}
 		const { error } = await supabase.from("pkpd_achievements").insert({
@@ -1544,7 +1668,7 @@ export const BranchPkpdPage = () => {
 			note: achievementNote.trim() || null,
 		});
 		if (error) {
-			setStatus("Bonus saxlanmadı");
+			setStatus("Bonus saxlanmadÄ±");
 			return;
 		}
 		setAchievementType("");
@@ -1562,7 +1686,7 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdAchievementRow(row),
 			})),
 		);
-		setStatus("Bonus əlavə edildi");
+		setStatus("Bonus É™lavÉ™ edildi");
 	};
 
 	const handleDeleteAchievement = async (id: string) => {
@@ -1595,7 +1719,7 @@ export const BranchPkpdPage = () => {
 			onConflict: "org_id,cycle_id,teacher_id",
 		});
 		if (error) {
-			setStatus("Qərar saxlanmadı");
+			setStatus("QÉ™rar saxlanmadÄ±");
 			return;
 		}
 		const { data } = await supabase
@@ -1610,7 +1734,7 @@ export const BranchPkpdPage = () => {
 				data: mapPkpdDecisionRow(row),
 			})),
 		);
-		setStatus("Qərar saxlanıldı");
+		setStatus("QÉ™rar saxlanÄ±ldÄ±");
 	};
 
 	return (
@@ -1626,17 +1750,17 @@ export const BranchPkpdPage = () => {
 			<div className="panel-header">
 				<div>
 					<h2>PKPD</h2>
-					<p>PKPD məlumatları və yekun hesablamalar.</p>
+					<p>PKPD mÉ™lumatlarÄ± vÉ™ yekun hesablamalar.</p>
 				</div>
 				<div className="actions">
 					<label className="field">
-						<span className="label">Sorğu dövrü</span>
+						<span className="label">SorÄŸu dÃ¶vrÃ¼</span>
 						<select
 							className="input"
 							value={selectedCycleId}
 							onChange={(event) => setSelectedCycleId(event.target.value)}
 						>
-							<option value="">Sorğu dövrü seçin</option>
+							<option value="">SorÄŸu dÃ¶vrÃ¼ seÃ§in</option>
 							{cycles.map((cycleItem) => (
 								<option key={cycleItem.id} value={cycleItem.id}>
 									{cycleItem.data.year} ({cycleItem.data.status})
@@ -1653,20 +1777,20 @@ export const BranchPkpdPage = () => {
 				<div className="card">
 					<div className="section-header">
 						<div>
-							<div className="section-kicker">PKPD idarəetməsi</div>
-							<h3 className="section-title">Bölmələr</h3>
+							<div className="section-kicker">PKPD idarÉ™etmÉ™si</div>
+							<h3 className="section-title">BÃ¶lmÉ™lÉ™r</h3>
 						</div>
 						<TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
-							<TabsTrigger value="inputs">Bal girişləri</TabsTrigger>
-							<TabsTrigger value="summary">Yekun cədvəl</TabsTrigger>
-							<TabsTrigger value="self-review">Özünüqiymətləndirmə</TabsTrigger>
+							<TabsTrigger value="inputs">Bal giriÅŸlÉ™ri</TabsTrigger>
+							<TabsTrigger value="summary">Yekun cÉ™dvÉ™l</TabsTrigger>
+							<TabsTrigger value="self-review">Ã–zÃ¼nÃ¼qiymÉ™tlÉ™ndirmÉ™</TabsTrigger>
 						</TabsList>
 					</div>
 				</div>
 
 				<TabsContent value="inputs" className="stack">
 					<div className="card">
-						<h3>BİQ nəticələri (sinif + fənn)</h3>
+						<h3>BÄ°Q nÉ™ticÉ™lÉ™ri (sinif + fÉ™nn)</h3>
 						<div className="form-row">
 							<select
 								className="input"
@@ -1685,7 +1809,7 @@ export const BranchPkpdPage = () => {
 								value={biqSubjectId}
 								onChange={(event) => setBiqSubjectId(event.target.value)}
 							>
-								<option value="">Fənn</option>
+								<option value="">FÉ™nn</option>
 								{subjects.map((subject) => (
 									<option key={subject.id} value={subject.id}>
 										{subject.data.name}
@@ -1697,7 +1821,7 @@ export const BranchPkpdPage = () => {
 							<input
 								className="input"
 								type="number"
-								placeholder="BİQ balı (0-100)"
+								placeholder="BÄ°Q balÄ± (0-100)"
 								value={biqScore}
 								onChange={(event) => setBiqScore(event.target.value)}
 							/>
@@ -1720,13 +1844,13 @@ export const BranchPkpdPage = () => {
 									if (file) void handleImportBiq(file);
 								}}
 							/>
-							<span className="hint">Şablon: group/qrup, subject/fənn, score/biq/bal</span>
+							<span className="hint">Åžablon: group/qrup, subject/fÉ™nn, score/biq/bal</span>
 						</div>
 						{biqImportStatus && <div className="notice">{biqImportStatus}</div>}
 						<div className="data-table">
 							<div className="data-row header">
 								<div>Qrup</div>
-								<div>Fənn</div>
+								<div>FÉ™nn</div>
 								<div>Bal</div>
 								<div></div>
 							</div>
@@ -1742,7 +1866,7 @@ export const BranchPkpdPage = () => {
 									</div>
 								</div>
 							))}
-							{biqResults.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+							{biqResults.length === 0 && <div className="empty">MÉ™lumat yoxdur.</div>}
 						</div>
 						{biqResults.length > 0 && (
 							<PaginationControls
@@ -1759,10 +1883,10 @@ export const BranchPkpdPage = () => {
 					</div>
 
 					<div className="card">
-						<h3>Müəllim üzrə BİQ nəticələri (override)</h3>
+						<h3>MÃ¼É™llim Ã¼zrÉ™ BÄ°Q nÉ™ticÉ™lÉ™ri (override)</h3>
 						<div className="form-row">
 							<select className="input" value={teacherBiqTeacherId} onChange={(event) => setTeacherBiqTeacherId(event.target.value)}>
-								<option value="">Müəllim</option>
+								<option value="">MÃ¼É™llim</option>
 								{teachers.map((teacher) => (
 									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
 								))}
@@ -1774,14 +1898,14 @@ export const BranchPkpdPage = () => {
 								))}
 							</select>
 							<select className="input" value={teacherBiqSubjectId} onChange={(event) => setTeacherBiqSubjectId(event.target.value)}>
-								<option value="">Fənn</option>
+								<option value="">FÉ™nn</option>
 								{subjects.map((subject) => (
 									<option key={subject.id} value={subject.id}>{subject.data.name}</option>
 								))}
 							</select>
 						</div>
 						<div className="form-row">
-							<input className="input" type="number" placeholder="BİQ balı (0-100)" value={teacherBiqScore} onChange={(event) => setTeacherBiqScore(event.target.value)} />
+							<input className="input" type="number" placeholder="BÄ°Q balÄ± (0-100)" value={teacherBiqScore} onChange={(event) => setTeacherBiqScore(event.target.value)} />
 							<button className="btn primary" type="button" onClick={handleSaveTeacherBiq} disabled={!selectedCycleId}>Saxla</button>
 						</div>
 						<div className="form-row">
@@ -1794,14 +1918,14 @@ export const BranchPkpdPage = () => {
 									if (file) void handleImportTeacherBiq(file);
 								}}
 							/>
-							<span className="hint">Şablon: teacher/teacher_id, group/qrup, subject/fənn, score/biq/bal</span>
+							<span className="hint">Åžablon: teacher/teacher_id, group/qrup, subject/fÉ™nn, score/biq/bal</span>
 						</div>
 						{teacherBiqImportStatus && <div className="notice">{teacherBiqImportStatus}</div>}
 						<div className="data-table">
 							<div className="data-row header">
-								<div>Müəllim</div>
+								<div>MÃ¼É™llim</div>
 								<div>Qrup</div>
-								<div>Fənn</div>
+								<div>FÉ™nn</div>
 								<div>Bal</div>
 								<div></div>
 							</div>
@@ -1816,7 +1940,7 @@ export const BranchPkpdPage = () => {
 									</div>
 								</div>
 							))}
-							{teacherBiqResults.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+							{teacherBiqResults.length === 0 && <div className="empty">MÉ™lumat yoxdur.</div>}
 						</div>
 						{teacherBiqResults.length > 0 && (
 							<PaginationControls
@@ -1835,13 +1959,26 @@ export const BranchPkpdPage = () => {
 					<div className="card">
 						<div className="section-header">
 							<div>
-								<h3>Attestasiya imtahanı (0-30)</h3>
-								<p className="hint">Bu siyahı 15-li səhifələnir ki, imtahan balları daha rahat idarə olunsun.</p>
+								<h3>Attestasiya imtahanÄ± (0-30)</h3>
+								<p className="hint">Bu siyahÄ± 15-li sÉ™hifÉ™lÉ™nir ki, imtahan ballarÄ± daha rahat idarÉ™ olunsun.</p>
 							</div>
-							<div className="stat-pill">Cəmi: {standardTeachers.length}</div>
+							<div className="stat-pill">CÉ™mi: {standardTeachers.length}</div>
 						</div>
+						<div className="form-row">
+							<input
+								className="input"
+								type="file"
+								accept=".csv,.xlsx"
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									if (file) void handleImportExam(file);
+								}}
+							/>
+							<span className="hint">Şablon: teacher/teacher_id, score/exam/bal</span>
+						</div>
+						{examImportStatus && <div className="notice">{examImportStatus}</div>}
 						<div className="data-table">
-							<div className="data-row header"><div>Müəllim</div><div>Bal</div><div></div></div>
+							<div className="data-row header"><div>MÃ¼É™llim</div><div>Bal</div><div></div></div>
 							{examPagination.paginatedItems.map((teacher) => (
 								<div className="data-row" key={teacher.id}>
 									<div>{teacher.data.name}</div>
@@ -1863,7 +2000,7 @@ export const BranchPkpdPage = () => {
 									<div className="actions"><button className="btn" type="button" onClick={() => void handleSaveExam(teacher.id)}>Saxla</button></div>
 								</div>
 							))}
-							{standardTeachers.length === 0 && <div className="empty">Standart müəllim yoxdur.</div>}
+							{standardTeachers.length === 0 && <div className="empty">Standart mÃ¼É™llim yoxdur.</div>}
 						</div>
 						{standardTeachers.length > 0 && (
 							<PaginationControls
@@ -1883,7 +2020,7 @@ export const BranchPkpdPage = () => {
 						<h3>Portfolio (bal + qeyd)</h3>
 						<div className="form-row">
 							<select className="input" value={portfolioTeacherId} onChange={(event) => loadPortfolioForTeacher(event.target.value)}>
-								<option value="">Müəllim seçin</option>
+								<option value="">MÃ¼É™llim seÃ§in</option>
 								{teachers.map((teacher) => (
 									<option key={teacher.id} value={teacher.id}>
 										{teacher.data.name} ({teacherCategoryLabel(teacher.data.category)})
@@ -1894,14 +2031,14 @@ export const BranchPkpdPage = () => {
 						{portfolioTeacherId && (
 							<>
 								<div className="form-grid">
-									<input className="input" type="number" placeholder={`Təhsil pilləsi (max ${portfolioMax.education})`} value={portfolioEducation} onChange={(event) => setPortfolioEducation(event.target.value)} />
-									<input className="input" type="number" placeholder={`Davamiyyət (max ${portfolioMax.attendance})`} value={portfolioAttendance} onChange={(event) => setPortfolioAttendance(event.target.value)} />
-									<input className="input" type="number" placeholder={`Təlim/nəşr (max ${portfolioMax.training})`} value={portfolioTraining} onChange={(event) => setPortfolioTraining(event.target.value)} />
+									<input className="input" type="number" placeholder={`TÉ™hsil pillÉ™si (max ${portfolioMax.education})`} value={portfolioEducation} onChange={(event) => setPortfolioEducation(event.target.value)} />
+									<input className="input" type="number" placeholder={`DavamiyyÉ™t (max ${portfolioMax.attendance})`} value={portfolioAttendance} onChange={(event) => setPortfolioAttendance(event.target.value)} />
+									<input className="input" type="number" placeholder={`TÉ™lim/nÉ™ÅŸr (max ${portfolioMax.training})`} value={portfolioTraining} onChange={(event) => setPortfolioTraining(event.target.value)} />
 									<input className="input" type="number" placeholder={`Olimpiada (max ${portfolioMax.olympiad})`} value={portfolioOlympiad} onChange={(event) => setPortfolioOlympiad(event.target.value)} />
-									<input className="input" type="number" placeholder={`Tədbir/layihə (max ${portfolioMax.events})`} value={portfolioEvents} onChange={(event) => setPortfolioEvents(event.target.value)} />
+									<input className="input" type="number" placeholder={`TÉ™dbir/layihÉ™ (max ${portfolioMax.events})`} value={portfolioEvents} onChange={(event) => setPortfolioEvents(event.target.value)} />
 								</div>
 								<div className="form-row">
-									<input className="input" placeholder="Qeyd (istəyə bağlı)" value={portfolioNote} onChange={(event) => setPortfolioNote(event.target.value)} />
+									<input className="input" placeholder="Qeyd (istÉ™yÉ™ baÄŸlÄ±)" value={portfolioNote} onChange={(event) => setPortfolioNote(event.target.value)} />
 									<button className="btn primary" type="button" onClick={handleSavePortfolio}>Saxla</button>
 								</div>
 							</>
@@ -1909,23 +2046,23 @@ export const BranchPkpdPage = () => {
 					</div>
 
 					<div className="card">
-						<h3>Bonus nailiyyətlər</h3>
+						<h3>Bonus nailiyyÉ™tlÉ™r</h3>
 						<div className="form-grid">
 							<select className="input" value={achievementTeacherId} onChange={(event) => setAchievementTeacherId(event.target.value)}>
-								<option value="">Müəllim</option>
+								<option value="">MÃ¼É™llim</option>
 								{teachers.map((teacher) => (
 									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
 								))}
 							</select>
-							<input className="input" placeholder="Növ (məs: Dövlət təltifi)" value={achievementType} onChange={(event) => setAchievementType(event.target.value)} />
+							<input className="input" placeholder="NÃ¶v (mÉ™s: DÃ¶vlÉ™t tÉ™ltifi)" value={achievementType} onChange={(event) => setAchievementType(event.target.value)} />
 							<input className="input" type="number" placeholder="Bal (0-10)" value={achievementPoints} onChange={(event) => setAchievementPoints(event.target.value)} />
 						</div>
 						<div className="form-row">
-							<input className="input" placeholder="Qeyd (istəyə bağlı)" value={achievementNote} onChange={(event) => setAchievementNote(event.target.value)} />
-							<button className="btn primary" type="button" onClick={handleAddAchievement}>Əlavə et</button>
+							<input className="input" placeholder="Qeyd (istÉ™yÉ™ baÄŸlÄ±)" value={achievementNote} onChange={(event) => setAchievementNote(event.target.value)} />
+							<button className="btn primary" type="button" onClick={handleAddAchievement}>ÆlavÉ™ et</button>
 						</div>
 						<div className="data-table">
-							<div className="data-row header"><div>Müəllim</div><div>Növ</div><div>Bal</div><div>Tarix</div><div></div></div>
+							<div className="data-row header"><div>MÃ¼É™llim</div><div>NÃ¶v</div><div>Bal</div><div>Tarix</div><div></div></div>
 							{achievementPagination.paginatedItems.map((item) => (
 								<div className="data-row" key={item.id}>
 									<div>{teacherMap[item.data.teacherId]?.name ?? item.data.teacherId}</div>
@@ -1956,13 +2093,13 @@ export const BranchPkpdPage = () => {
 					<div className="card">
 						<div className="section-header">
 							<div>
-								<h3>PKPD yekun cədvəli</h3>
-								<p className="hint">Ətraflı bal bölgüsü və qərar redaktəsi üçün hər müəllimdə <code>Detallar</code> düyməsini açın.</p>
+								<h3>PKPD yekun cÉ™dvÉ™li</h3>
+								<p className="hint">ÆtraflÄ± bal bÃ¶lgÃ¼sÃ¼ vÉ™ qÉ™rar redaktÉ™si Ã¼Ã§Ã¼n hÉ™r mÃ¼É™llimdÉ™ <code>Detallar</code> dÃ¼ymÉ™sini aÃ§Ä±n.</p>
 							</div>
-							<div className="stat-pill">Cəmi: {summaryRows.length}</div>
+							<div className="stat-pill">CÉ™mi: {summaryRows.length}</div>
 						</div>
 						<div className="data-table">
-							<div className="data-row header"><div>Müəllim</div><div>Müəllim tipi</div><div>Yekun</div><div>PKPD kateqoriyası</div><div>Qərar</div><div>Qeyd</div><div></div></div>
+							<div className="data-row header"><div>MÃ¼É™llim</div><div>MÃ¼É™llim tipi</div><div>Yekun</div><div>PKPD kateqoriyasÄ±</div><div>QÉ™rar</div><div>Qeyd</div><div></div></div>
 							{summaryPagination.paginatedItems.map((row) => {
 								const decision = decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId] ?? null;
 								const notePreview = decision?.note?.trim() || '-';
@@ -1978,7 +2115,7 @@ export const BranchPkpdPage = () => {
 									</div>
 								);
 							})}
-							{summaryRows.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+							{summaryRows.length === 0 && <div className="empty">MÉ™lumat yoxdur.</div>}
 						</div>
 						{summaryRows.length > 0 && (
 							<PaginationControls
@@ -1997,10 +2134,10 @@ export const BranchPkpdPage = () => {
 
 				<TabsContent value="self-review" className="stack">
 					<div className="card">
-						<h3>Özünüqiymətləndirmə cavabları və HR balı</h3>
+						<h3>Ã–zÃ¼nÃ¼qiymÉ™tlÉ™ndirmÉ™ cavablarÄ± vÉ™ HR balÄ±</h3>
 						<div className="form-row">
 							<select className="input" value={selfReviewTeacherId} onChange={(event) => loadSelfReviewForTeacher(event.target.value)}>
-								<option value="">Müəllim seçin</option>
+								<option value="">MÃ¼É™llim seÃ§in</option>
 								{teachers.map((teacher) => (
 									<option key={teacher.id} value={teacher.id}>{teacher.data.name}</option>
 								))}
@@ -2009,32 +2146,32 @@ export const BranchPkpdPage = () => {
 						{selfReviewTeacherId && selectedTeacherHasSavedSelfReview && (
 							<div className="form-row">
 								{selectedTeacherSelfReviewLocked ? (
-									<button className="btn ghost" type="button" onClick={handleRequestSelfReviewEdit}>Düzəliş et</button>
+									<button className="btn ghost" type="button" onClick={handleRequestSelfReviewEdit}>DÃ¼zÉ™liÅŸ et</button>
 								) : (
-									<span className="tag success">Düzəliş açıqdır</span>
+									<span className="tag success">DÃ¼zÉ™liÅŸ aÃ§Ä±qdÄ±r</span>
 								)}
 							</div>
 						)}
 						{selfReviewTeacherId && (
 							<>
 								{selectedTeacherHasSavedSelfReview && (
-									<div className="notice">{selectedTeacherSelfReviewLocked ? "Bu HR qiymətləndirməsi kilidlənib. Dəyişiklik üçün admin şifrəsi və səbəb tələb olunur." : "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}</div>
+									<div className="notice">{selectedTeacherSelfReviewLocked ? "Bu HR qiymÉ™tlÉ™ndirmÉ™si kilidlÉ™nib. DÉ™yiÅŸiklik Ã¼Ã§Ã¼n admin ÅŸifrÉ™si vÉ™ sÉ™bÉ™b tÉ™lÉ™b olunur." : "DÃ¼zÉ™liÅŸ rejimi aktivdir. YenidÉ™n saxladÄ±qdan sonra forma yenÉ™ kilidlÉ™nÉ™cÉ™k."}</div>
 								)}
-								<div className="notice">{selfReviewTeacher?.name ?? "Müəllim"} üçün müəllimin öz balı: {selectedTeacherSelfResponse?.declaredScore ?? "-"} / 10</div>
-								{selectedTeacherSelfReview?.editReason && <div className="hint">Son düzəliş səbəbi: {selectedTeacherSelfReview.editReason}</div>}
+								<div className="notice">{selfReviewTeacher?.name ?? "MÃ¼É™llim"} Ã¼Ã§Ã¼n mÃ¼É™llimin Ã¶z balÄ±: {selectedTeacherSelfResponse?.declaredScore ?? "-"} / 10</div>
+								{selectedTeacherSelfReview?.editReason && <div className="hint">Son dÃ¼zÉ™liÅŸ sÉ™bÉ™bi: {selectedTeacherSelfReview.editReason}</div>}
 								<div className="data-table">
 									<div className="data-row header"><div>Sual</div><div>Cavab</div></div>
 									{selectedTeacherSelfResponse?.textAnswers.map((item) => (
 										<div className="data-row" key={item.questionId}><div>{item.questionText}</div><div>{item.answerText}</div></div>
 									))}
-									{(!selectedTeacherSelfResponse || selectedTeacherSelfResponse.textAnswers.length === 0) && <div className="empty">Müəllim bu sorğuda hələ açıq cavab yazmayıb.</div>}
+									{(!selectedTeacherSelfResponse || selectedTeacherSelfResponse.textAnswers.length === 0) && <div className="empty">MÃ¼É™llim bu sorÄŸuda hÉ™lÉ™ aÃ§Ä±q cavab yazmayÄ±b.</div>}
 								</div>
 								<div className="form-row">
-									<input className="input" type="number" min="0" max="10" step="0.1" placeholder="HR balı (0-10)" value={selfReviewScore} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewScore(event.target.value)} />
-									<input className="input" placeholder="HR qeydi (istəyə bağlı)" value={selfReviewNote} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewNote(event.target.value)} />
+									<input className="input" type="number" min="0" max="10" step="0.1" placeholder="HR balÄ± (0-10)" value={selfReviewScore} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewScore(event.target.value)} />
+									<input className="input" placeholder="HR qeydi (istÉ™yÉ™ baÄŸlÄ±)" value={selfReviewNote} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewNote(event.target.value)} />
 									<button className="btn primary" type="button" onClick={handleSaveSelfReview} disabled={selectedTeacherSelfReviewLocked}>Saxla</button>
 								</div>
-								<div className="hint">HR balı müəllimin yekun PKPD cəminin üzərinə əlavə olunur.</div>
+								<div className="hint">HR balÄ± mÃ¼É™llimin yekun PKPD cÉ™minin Ã¼zÉ™rinÉ™ É™lavÉ™ olunur.</div>
 							</>
 						)}
 					</div>
@@ -2046,14 +2183,14 @@ export const BranchPkpdPage = () => {
 						<>
 							<DialogHeader>
 								<DialogTitle>{selectedSummaryRow.name}</DialogTitle>
-								<DialogDescription>{cycleYear} dövrü üçün PKPD detal görünüşü və qərar redaktəsi.</DialogDescription>
+								<DialogDescription>{cycleYear} dÃ¶vrÃ¼ Ã¼Ã§Ã¼n PKPD detal gÃ¶rÃ¼nÃ¼ÅŸÃ¼ vÉ™ qÉ™rar redaktÉ™si.</DialogDescription>
 							</DialogHeader>
 							<div className="grid three">
-								<div className="stat-card"><div className="stat-label">Şagird</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Rəhbərlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Özü</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Åžagird</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">RÉ™hbÉ™rlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Ã–zÃ¼</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">BIQ</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">İmtahan</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Ä°mtahan</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">HR</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Bonus</div><div className="stat-value">{selectedSummaryRow.bonus.toFixed(1)}</div></div>
@@ -2061,7 +2198,7 @@ export const BranchPkpdPage = () => {
 							</div>
 							<div className="card">
 								<div className="section-header">
-									<div><div className="section-kicker">Cari il</div><h3 className="section-title">Dərs təyinatları</h3></div>
+									<div><div className="section-kicker">Cari il</div><h3 className="section-title">DÉ™rs tÉ™yinatlarÄ±</h3></div>
 									<div className="tag">{teacherCategoryLabel(selectedSummaryRow.category)}</div>
 								</div>
 								<div className="list">
@@ -2071,11 +2208,11 @@ export const BranchPkpdPage = () => {
 											<div className="tag">{cycleYear}</div>
 										</div>
 									))}
-									{selectedSummaryAssignments.length === 0 && <div className="empty">Bu müəllim üçün cari ildə dərs təyinatı yoxdur.</div>}
+									{selectedSummaryAssignments.length === 0 && <div className="empty">Bu mÃ¼É™llim Ã¼Ã§Ã¼n cari ildÉ™ dÉ™rs tÉ™yinatÄ± yoxdur.</div>}
 								</div>
 							</div>
 							<div className="card">
-								<h3>Qərar və qeyd</h3>
+								<h3>QÉ™rar vÉ™ qeyd</h3>
 								<div className="form-row">
 									<select
 										className="input"
@@ -2118,15 +2255,15 @@ export const BranchPkpdPage = () => {
 			<Dialog open={selfReviewUnlockOpen} onOpenChange={setSelfReviewUnlockOpen}>
 				<DialogContent className="max-w-md">
 					<DialogHeader>
-						<DialogTitle>Düzəlişi təsdiqlə</DialogTitle>
+						<DialogTitle>DÃ¼zÉ™liÅŸi tÉ™sdiqlÉ™</DialogTitle>
 						<DialogDescription>
-							Saxlanmış HR balını dəyişmək üçün admin şifrəsini və düzəliş
-							səbəbini daxil edin.
+							SaxlanmÄ±ÅŸ HR balÄ±nÄ± dÉ™yiÅŸmÉ™k Ã¼Ã§Ã¼n admin ÅŸifrÉ™sini vÉ™ dÃ¼zÉ™liÅŸ
+							sÉ™bÉ™bini daxil edin.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="stack">
 						<label className="field">
-							<span className="label">Admin şifrəsi</span>
+							<span className="label">Admin ÅŸifrÉ™si</span>
 							<input
 								className="input"
 								type="password"
@@ -2137,7 +2274,7 @@ export const BranchPkpdPage = () => {
 							/>
 						</label>
 						<label className="field">
-							<span className="label">Düzəliş səbəbi</span>
+							<span className="label">DÃ¼zÉ™liÅŸ sÉ™bÉ™bi</span>
 							<textarea
 								className="input"
 								rows={4}
@@ -2158,7 +2295,7 @@ export const BranchPkpdPage = () => {
 							onClick={() => setSelfReviewUnlockOpen(false)}
 							disabled={selfReviewUnlockSubmitting}
 						>
-							Ləğv et
+							LÉ™ÄŸv et
 						</button>
 						<button
 							className="btn primary"
@@ -2166,7 +2303,7 @@ export const BranchPkpdPage = () => {
 							onClick={handleUnlockSelfReviewEdit}
 							disabled={selfReviewUnlockSubmitting}
 						>
-							{selfReviewUnlockSubmitting ? "Yoxlanır..." : "Təsdiqlə"}
+							{selfReviewUnlockSubmitting ? "YoxlanÄ±r..." : "TÉ™sdiqlÉ™"}
 						</button>
 					</DialogFooter>
 				</DialogContent>
@@ -2174,5 +2311,6 @@ export const BranchPkpdPage = () => {
 		</div>
 	);
 };
+
 
 

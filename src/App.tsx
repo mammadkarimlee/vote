@@ -13,6 +13,7 @@ import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ProfilePage } from "./features/auth/ProfilePage";
 import { BranchAssignmentsPage } from "./features/branch/BranchAssignmentsPage";
+import { BranchAuditPage } from "./features/branch/BranchAuditPage";
 import { BranchCycleDetailPage } from "./features/branch/BranchCycleDetailPage";
 import { BranchCyclesPage } from "./features/branch/BranchCyclesPage";
 import { BranchDepartmentsPage } from "./features/branch/BranchDepartmentsPage";
@@ -108,6 +109,14 @@ const App = () => (
 				<Route path="cycles" element={<BranchCyclesPage />} />
 				<Route path="cycles/:cycleId" element={<BranchCycleDetailPage />} />
 				<Route path="pkpd" element={<BranchPkpdPage />} />
+				<Route
+					path="audit"
+					element={
+						<RequireRole roles={["superadmin"]}>
+							<BranchAuditPage />
+						</RequireRole>
+					}
+				/>
 				<Route path="*" element={<Navigate to="/branch/cycles" replace />} />
 			</Route>
 			<Route
