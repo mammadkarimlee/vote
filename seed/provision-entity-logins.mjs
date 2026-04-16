@@ -330,19 +330,30 @@ const getBranchFilter = async () => {
 };
 
 const getSourceRows = async (branchId) => {
-	let query = supabase
-		.from(SOURCE_TABLE)
-		.select("id, name, branch_id, user_id, login")
-		.eq("org_id", ORG_ID)
-		.is("deleted_at", null)
-		.order("id");
+	const pageSize = 1000;
+	const rows = [];
+	let from = 0;
 
-	if (branchId) query = query.eq("branch_id", branchId);
+	while (true) {
+		let query = supabase
+			.from(SOURCE_TABLE)
+			.select("id, name, branch_id, user_id, login")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null)
+			.order("id")
+			.range(from, from + pageSize - 1);
 
-	const rows = ensureOk(
-		await query,
-		`Failed to read ${SOURCE_TABLE} from database`,
-	);
+		if (branchId) query = query.eq("branch_id", branchId);
+
+		const chunk = ensureOk(
+			await query,
+			`Failed to read ${SOURCE_TABLE} from database`,
+		);
+		rows.push(...chunk);
+
+		if (chunk.length < pageSize) break;
+		from += pageSize;
+	}
 
 	if (INCLUDE_EXISTING) return rows;
 	return rows.filter((row) => !row.user_id || !row.login);
