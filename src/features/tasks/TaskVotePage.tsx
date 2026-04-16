@@ -55,6 +55,9 @@ const normalizeDraft = (
 	return next;
 };
 
+const LOAD_ERROR_MESSAGE =
+	"Sual formu yüklənmədi. Səhifəni yeniləyib yenidən cəhd edin.";
+
 export const TaskVotePage = () => {
 	const { taskId } = useParams();
 	const navigate = useNavigate();
@@ -79,6 +82,9 @@ export const TaskVotePage = () => {
 		const loadTask = async () => {
 			setLoading(true);
 			setStatus(null);
+			setTask(null);
+			setCycle(null);
+			setQuestions([]);
 			setQuestionSet(null);
 
 			const taskRes = await supabase
@@ -87,6 +93,12 @@ export const TaskVotePage = () => {
 				.eq("org_id", ORG_ID)
 				.eq("id", taskId)
 				.maybeSingle();
+
+			if (taskRes.error) {
+				setStatus(LOAD_ERROR_MESSAGE);
+				setLoading(false);
+				return;
+			}
 
 			if (!taskRes.data) {
 				setStatus("Tapşırıq tapılmadı.");
@@ -124,6 +136,11 @@ export const TaskVotePage = () => {
 				.eq("org_id", ORG_ID)
 				.eq("id", taskData.cycleId)
 				.maybeSingle();
+			if (cycleRes.error) {
+				setStatus(LOAD_ERROR_MESSAGE);
+				setLoading(false);
+				return;
+			}
 			setCycle(cycleRes.data ? mapSurveyCycleRow(cycleRes.data) : null);
 
 			const flow = flowFromTask(taskData);
@@ -134,6 +151,12 @@ export const TaskVotePage = () => {
 				.eq("cycle_id", taskData.cycleId)
 				.eq("target_flow", flow)
 				.maybeSingle();
+
+			if (questionSetRes.error) {
+				setStatus(LOAD_ERROR_MESSAGE);
+				setLoading(false);
+				return;
+			}
 
 			if (!questionSetRes.data) {
 				setStatus("Bu tapşırıq üçün sual seti tapılmadı.");
@@ -162,6 +185,12 @@ export const TaskVotePage = () => {
 					.select("*")
 					.eq("org_id", ORG_ID)
 					.in("id", chunk);
+				if (qRes.error) {
+					setQuestions([]);
+					setStatus(LOAD_ERROR_MESSAGE);
+					setLoading(false);
+					return;
+				}
 				(qRes.data ?? []).forEach((row) => {
 					loaded.push({ id: row.id, data: mapQuestionRow(row) });
 				});
@@ -364,7 +393,9 @@ export const TaskVotePage = () => {
 			</section>
 
 			<div className="card">
-				{questions.length === 0 ? (
+				{questions.length === 0 && (questionSet?.questionIds?.length ?? 0) > 0 ? (
+					<div className="empty">Sual formu yüklənmədi.</div>
+				) : questions.length === 0 ? (
 					<div className="empty">Bu task üçün sual yoxdur.</div>
 				) : (
 					<div className="stack">
