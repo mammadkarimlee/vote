@@ -25,7 +25,12 @@ import type {
 	TeacherDoc,
 } from "../../lib/types";
 import { usePagination } from "../../lib/usePagination";
-import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
+import {
+	chunkValuesForInFilter,
+	formatShortDate,
+	toJsDate,
+	toNumber,
+} from "../../lib/utils";
 import { requestTeacherAiFeedback } from "./aiFeedback";
 import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
@@ -176,8 +181,8 @@ export const BranchResultsPage = () => {
 			setSubmissions(submissionDocs);
 
 			const answerDocs: Array<DocEntry<AnswerDoc>> = [];
-			const ids = submissionDocs.map((item) => item.id);
-			const chunks = chunkArray(ids, 200);
+			const ids = Array.from(new Set(submissionDocs.map((item) => item.id)));
+			const chunks = chunkValuesForInFilter(ids);
 			for (const chunk of chunks) {
 				if (chunk.length === 0) continue;
 				const answerRes = await supabase

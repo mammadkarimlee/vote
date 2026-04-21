@@ -9,6 +9,50 @@ export const chunkArray = <T>(items: T[], size: number): T[][] => {
 	return chunks;
 };
 
+export const chunkValuesForInFilter = (
+	values: string[],
+	options?: {
+		maxItems?: number;
+		maxEncodedLength?: number;
+	},
+) => {
+	const maxItems = options?.maxItems ?? 25;
+	const maxEncodedLength = options?.maxEncodedLength ?? 3000;
+	const chunks: string[][] = [];
+	let currentChunk: string[] = [];
+	let currentEncodedLength = 0;
+
+	for (const value of values) {
+		const encodedLength = encodeURIComponent(value).length;
+
+		if (currentChunk.length === 0) {
+			currentChunk = [value];
+			currentEncodedLength = encodedLength;
+			continue;
+		}
+
+		const nextEncodedLength = currentEncodedLength + encodedLength + 1;
+		if (
+			currentChunk.length >= maxItems ||
+			nextEncodedLength > maxEncodedLength
+		) {
+			chunks.push(currentChunk);
+			currentChunk = [value];
+			currentEncodedLength = encodedLength;
+			continue;
+		}
+
+		currentChunk.push(value);
+		currentEncodedLength = nextEncodedLength;
+	}
+
+	if (currentChunk.length > 0) {
+		chunks.push(currentChunk);
+	}
+
+	return chunks;
+};
+
 export const createId = () => {
 	if (
 		typeof crypto !== "undefined" &&

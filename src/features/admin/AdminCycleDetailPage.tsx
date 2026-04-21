@@ -47,7 +47,7 @@ import type {
 	TeachingAssignmentDoc,
 	UserDoc,
 } from "../../lib/types";
-import { chunkArray, toNumber } from "../../lib/utils";
+import { chunkValuesForInFilter, toNumber } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 type DocEntry<T> = { id: string; data: T };
@@ -580,14 +580,16 @@ export const AdminCycleDetailPage = () => {
 					setAssignments([]);
 				}
 
-				const submissionIds = submissionRows.map((row) => row.task_id ?? row.id);
+				const submissionIds = Array.from(
+					new Set(submissionRows.map((row) => row.task_id ?? row.id)),
+				);
 				if (submissionIds.length === 0) {
 					setAnswers([]);
 					return;
 				}
 
 				const answerDocs: Array<DocEntry<AnswerDoc>> = [];
-				const chunks = chunkArray(submissionIds, 200);
+				const chunks = chunkValuesForInFilter(submissionIds);
 				for (const chunk of chunks) {
 					if (chunk.length === 0) continue;
 					const answerRows = await fetchAllBatched<any>(async (from, to) =>
