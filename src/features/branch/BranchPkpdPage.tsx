@@ -23,6 +23,13 @@ import {
 	buildPkpdSelfReviewNote,
 	isPkpdSelfReviewQuestionScoresError,
 } from "../../lib/pkpdSelfReview";
+import {
+	computePkpdPortfolioScore,
+	getPkpdPortfolioLimits,
+	getPkpdWeights,
+	normalizePkpdScale,
+	pkpdBucket,
+} from "../../lib/pkpdScoring";
 import type {
 	AnswerDoc,
 	BiqClassResultDoc,
@@ -43,7 +50,13 @@ import type {
 	TeachingAssignmentDoc,
 } from "../../lib/types";
 import { usePagination } from "../../lib/usePagination";
-import { chunkArray, formatShortDate, toJsDate, toNumber } from "../../lib/utils";
+import {
+	chunkArray,
+	chunkValuesForInFilter,
+	formatShortDate,
+	toJsDate,
+	toNumber,
+} from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 import { BranchSelector } from "./BranchSelector";
 import { parseSpreadsheet } from "./importUtils";
@@ -85,54 +98,10 @@ const teacherCategoryLabel = (category?: TeacherCategory) => {
 	}
 };
 
-const normalizeScale = (
-	value: number,
-	min?: number | null,
-	max?: number | null,
-) => {
-	const safeMin = min ?? 1;
-	const safeMax = max ?? 10;
-	if (safeMin === 1 && safeMax === 10) return value * 10;
-	if (safeMax <= safeMin) return value;
-	return ((value - safeMin) / (safeMax - safeMin)) * 100;
-};
-
-const pkpdBucket = (score: number | null) => {
-	if (score === null) return "-";
-	if (score >= 90) return "TÉ™lÉ™blÉ™rÉ™ tam cavab verÉ™n";
-	if (score >= 80) return "TÉ™lÉ™blÉ™rÉ™ cavab verÉ™n";
-	if (score >= 60) return "TÉ™lÉ™blÉ™rÉ™ É™sasÉ™n cavab verÉ™n";
-	if (score >= 50) return "Ä°nkiÅŸaf etdirilmÉ™si zÉ™ruri olan";
-	if (score >= 30) return "Ä°nkiÅŸafÄ± aÅŸaÄŸÄ± olan";
-	return "Ä°nkiÅŸafÄ± Ã§ox aÅŸaÄŸÄ± olan";
-};
-
 const decisionLabel: Record<PkpdDecisionStatus, string> = {
 	PENDING: "GÃ¶zlÉ™mÉ™dÉ™",
 	APPROVED: "UyÄŸundur",
 	REJECTED: "UyÄŸun deyil",
-};
-
-const portfolioLimits = (category?: TeacherCategory) => {
-	if (category === "drama_gym") {
-		return {
-			education: 3,
-			attendance: 3,
-			training: 9,
-			olympiad: 20,
-			events: 25,
-		};
-	}
-	if (category === "chess") {
-		return {
-			education: 3,
-			attendance: 3,
-			training: 9,
-			olympiad: 30,
-			events: 15,
-		};
-	}
-	return { education: 3, attendance: 3, training: 5, olympiad: 4, events: 5 };
 };
 
 const formatScoreValue = (value: number | null) =>
@@ -441,8 +410,8 @@ export const BranchPkpdPage = () => {
 				return;
 			}
 
-			const ids = taskDocs.map((item) => item.id);
-			const chunks = chunkArray(ids, 200);
+			const ids = Array.from(new Set(taskDocs.map((item) => item.id)));
+			const chunks = chunkValuesForInFilter(ids);
 			const answerDocs: Array<DocEntry<AnswerDoc>> = [];
 			for (const chunk of chunks) {
 				if (chunk.length === 0) continue;
@@ -548,7 +517,7 @@ export const BranchPkpdPage = () => {
 	const portfolioTeacher = portfolioTeacherId
 		? teacherMap[portfolioTeacherId]
 		: undefined;
-	const portfolioMax = portfolioLimits(portfolioTeacher?.category);
+	const portfolioMax = getPkpdPortfolioLimits(portfolioTeacher?.category);
 	const selfReviewTeacher = selfReviewTeacherId
 		? teacherMap[selfReviewTeacherId]
 		: null;
@@ -681,7 +650,7 @@ export const BranchPkpdPage = () => {
 			if (!question || question.type !== "scale") return;
 			const numeric = toNumber(answer.data.value);
 			if (numeric === null) return;
-			const normalized = normalizeScale(
+			const normalized = normalizePkpdScale(
 				numeric,
 				question.scaleMin,
 				question.scaleMax,
@@ -726,24 +695,7 @@ export const BranchPkpdPage = () => {
 	const summaryRows = useMemo<SummaryRow[]>(() => {
 		return teachers.map((teacher) => {
 			const category = teacher.data.category ?? "standard";
-			const weights =
-				category === "standard"
-					? {
-							student: 15,
-							management: 10,
-							self: 10,
-							biq: 15,
-							exam: 30,
-							portfolio: 20,
-						}
-					: {
-							student: 20,
-							management: 10,
-							self: 10,
-							biq: 0,
-							exam: 0,
-							portfolio: 60,
-						};
+			const weights = getPkpdWeights(category);
 
 			const stats = flowStats[teacher.id];
 			const studentAvg =
@@ -788,15 +740,10 @@ export const BranchPkpdPage = () => {
 
 			const examScore =
 				weights.exam === 0 ? null : (examMap[teacher.id]?.score ?? null);
-			const portfolio = portfolioMap[teacher.id];
-			const limits = portfolioLimits(category);
-			const portfolioScoreRaw =
-				Math.min(portfolio?.educationScore ?? 0, limits.education) +
-				Math.min(portfolio?.attendanceScore ?? 0, limits.attendance) +
-				Math.min(portfolio?.trainingScore ?? 0, limits.training) +
-				Math.min(portfolio?.olympiadScore ?? 0, limits.olympiad) +
-				Math.min(portfolio?.eventsScore ?? 0, limits.events);
-			const portfolioScore = portfolio ? portfolioScoreRaw : null;
+			const portfolioScore = computePkpdPortfolioScore(
+				portfolioMap[teacher.id] ?? null,
+				category,
+			);
 			const hrSelfReviewScore = selfReviewMap[teacher.id]?.score ?? null;
 			const bonus = achievementTotals[teacher.id] ?? 0;
 
@@ -1478,7 +1425,7 @@ export const BranchPkpdPage = () => {
 	const handleSavePortfolio = async () => {
 		if (!branchId || !selectedCycleId || !portfolioTeacherId) return;
 		const teacherCategory = teacherMap[portfolioTeacherId]?.category;
-		const limits = portfolioLimits(teacherCategory);
+		const limits = getPkpdPortfolioLimits(teacherCategory);
 
 		const educationValue = toNumber(portfolioEducation);
 		const attendanceValue = toNumber(portfolioAttendance);

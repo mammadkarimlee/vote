@@ -16,12 +16,19 @@ import {
 	buildPkpdSelfReviewNote,
 	isPkpdSelfReviewQuestionScoresError,
 } from "../../lib/pkpdSelfReview";
+import {
+	computePkpdPortfolioScore,
+	getPkpdWeights,
+} from "../../lib/pkpdScoring";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapAnswerRow,
 	mapBiqClassResultRow,
 	mapBranchRow,
 	mapDepartmentRow,
+	mapPkpdAchievementRow,
+	mapPkpdExamRow,
+	mapPkpdPortfolioRow,
 	mapPkpdSelfReviewRow,
 	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
@@ -37,6 +44,9 @@ import type {
 	BiqClassResultDoc,
 	BranchDoc,
 	DepartmentDoc,
+	PkpdAchievementDoc,
+	PkpdExamDoc,
+	PkpdPortfolioDoc,
 	PkpdSelfReviewDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
@@ -83,6 +93,13 @@ type TeacherRow = {
 	hrEvaluationScore: number | null;
 	selfTotal: number | null;
 	biqAvg: number | null;
+	studentWeightedScore: number | null;
+	managementWeightedScore: number | null;
+	selfWeightedScore: number | null;
+	biqWeightedScore: number | null;
+	examScore: number | null;
+	portfolioScore: number | null;
+	bonusScore: number;
 	finalScore: number | null;
 	surveySubmissionCount: number;
 	studentCount: number;
@@ -326,8 +343,15 @@ export const AdminCycleDetailPage = () => {
 	const [teacherBiqResults, setTeacherBiqResults] = useState<
 		Array<DocEntry<PkpdTeacherBiqResultDoc>>
 	>([]);
+	const [examResults, setExamResults] = useState<Array<DocEntry<PkpdExamDoc>>>([]);
+	const [portfolios, setPortfolios] = useState<
+		Array<DocEntry<PkpdPortfolioDoc>>
+	>([]);
 	const [selfReviews, setSelfReviews] = useState<
 		Array<DocEntry<PkpdSelfReviewDoc>>
+	>([]);
+	const [achievements, setAchievements] = useState<
+		Array<DocEntry<PkpdAchievementDoc>>
 	>([]);
 	const [submissions, setSubmissions] = useState<
 		Array<DocEntry<SubmissionDoc>>
@@ -454,8 +478,16 @@ export const AdminCycleDetailPage = () => {
 			if (!cycleId) return;
 
 			try {
-				const [taskRows, submissionRows, biqRows, teacherBiqRows, selfReviewRows] =
-					await Promise.all([
+				const [
+					taskRows,
+					submissionRows,
+					biqRows,
+					teacherBiqRows,
+					examRows,
+					portfolioRows,
+					selfReviewRows,
+					achievementRows,
+				] = await Promise.all([
 						fetchAllBatched<any>(async (from, to) =>
 							await (() => {
 								let query = supabase
@@ -511,7 +543,46 @@ export const AdminCycleDetailPage = () => {
 						fetchAllBatched<any>(async (from, to) =>
 							await (() => {
 								let query = supabase
+									.from("pkpd_exam_results")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
+						),
+						fetchAllBatched<any>(async (from, to) =>
+							await (() => {
+								let query = supabase
+									.from("pkpd_portfolios")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
+						),
+						fetchAllBatched<any>(async (from, to) =>
+							await (() => {
+								let query = supabase
 									.from("pkpd_self_reviews")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
+						),
+						fetchAllBatched<any>(async (from, to) =>
+							await (() => {
+								let query = supabase
+									.from("pkpd_achievements")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
@@ -547,10 +618,28 @@ export const AdminCycleDetailPage = () => {
 						data: mapPkpdTeacherBiqResultRow(row),
 					})),
 				);
+				setExamResults(
+					examRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdExamRow(row),
+					})),
+				);
+				setPortfolios(
+					portfolioRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdPortfolioRow(row),
+					})),
+				);
 				setSelfReviews(
 					selfReviewRows.map((row) => ({
 						id: row.id,
 						data: mapPkpdSelfReviewRow(row),
+					})),
+				);
+				setAchievements(
+					achievementRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdAchievementRow(row),
 					})),
 				);
 
@@ -612,7 +701,10 @@ export const AdminCycleDetailPage = () => {
 				setSubmissions([]);
 				setBiqResults([]);
 				setTeacherBiqResults([]);
+				setExamResults([]);
+				setPortfolios([]);
 				setSelfReviews([]);
+				setAchievements([]);
 				setAssignments([]);
 				setAnswers([]);
 			}
@@ -812,6 +904,28 @@ export const AdminCycleDetailPage = () => {
 			),
 		[selfReviews],
 	);
+	const examMap = useMemo(
+		() =>
+			Object.fromEntries(
+				examResults.map((item) => [item.data.teacherId, item.data]),
+			),
+		[examResults],
+	);
+	const portfolioMap = useMemo(
+		() =>
+			Object.fromEntries(
+				portfolios.map((item) => [item.data.teacherId, item.data]),
+			),
+		[portfolios],
+	);
+	const achievementTotals = useMemo(() => {
+		const totals: Record<string, number> = {};
+		achievements.forEach((item) => {
+			totals[item.data.teacherId] =
+				(totals[item.data.teacherId] ?? 0) + item.data.points;
+		});
+		return totals;
+	}, [achievements]);
 
 	const teacherSelfResponses = useMemo<Record<string, TeacherSelfResponse>>(() => {
 		const responseMap: Record<string, TeacherSelfResponse> = {};
@@ -859,6 +973,8 @@ export const AdminCycleDetailPage = () => {
 	const teacherRows = useMemo<TeacherRow[]>(() => {
 		return teachers
 			.map((teacher) => {
+				const category = teacher.data.category ?? "standard";
+				const weights = getPkpdWeights(category);
 				const flow = flowStats[teacher.id] ?? emptyFlowAggregate();
 				const classScores = studentClassScoresByTeacher[teacher.id] ?? [];
 				const studentStats = studentSubmissionStatsByTeacher[teacher.id] ?? {
@@ -908,18 +1024,45 @@ export const AdminCycleDetailPage = () => {
 					biqValues.length > 0
 						? biqValues.reduce((acc, value) => acc + value, 0) / biqValues.length
 						: null;
+				const studentWeightedScore =
+					studentAvg === null ? null : (studentAvg * weights.student) / 10;
+				const managementWeightedScore =
+					managementAvg === null
+						? null
+						: (managementAvg * weights.management) / 10;
+				const selfWeightedScore =
+					selfDeclaredScore === null
+						? null
+						: (selfDeclaredScore * weights.self) / 10;
+				const biqWeightedScore =
+					weights.biq === 0 || biqAvg === null
+						? null
+						: (biqAvg * weights.biq) / 100;
+				const examScore =
+					weights.exam === 0 ? null : (examMap[teacher.id]?.score ?? null);
+				const portfolioScore = computePkpdPortfolioScore(
+					portfolioMap[teacher.id] ?? null,
+					category,
+				);
+				const bonusScore = achievementTotals[teacher.id] ?? 0;
 
 				const finalScoreParts = [
-					selfDeclaredScore,
-					teacherCriteriaTotal,
+					studentWeightedScore,
+					managementWeightedScore,
+					selfWeightedScore,
+					biqWeightedScore,
+					examScore,
+					portfolioScore,
 					hrEvaluationScore,
 				].filter(
 					(value): value is number =>
 						typeof value === "number" && !Number.isNaN(value),
 				);
+				const hasFinalScoreData =
+					finalScoreParts.length > 0 || bonusScore > 0;
 				const finalScore =
-					finalScoreParts.length > 0
-						? finalScoreParts.reduce((acc, value) => acc + value, 0)
+					hasFinalScoreData
+						? finalScoreParts.reduce((acc, value) => acc + value, 0) + bonusScore
 						: null;
 
 				const resolvedName = teacher.data.name ?? teacher.id;
@@ -949,6 +1092,13 @@ export const AdminCycleDetailPage = () => {
 					hrEvaluationScore,
 					selfTotal: resolvedSelfTotal,
 					biqAvg,
+					studentWeightedScore,
+					managementWeightedScore,
+					selfWeightedScore,
+					biqWeightedScore,
+					examScore,
+					portfolioScore,
+					bonusScore,
 					finalScore,
 					surveySubmissionCount: submissionCountByTeacher[teacher.id] ?? 0,
 					studentCount,
@@ -969,10 +1119,13 @@ export const AdminCycleDetailPage = () => {
 			});
 	}, [
 		assignmentByTeacher,
+		achievementTotals,
 		biqByKey,
 		branchMap,
 		departmentMap,
+		examMap,
 		flowStats,
+		portfolioMap,
 		selfReviewMap,
 		submissionCountByTeacher,
 		studentSubmissionStatsByTeacher,
@@ -1206,6 +1359,20 @@ export const AdminCycleDetailPage = () => {
 		const teacherCriteriaTotalText = formatScore(selectedTeacher.teacherCriteriaTotal);
 		const hrEvaluationText = formatScore(selectedTeacher.hrEvaluationScore);
 		const selfDeclaredScoreText = formatScore(selectedTeacher.selfDeclaredScore);
+		const studentWeightedScoreText = formatScore(
+			selectedTeacher.studentWeightedScore,
+		);
+		const managementWeightedScoreText = formatScore(
+			selectedTeacher.managementWeightedScore,
+		);
+		const selfWeightedScoreText = formatScore(selectedTeacher.selfWeightedScore);
+		const biqWeightedScoreText = formatScore(selectedTeacher.biqWeightedScore);
+		const examScoreText = formatScore(selectedTeacher.examScore);
+		const portfolioScoreText = formatScore(selectedTeacher.portfolioScore);
+		const bonusScoreText =
+			selectedTeacher.bonusScore > 0
+				? selectedTeacher.bonusScore.toFixed(2)
+				: "—";
 		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
 			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
 			: null;
@@ -1424,10 +1591,17 @@ export const AdminCycleDetailPage = () => {
 							<div class="card"><div class="label">Rəhbərlik sorğusu</div><div class="value">${formatScore(selectedTeacher.managementAvg)}</div></div>
 							<div class="card"><div class="label">Özünüqiymətləndirmə (cəm)</div><div class="value">${formatScore(selectedTeacher.selfTotal)}</div></div>
 							<div class="card"><div class="label">BİQ nəticəsi</div><div class="value">${formatScore(selectedTeacher.biqAvg)}</div></div>
+							<div class="card"><div class="label">Şagird sorğusu (15 bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
+							<div class="card"><div class="label">Rəhbərlik sorğusu (10 bal üzrə)</div><div class="value">${managementWeightedScoreText}</div></div>
+							<div class="card"><div class="label">Özünüqiymətləndirmə (10 bal üzrə)</div><div class="value">${selfWeightedScoreText}</div></div>
+							<div class="card"><div class="label">BİQ (15 bal üzrə)</div><div class="value">${biqWeightedScoreText}</div></div>
+							<div class="card"><div class="label">İmtahan</div><div class="value">${examScoreText}</div></div>
+							<div class="card"><div class="label">Portfolio</div><div class="value">${portfolioScoreText}</div></div>
 							<div class="card"><div class="label">Müəllimin 3 meyar üzrə orta balı</div><div class="value">${academicIndicatorText}</div></div>
 							<div class="card"><div class="label">Müəllimin 3 meyar üzrə cəmi</div><div class="value">${teacherCriteriaTotalText}</div></div>
 							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
 							<div class="card"><div class="label">HR qiymətləndirməsi</div><div class="value">${hrEvaluationText}</div></div>
+							<div class="card"><div class="label">Bonus</div><div class="value">${bonusScoreText}</div></div>
 							<div class="card"><div class="label">Yekun bal</div><div class="value">${formatScore(selectedTeacher.finalScore)}</div></div>
 							<div class="card"><div class="label">Şagird cavab sayı</div><div class="value">${selectedTeacher.studentCount}</div></div>
 						</div>
