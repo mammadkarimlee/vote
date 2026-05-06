@@ -1,0 +1,4 @@
+teacher_id,name,branch_id,login,password,email,user_id,status
+nesimi-teacher-fatime-memmedli,Fatimə Məmmədli,ef0b6b5b-c54f-458a-819e-f15fbcb82096,fatme0,fatme0,fatme0@vote.local,c2c7fa75-d327-4e62-be24-944e67c075cb,created
+nesimi-teacher-sahibe-ferzeliyeva,Sahibə Fərzəliyeva,ef0b6b5b-c54f-458a-819e-f15fbcb82096,sahfe0,sahfe0,sahfe0@vote.local,ac6d96ea-986b-4db7-9c25-3edf5b2a636d,created
+nesimi-teacher-sara-hemidova,Sara Həmidova,ef0b6b5b-c54f-458a-819e-f15fbcb82096,sarhe0,sarhe0,sarhe0@vote.local,711a4785-73bb-441a-b51d-399c923a6b19,created

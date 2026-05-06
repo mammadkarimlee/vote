@@ -11,6 +11,8 @@
 		"seed:stars:teacher-logins": "node seed/provision-stars-teacher-logins.mjs",
 		"seed:logins:teachers": "node seed/provision-entity-logins.mjs --entity teacher",
 		"seed:logins:students": "node seed/provision-entity-logins.mjs --entity student",
+		"seed:nesimi:assignments:validate": "node seed/import-nesimi-assignments-2026.mjs --file seed/nesimi-schedule-2026.json",
+		"seed:nesimi:assignments:apply": "node seed/import-nesimi-assignments-2026.mjs --file seed/nesimi-schedule-2026.json --apply",
 		"seed:teacher-names:export": "node seed/fix-teacher-names.mjs export --branch \"Stars Campusu\" --file seed/teacher-name-fixes.csv",
 		"seed:teacher-names:apply": "node seed/fix-teacher-names.mjs apply --file seed/teacher-name-fixes.csv",
 		"seed:teacher-departments:export": "node seed/assign-teachers-to-departments.mjs export --branch \"Stars Campusu\" --file seed/teacher-department-assignments.csv",
