@@ -1,0 +1,3 @@
+teacher_id,name,branch_id,login,password,email,user_id,status
+qurtulus-teacher-aytac-nesibova,Aytac Nəsibova,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,aytne0,aytne0,aytne0@vote.local,fad6a74b-92e3-47b0-977e-cb17ca246e77,created
+qurtulus-teacher-gulsabah-ibadullayeva,Gülsabah İbadullayeva,65ba598b-fe8d-41da-aeaa-10ce5dbe9023,gulib0,gulib0,gulib0@vote.local,4488aab0-2202-4438-811b-57834f22334d,created

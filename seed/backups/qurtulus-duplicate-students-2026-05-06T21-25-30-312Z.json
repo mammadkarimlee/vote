@@ -1,0 +1,58 @@
+{
+  "createdAt": "2026-05-06T21:25:30.310Z",
+  "branchId": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+  "branchName": "Qurtulus Campusu",
+  "duplicateGroups": [
+    [
+      {
+        "id": "6f7f8138-9b1d-4353-bf19-a41bf5d6fbfb",
+        "name": "Mira Əsədullayeva",
+        "group": "2E2",
+        "classLevel": "2",
+        "login": "mires1",
+        "user_id": "6f7f8138-9b1d-4353-bf19-a41bf5d6fbfb",
+        "userExists": true
+      },
+      {
+        "id": "ac29a88d-b5db-45db-a8e4-55963976fec2",
+        "name": "Mira Əsədullayeva",
+        "group": "2E2",
+        "classLevel": "2",
+        "login": "mires",
+        "user_id": "ac29a88d-b5db-45db-a8e4-55963976fec2",
+        "userExists": true
+      }
+    ],
+    [
+      {
+        "id": "d71f13c4-5ed7-4e71-b4a9-2a8fb36d01df",
+        "name": "Nuray Abdullayeva",
+        "group": "5A2",
+        "classLevel": "5",
+        "login": "nurab1",
+        "user_id": "d71f13c4-5ed7-4e71-b4a9-2a8fb36d01df",
+        "userExists": true
+      },
+      {
+        "id": "e41888f1-3cbd-4e28-8bc3-c181024fa237",
+        "name": "Nuray Abdullayeva",
+        "group": "5A2",
+        "classLevel": "5",
+        "login": "nurab",
+        "user_id": "e41888f1-3cbd-4e28-8bc3-c181024fa237",
+        "userExists": true
+      }
+    ]
+  ],
+  "counts": {
+    "students": 417,
+    "duplicateGroups": 2,
+    "duplicateRows": 4,
+    "teachersInScope": 82,
+    "assignments2026": 569,
+    "assignedTeachers": 79,
+    "teachersWithoutLogin": 0,
+    "assignedTeachersWithoutLogin": 0,
+    "studentUsersMissing": 0
+  }
+}
