@@ -1,0 +1,4 @@
+teacher_id,name,branch_id,login,password,email,user_id,status
+nesimi-teacher-amaliya-semedova,Amaliya Səmədova,ef0b6b5b-c54f-458a-819e-f15fbcb82096,amase0,amase0,amase0@vote.local,0ffbcbeb-d284-4f0c-b073-c113d4eea93d,created
+nesimi-teacher-aynur-xelilova,Aynur Xəlilova,ef0b6b5b-c54f-458a-819e-f15fbcb82096,aynxe0,aynxe0,aynxe0@vote.local,46ef36ed-581d-4a95-ae38-2b3275454c78,created
+nesimi-teacher-nicat-memmedov,Nicat Məmmədov,ef0b6b5b-c54f-458a-819e-f15fbcb82096,nicme0,nicme0,nicme0@vote.local,045dda78-d7d2-4b62-b11c-3aab8234e076,created
