@@ -10,6 +10,7 @@ import {
 	mapManagementAssignmentRow,
 	mapQuestionRow,
 	mapQuestionSetRow,
+	mapStudentAssignmentOverrideRow,
 	mapStudentGroupMembershipRow,
 	mapStudentRow,
 	mapSubjectRow,
@@ -38,6 +39,10 @@ import {
 	managementBranchScopeKey,
 	managementDepartmentScopeKey,
 } from "../../lib/managementScope";
+import {
+	buildStudentMembershipMap,
+	resolveStudentAssignments,
+} from "../../lib/studentAssignmentOverrides";
 import { chunkArray, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -1154,6 +1159,7 @@ export const AdminCyclesPage = () => {
 		let departmentRows: any[] = [];
 		let assignmentRows: any[] = [];
 		let studentGroupMembershipRows: any[] = [];
+		let studentAssignmentOverrideRows: any[] = [];
 		let managementAssignmentRows: any[] = [];
 		let existingTaskRows: any[] = [];
 
@@ -1167,6 +1173,7 @@ export const AdminCyclesPage = () => {
 				departmentRows,
 				assignmentRows,
 				studentGroupMembershipRows,
+				studentAssignmentOverrideRows,
 				managementAssignmentRows,
 				existingTaskRows,
 			] = await Promise.all([
@@ -1248,6 +1255,19 @@ export const AdminCyclesPage = () => {
 				}),
 				fetchAllBatched<any>(async (from, to) =>
 					supabase
+						.from("student_assignment_overrides")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				).catch((error) => {
+					const message = error instanceof Error ? error.message : "";
+					if (message.includes("student_assignment_overrides")) return [];
+					throw error;
+				}),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
 						.from("management_assignments")
 						.select("*")
 						.eq("org_id", ORG_ID)
@@ -1303,6 +1323,10 @@ export const AdminCyclesPage = () => {
 		const studentGroupMemberships = studentGroupMembershipRows.map((row) => ({
 			id: row.id,
 			data: mapStudentGroupMembershipRow(row),
+		}));
+		const studentAssignmentOverrides = studentAssignmentOverrideRows.map((row) => ({
+			id: row.id,
+			data: mapStudentAssignmentOverrideRow(row),
 		}));
 		const managementAssignments = managementAssignmentRows.map(
 			(row) => ({
@@ -1363,6 +1387,11 @@ export const AdminCyclesPage = () => {
 					inBranchScope(membership.data.branchId),
 				)
 			: studentGroupMemberships;
+		const studentAssignmentOverridesScoped = branchScope
+			? studentAssignmentOverrides.filter((override) =>
+					inBranchScope(override.data.branchId),
+				)
+			: studentAssignmentOverrides;
 		const managementAssignmentsScoped = branchScope
 			? managementAssignments.filter((assignment) =>
 					inBranchScope(assignment.data.branchId),
@@ -1491,29 +1520,10 @@ export const AdminCyclesPage = () => {
 		const membershipsForYear = studentGroupMembershipsScoped.filter(
 			(membership) => membership.data.year === assignmentYear,
 		);
-		const membershipsByStudentKey = new Map<string, Set<string>>();
-		const addMembershipGroup = (key: string | null | undefined, groupId: string) => {
-			if (!key) return;
-			const groupIds = membershipsByStudentKey.get(key) ?? new Set<string>();
-			groupIds.add(groupId);
-			membershipsByStudentKey.set(key, groupIds);
-		};
-		membershipsForYear.forEach((membership) => {
-			addMembershipGroup(membership.data.studentId, membership.data.groupId);
-			addMembershipGroup(membership.data.userId, membership.data.groupId);
-		});
-		const resolveStudentGroupIds = (
-			student: (typeof studentsScoped)[number],
-			userId: string,
-		) => {
-			const groupIds = new Set<string>();
-			if (student.data.groupId) groupIds.add(student.data.groupId);
-			[student.id, student.data.uid, userId].forEach((key) => {
-				const membershipGroups = key ? membershipsByStudentKey.get(key) : null;
-				membershipGroups?.forEach((groupId) => groupIds.add(groupId));
-			});
-			return groupIds;
-		};
+		const overridesForYear = studentAssignmentOverridesScoped.filter(
+			(override) => override.data.year === assignmentYear,
+		);
+		const membershipsByStudentKey = buildStudentMembershipMap(membershipsForYear);
 
 		const studentUsers = usersScoped.filter(
 			(user) => user.data.role === "student",
@@ -1524,11 +1534,14 @@ export const AdminCyclesPage = () => {
 					studentDoc.id === user.id || studentDoc.data.uid === user.id,
 			);
 			if (!student) return;
-			const studentGroupIds = resolveStudentGroupIds(student, user.id);
-			const studentAssignments = assignmentsForYear.filter(
-				(assignment) => {
-					if (!studentGroupIds.has(assignment.data.groupId)) return false;
-
+			const studentAssignments = resolveStudentAssignments({
+				student,
+				userId: user.id,
+				assignmentsForYear,
+				membershipsForYear,
+				overridesForYear,
+				membershipsByStudentKey,
+				assignmentFilter: (assignment) => {
 					const groupClassLevel = normalizeClassLevel(
 						groupMap[assignment.data.groupId]?.classLevel ?? null,
 					);
@@ -1543,7 +1556,7 @@ export const AdminCyclesPage = () => {
 
 					return true;
 				},
-			);
+			});
 			const groupedTeacherAssignments = new Map<
 				string,
 				{

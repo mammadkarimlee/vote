@@ -16,6 +16,7 @@ import type {
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	QuestionSetDoc,
+	StudentAssignmentOverrideDoc,
 	StudentGroupMembershipDoc,
 	StudentDoc,
 	SubjectDoc,
@@ -82,6 +83,18 @@ export const mapStudentGroupMembershipRow = (
 	groupId: row.group_id,
 	year: row.year,
 	type: row.membership_type ?? "block",
+	createdAt: row.created_at ?? null,
+});
+
+export const mapStudentAssignmentOverrideRow = (
+	row: Row,
+): StudentAssignmentOverrideDoc => ({
+	studentId: row.student_id,
+	userId: row.user_id ?? null,
+	branchId: row.branch_id,
+	assignmentId: row.assignment_id,
+	year: row.year,
+	action: row.action ?? "include",
 	createdAt: row.created_at ?? null,
 });
 

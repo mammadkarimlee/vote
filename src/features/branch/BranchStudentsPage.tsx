@@ -2,9 +2,39 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 import { ORG_ID, supabase } from "../../lib/supabase";
-import { mapGroupRow, mapStudentRow } from "../../lib/supabaseMappers";
-import type { GroupDoc, StudentDoc } from "../../lib/types";
+import {
+	mapGroupRow,
+	mapStudentAssignmentOverrideRow,
+	mapStudentGroupMembershipRow,
+	mapStudentRow,
+	mapSubjectRow,
+	mapSurveyCycleRow,
+	mapTeacherRow,
+	mapTeachingAssignmentRow,
+} from "../../lib/supabaseMappers";
+import {
+	buildStudentMembershipMap,
+	resolveStudentAssignments,
+	resolveStudentGroupIds,
+} from "../../lib/studentAssignmentOverrides";
+import type {
+	GroupDoc,
+	StudentAssignmentOverrideDoc,
+	StudentDoc,
+	StudentGroupMembershipDoc,
+	SubjectDoc,
+	SurveyCycleDoc,
+	TaskDoc,
+	TeacherDoc,
+	TeachingAssignmentDoc,
+} from "../../lib/types";
 import { usePagination } from "../../lib/usePagination";
 import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
@@ -12,6 +42,38 @@ import { BranchSelector } from "./BranchSelector";
 import { parseSpreadsheet } from "./importUtils";
 import { useBranchScope } from "./useBranchScope";
 import { provisionLoginUser } from "./userProvisioning";
+
+type DocEntry<T> = { id: string; data: T };
+
+type StudentLesson = {
+	assignmentId: string;
+	teacherId: string;
+	teacherName: string;
+	groupId: string;
+	groupName: string;
+	subjectId: string;
+	subjectName: string;
+	year: number;
+	source: "base" | "included";
+};
+
+const buildTaskId = (task: {
+	cycleId: string;
+	raterUid: string;
+	targetType: string;
+	targetId: string;
+	groupId?: string | null;
+	subjectId?: string | null;
+	scopeKey?: string | null;
+}) =>
+	[
+		task.cycleId,
+		task.raterUid,
+		task.targetType,
+		task.targetId,
+		task.groupId ?? "all",
+		task.scopeKey ?? task.subjectId ?? "all",
+	].join("_");
 
 export const BranchStudentsPage = () => {
 	const { user } = useAuth();
@@ -24,16 +86,40 @@ export const BranchStudentsPage = () => {
 	const [groups, setGroups] = useState<Array<{ id: string; data: GroupDoc }>>(
 		[],
 	);
+	const [teachers, setTeachers] = useState<Array<DocEntry<TeacherDoc>>>([]);
+	const [subjects, setSubjects] = useState<Array<DocEntry<SubjectDoc>>>([]);
+	const [assignments, setAssignments] = useState<
+		Array<DocEntry<TeachingAssignmentDoc>>
+	>([]);
+	const [studentGroupMemberships, setStudentGroupMemberships] = useState<
+		Array<DocEntry<StudentGroupMembershipDoc>>
+	>([]);
+	const [assignmentOverrides, setAssignmentOverrides] = useState<
+		Array<DocEntry<StudentAssignmentOverrideDoc>>
+	>([]);
 	const [name, setName] = useState("");
 	const [groupId, setGroupId] = useState("");
 	const [classLevel, setClassLevel] = useState("");
 	const [selectedClass, setSelectedClass] = useState("all");
+	const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+		null,
+	);
+	const [lessonYear, setLessonYear] = useState(
+		String(new Date().getFullYear()),
+	);
+	const [extraAssignmentId, setExtraAssignmentId] = useState("");
+	const [lessonSaving, setLessonSaving] = useState(false);
 	const [status, setStatus] = useFeedbackState();
 
 	const loadData = useCallback(async () => {
 		if (!branchId) {
 			setStudents([]);
 			setGroups([]);
+			setTeachers([]);
+			setSubjects([]);
+			setAssignments([]);
+			setStudentGroupMemberships([]);
+			setAssignmentOverrides([]);
 			return;
 		}
 
@@ -47,19 +133,116 @@ export const BranchStudentsPage = () => {
 			.select("*")
 			.eq("org_id", ORG_ID)
 			.is("deleted_at", null);
+		let teacherQuery = supabase
+			.from("teachers")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+		const subjectQuery = supabase
+			.from("subjects")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+		let assignmentQuery = supabase
+			.from("teaching_assignments")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+		let membershipQuery = supabase
+			.from("student_group_memberships")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
+		let overrideQuery = supabase
+			.from("student_assignment_overrides")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.is("deleted_at", null);
 		studentQuery = studentQuery.eq("branch_id", branchId);
 		groupQuery = groupQuery.eq("branch_id", branchId);
+		teacherQuery = teacherQuery.or(
+			`branch_id.eq.${branchId},branch_ids.cs.{${branchId}}`,
+		);
+		assignmentQuery = assignmentQuery.eq("branch_id", branchId);
+		membershipQuery = membershipQuery.eq("branch_id", branchId);
+		overrideQuery = overrideQuery.eq("branch_id", branchId);
 
-		const [studentRes, groupRes] = await Promise.all([
+		const [
+			studentRes,
+			groupRes,
+			teacherRes,
+			subjectRes,
+			assignmentRes,
+			membershipRes,
+			overrideRes,
+		] = await Promise.all([
 			studentQuery,
 			groupQuery,
+			teacherQuery,
+			subjectQuery,
+			assignmentQuery,
+			membershipQuery,
+			overrideQuery,
 		]);
+
+		if (membershipRes.error) {
+			const message = membershipRes.error.message ?? "";
+			if (!message.includes("student_group_memberships")) {
+				throw new Error(message);
+			}
+		}
+		if (overrideRes.error) {
+			const message = overrideRes.error.message ?? "";
+			if (!message.includes("student_assignment_overrides")) {
+				throw new Error(message);
+			}
+		}
 
 		const groupDocs = (groupRes.data ?? []).map((row) => ({
 			id: row.id,
 			data: mapGroupRow(row),
 		}));
+		const teacherDocs = (teacherRes.data ?? []).map((row) => ({
+			id: row.id,
+			data: mapTeacherRow(row),
+		}));
+		const subjectDocs = (subjectRes.data ?? []).map((row) => ({
+			id: row.id,
+			data: mapSubjectRow(row),
+		}));
+		const assignmentDocs = (assignmentRes.data ?? []).map((row) => ({
+			id: row.id,
+			data: mapTeachingAssignmentRow(row),
+		}));
+		const membershipDocs = (membershipRes.error ? [] : (membershipRes.data ?? [])).map((row) => ({
+			id: row.id,
+			data: mapStudentGroupMembershipRow(row),
+		}));
+		const overrideDocs = (overrideRes.error ? [] : (overrideRes.data ?? [])).map((row) => ({
+			id: row.id,
+			data: mapStudentAssignmentOverrideRow(row),
+		}));
 		setGroups(groupDocs.filter((group) => group.data.branchId === branchId));
+		setTeachers(
+			teacherDocs.filter((teacher) => {
+				if (teacher.data.branchId === branchId) return true;
+				return (teacher.data.branchIds ?? []).includes(branchId);
+			}),
+		);
+		setSubjects(subjectDocs);
+		setAssignments(
+			assignmentDocs.filter(
+				(assignment) => assignment.data.branchId === branchId,
+			),
+		);
+		setStudentGroupMemberships(
+			membershipDocs.filter(
+				(membership) => membership.data.branchId === branchId,
+			),
+		);
+		setAssignmentOverrides(
+			overrideDocs.filter((override) => override.data.branchId === branchId),
+		);
 
 		const studentDocs = (studentRes.data ?? []).map((row) => ({
 			id: row.id,
@@ -220,6 +403,24 @@ export const BranchStudentsPage = () => {
 		() => Object.fromEntries(groups.map((group) => [group.id, group.data])),
 		[groups],
 	);
+	const teacherMap = useMemo(
+		() => Object.fromEntries(teachers.map((teacher) => [teacher.id, teacher.data])),
+		[teachers],
+	);
+	const subjectMap = useMemo(
+		() => Object.fromEntries(subjects.map((subject) => [subject.id, subject.data])),
+		[subjects],
+	);
+	const assignmentMap = useMemo(
+		() =>
+			Object.fromEntries(assignments.map((assignment) => [assignment.id, assignment])),
+		[assignments],
+	);
+	const assignmentYears = useMemo(() => {
+		const years = new Set(assignments.map((assignment) => assignment.data.year));
+		years.add(Number(lessonYear) || new Date().getFullYear());
+		return Array.from(years).sort((a, b) => b - a);
+	}, [assignments, lessonYear]);
 	const getStudentClassLevel = useCallback(
 		(student: { id: string; data: StudentDoc }) =>
 			(
@@ -255,6 +456,132 @@ export const BranchStudentsPage = () => {
 		[getStudentClassLevel, selectedClass, students],
 	);
 	const studentsPagination = usePagination(filteredStudents);
+	const selectedStudent = useMemo(
+		() =>
+			selectedStudentId
+				? students.find((student) => student.id === selectedStudentId) ?? null
+				: null,
+		[selectedStudentId, students],
+	);
+	const lessonYearNumber = Number(lessonYear) || new Date().getFullYear();
+
+	const getStudentOverrides = useCallback(
+		(student: DocEntry<StudentDoc>, year: number) =>
+			assignmentOverrides.filter((override) => {
+				if (override.data.year !== year) return false;
+				const studentKeys = new Set(
+					[student.id, student.data.uid].filter(Boolean) as string[],
+				);
+				return (
+					studentKeys.has(override.data.studentId) ||
+					(Boolean(override.data.userId) &&
+						studentKeys.has(override.data.userId ?? ""))
+				);
+			}),
+		[assignmentOverrides],
+	);
+
+	const getStudentLessons = useCallback(
+		(student: DocEntry<StudentDoc>, year: number): StudentLesson[] => {
+			const assignmentsForYear = assignments.filter(
+				(assignment) => assignment.data.year === year,
+			);
+			const membershipsForYear = studentGroupMemberships.filter(
+				(membership) => membership.data.year === year,
+			);
+			const overridesForYear = assignmentOverrides.filter(
+				(override) => override.data.year === year,
+			);
+			const membershipsByStudentKey = buildStudentMembershipMap(membershipsForYear);
+			const studentGroupIds = resolveStudentGroupIds(
+				student,
+				student.data.uid ?? student.id,
+				membershipsByStudentKey,
+			);
+			const effectiveAssignments = resolveStudentAssignments({
+				student,
+				userId: student.data.uid ?? student.id,
+				assignmentsForYear,
+				membershipsForYear,
+				overridesForYear,
+				membershipsByStudentKey,
+			});
+
+			return effectiveAssignments
+				.map((assignment) => ({
+					assignmentId: assignment.id,
+					teacherId: assignment.data.teacherId,
+					teacherName:
+						teacherMap[assignment.data.teacherId]?.name ??
+						assignment.data.teacherId,
+					groupId: assignment.data.groupId,
+					groupName:
+						groupMap[assignment.data.groupId]?.name ?? assignment.data.groupId,
+					subjectId: assignment.data.subjectId,
+					subjectName:
+						subjectMap[assignment.data.subjectId]?.name ??
+						assignment.data.subjectId,
+					year: assignment.data.year,
+					source: studentGroupIds.has(assignment.data.groupId)
+						? ("base" as const)
+						: ("included" as const),
+				}))
+				.sort((a, b) => {
+					const groupCompare = a.groupName.localeCompare(b.groupName, "az", {
+						numeric: true,
+					});
+					if (groupCompare !== 0) return groupCompare;
+					const subjectCompare = a.subjectName.localeCompare(b.subjectName, "az");
+					if (subjectCompare !== 0) return subjectCompare;
+					return a.teacherName.localeCompare(b.teacherName, "az");
+				});
+		},
+		[
+			assignments,
+			assignmentOverrides,
+			groupMap,
+			studentGroupMemberships,
+			subjectMap,
+			teacherMap,
+		],
+	);
+
+	const selectedStudentLessons = useMemo(
+		() =>
+			selectedStudent
+				? getStudentLessons(selectedStudent, lessonYearNumber)
+				: [],
+		[getStudentLessons, lessonYearNumber, selectedStudent],
+	);
+	const availableExtraAssignments = useMemo(() => {
+		if (!selectedStudent) return [];
+		const existingAssignmentIds = new Set(
+			selectedStudentLessons.map((lesson) => lesson.assignmentId),
+		);
+		return assignments
+			.filter(
+				(assignment) =>
+					assignment.data.year === lessonYearNumber &&
+					!existingAssignmentIds.has(assignment.id),
+			)
+			.sort((a, b) => {
+				const left = `${groupMap[a.data.groupId]?.name ?? ""} ${
+					subjectMap[a.data.subjectId]?.name ?? ""
+				} ${teacherMap[a.data.teacherId]?.name ?? ""}`;
+				const right = `${groupMap[b.data.groupId]?.name ?? ""} ${
+					subjectMap[b.data.subjectId]?.name ?? ""
+				} ${teacherMap[b.data.teacherId]?.name ?? ""}`;
+				return left.localeCompare(right, "az", { numeric: true });
+			});
+	}, [
+		assignments,
+		groupMap,
+		lessonYearNumber,
+		selectedStudent,
+		selectedStudentLessons,
+		subjectMap,
+		teacherMap,
+	]);
 
 	useEffect(() => {
 		setSelectedClass("all");
@@ -272,6 +599,322 @@ export const BranchStudentsPage = () => {
 			setSelectedClass("all");
 		}
 	}, [classFilterOptions, selectedClass]);
+
+	useEffect(() => {
+		setExtraAssignmentId("");
+	}, [lessonYear, selectedStudentId]);
+
+	const loadOpenCycles = async () => {
+		if (!branchId) return [];
+		const { data, error } = await supabase
+			.from("survey_cycles")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("status", "OPEN");
+		if (error) throw new Error(error.message);
+		return (data ?? [])
+			.map((row) => ({ id: row.id, data: mapSurveyCycleRow(row) }))
+			.filter((cycle: DocEntry<SurveyCycleDoc>) => {
+				const branchIds = cycle.data.branchIds ?? [];
+				return branchIds.length === 0 || branchIds.includes(branchId);
+			});
+	};
+
+	const ensureNoSubmittedOpenTasks = async (student: DocEntry<StudentDoc>) => {
+		if (!branchId) return;
+		const raterUid = student.data.uid ?? student.id;
+		const openCycles = await loadOpenCycles();
+		if (openCycles.length === 0) return;
+		const cycleIds = openCycles.map((cycle) => cycle.id);
+		const { data: taskRows, error: taskError } = await supabase
+			.from("tasks")
+			.select("id")
+			.eq("org_id", ORG_ID)
+			.eq("branch_id", branchId)
+			.eq("rater_id", raterUid)
+			.eq("rater_role", "student")
+			.eq("target_type", "teacher")
+			.in("cycle_id", cycleIds);
+		if (taskError) throw new Error(taskError.message);
+		const taskIds = (taskRows ?? []).map((task) => task.id as string);
+		if (taskIds.length === 0) return;
+		const { data: submissionRows, error: submissionError } = await supabase
+			.from("submissions")
+			.select("task_id")
+			.eq("org_id", ORG_ID)
+			.in("task_id", taskIds);
+		if (submissionError) throw new Error(submissionError.message);
+		if ((submissionRows ?? []).length > 0) {
+			throw new Error(
+				"Bu şagirdin açıq dövrdə artıq cavabı var. Data itməsin deyə əvvəlcə cavabları ayrıca yoxlamaq lazımdır.",
+			);
+		}
+	};
+
+	const rebuildOpenStudentTasks = async (
+		student: DocEntry<StudentDoc>,
+		year: number,
+	) => {
+		if (!branchId) return;
+		const openCycles = await loadOpenCycles();
+		if (openCycles.length === 0) return;
+		const raterUid = student.data.uid ?? student.id;
+		const assignmentsForYear = assignments.filter(
+			(assignment) => assignment.data.year === year,
+		);
+		const membershipsForYear = studentGroupMemberships.filter(
+			(membership) => membership.data.year === year,
+		);
+		const { data: overrideRows, error: overrideError } = await supabase
+			.from("student_assignment_overrides")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("branch_id", branchId)
+			.is("deleted_at", null);
+		if (overrideError) throw new Error(overrideError.message);
+		const freshOverrides = (overrideRows ?? []).map((row) => ({
+			id: row.id,
+			data: mapStudentAssignmentOverrideRow(row),
+		}));
+		const overridesForYear = freshOverrides.filter(
+			(override) => override.data.year === year,
+		);
+		const effectiveAssignments = resolveStudentAssignments({
+			student,
+			userId: raterUid,
+			assignmentsForYear,
+			membershipsForYear,
+			overridesForYear,
+		});
+		const grouped = new Map<
+			string,
+			{
+				teacherId: string;
+				groupId: string;
+				branchId: string;
+				subjectNames: string[];
+			}
+		>();
+
+		effectiveAssignments.forEach((assignment) => {
+			const key = `${assignment.data.teacherId}_${assignment.data.groupId}`;
+			const subjectName =
+				subjectMap[assignment.data.subjectId]?.name ?? assignment.data.subjectId;
+			const existing = grouped.get(key);
+			if (!existing) {
+				grouped.set(key, {
+					teacherId: assignment.data.teacherId,
+					groupId: assignment.data.groupId,
+					branchId: assignment.data.branchId,
+					subjectNames: subjectName ? [subjectName] : [],
+				});
+				return;
+			}
+			if (subjectName && !existing.subjectNames.includes(subjectName)) {
+				existing.subjectNames.push(subjectName);
+			}
+		});
+
+		const cycleIds = openCycles.map((cycle) => cycle.id);
+		const { data: taskRows, error: taskError } = await supabase
+			.from("tasks")
+			.select("id")
+			.eq("org_id", ORG_ID)
+			.eq("branch_id", branchId)
+			.eq("rater_id", raterUid)
+			.eq("rater_role", "student")
+			.eq("target_type", "teacher")
+			.in("cycle_id", cycleIds);
+		if (taskError) throw new Error(taskError.message);
+		const existingTaskIds = (taskRows ?? []).map((task) => task.id as string);
+		if (existingTaskIds.length > 0) {
+			const { error: deleteError } = await supabase
+				.from("tasks")
+				.delete()
+				.eq("org_id", ORG_ID)
+				.in("id", existingTaskIds);
+			if (deleteError) throw new Error(deleteError.message);
+		}
+
+		const rows: Array<TaskDoc & { id: string; org_id: string }> = [];
+		openCycles.forEach((cycle) => {
+			grouped.forEach((entry) => {
+				const subjectName =
+					entry.subjectNames.length > 0
+						? entry.subjectNames.join(", ")
+						: "Fənn göstərilməyib";
+				const task: TaskDoc = {
+					cycleId: cycle.id,
+					raterUid,
+					raterRole: "student",
+					targetType: "teacher",
+					targetId: entry.teacherId,
+					targetName: teacherMap[entry.teacherId]?.name ?? null,
+					branchId: entry.branchId,
+					groupId: entry.groupId,
+					groupName: groupMap[entry.groupId]?.name ?? null,
+					subjectId: null,
+					subjectName,
+					status: "OPEN",
+				};
+				rows.push({
+					id: buildTaskId({
+						cycleId: cycle.id,
+						raterUid,
+						targetType: "teacher",
+						targetId: entry.teacherId,
+						groupId: entry.groupId,
+					}),
+					org_id: ORG_ID,
+					...task,
+				});
+			});
+		});
+
+		if (rows.length === 0) return;
+		const { error: upsertError } = await supabase.from("tasks").upsert(
+			rows.map((row) => ({
+				id: row.id,
+				org_id: ORG_ID,
+				cycle_id: row.cycleId,
+				rater_id: row.raterUid,
+				rater_role: row.raterRole,
+				target_type: row.targetType,
+				target_id: row.targetId,
+				target_name: row.targetName ?? null,
+				branch_id: row.branchId,
+				group_id: row.groupId ?? null,
+				subject_id: row.subjectId ?? null,
+				group_name: row.groupName ?? null,
+				subject_name: row.subjectName ?? null,
+				status: row.status,
+				submitted_at: row.submittedAt ?? null,
+			})),
+			{ onConflict: "id" },
+		);
+		if (upsertError) throw new Error(upsertError.message);
+	};
+
+	const insertOverride = async (
+		student: DocEntry<StudentDoc>,
+		assignmentId: string,
+		action: StudentAssignmentOverrideDoc["action"],
+		year: number,
+	) => {
+		if (!branchId) throw new Error("Filial seçilməyib");
+		const { error } = await supabase.from("student_assignment_overrides").insert({
+			org_id: ORG_ID,
+			branch_id: branchId,
+			student_id: student.id,
+			user_id: student.data.uid ?? null,
+			assignment_id: assignmentId,
+			year,
+			action,
+		});
+		if (error) throw new Error(error.message);
+	};
+
+	const removeOverride = async (overrideId: string) => {
+		const { error } = await supabase
+			.from("student_assignment_overrides")
+			.update({ deleted_at: new Date().toISOString() })
+			.eq("org_id", ORG_ID)
+			.eq("id", overrideId);
+		if (error) throw new Error(error.message);
+	};
+
+	const handleRemoveLesson = async (lesson: StudentLesson) => {
+		if (!selectedStudent) return;
+		const ok = await confirm({
+			title: "Dərsi çıxar",
+			message:
+				"Bu dəyişiklik yalnız seçilmiş şagirdə tətbiq olunacaq. Davam edək?",
+			confirmText: "Davam et",
+			cancelText: "İmtina",
+			tone: "danger",
+		});
+		if (!ok) return;
+		setLessonSaving(true);
+		try {
+			await ensureNoSubmittedOpenTasks(selectedStudent);
+			const overrides = getStudentOverrides(selectedStudent, lesson.year);
+			const includeOverride = overrides.find(
+				(override) =>
+					override.data.assignmentId === lesson.assignmentId &&
+					override.data.action === "include",
+			);
+			if (lesson.source === "included" && includeOverride) {
+				await removeOverride(includeOverride.id);
+			} else {
+				await insertOverride(
+					selectedStudent,
+					lesson.assignmentId,
+					"exclude",
+					lesson.year,
+				);
+			}
+			await loadData();
+			await rebuildOpenStudentTasks(selectedStudent, lesson.year);
+			setStatus("Şagirdin dərs siyahısı yeniləndi.");
+		} catch (error) {
+			setStatus(error instanceof Error ? error.message : "Dəyişiklik saxlanmadı");
+		} finally {
+			setLessonSaving(false);
+		}
+	};
+
+	const handleAddLesson = async () => {
+		if (!selectedStudent || !extraAssignmentId) return;
+		const assignment = assignmentMap[extraAssignmentId];
+		if (!assignment) {
+			setStatus("Dərs təyinatı tapılmadı.");
+			return;
+		}
+		setLessonSaving(true);
+		try {
+			await ensureNoSubmittedOpenTasks(selectedStudent);
+			const overrides = getStudentOverrides(selectedStudent, lessonYearNumber);
+			const excludeOverride = overrides.find(
+				(override) =>
+					override.data.assignmentId === extraAssignmentId &&
+					override.data.action === "exclude",
+			);
+			const includeOverride = overrides.find(
+				(override) =>
+					override.data.assignmentId === extraAssignmentId &&
+					override.data.action === "include",
+			);
+			if (excludeOverride) {
+				await removeOverride(excludeOverride.id);
+			}
+			const membershipsByStudentKey = buildStudentMembershipMap(
+				studentGroupMemberships.filter(
+					(membership) => membership.data.year === lessonYearNumber,
+				),
+			);
+			const baseGroupIds = resolveStudentGroupIds(
+				selectedStudent,
+				selectedStudent.data.uid ?? selectedStudent.id,
+				membershipsByStudentKey,
+			);
+			if (!baseGroupIds.has(assignment.data.groupId) && !includeOverride) {
+				await insertOverride(
+					selectedStudent,
+					extraAssignmentId,
+					"include",
+					lessonYearNumber,
+				);
+			}
+			await loadData();
+			await rebuildOpenStudentTasks(selectedStudent, lessonYearNumber);
+			setExtraAssignmentId("");
+			setStatus("Əlavə dərs şagird üçün aktiv edildi.");
+		} catch (error) {
+			setStatus(error instanceof Error ? error.message : "Dəyişiklik saxlanmadı");
+		} finally {
+			setLessonSaving(false);
+		}
+	};
 
 	const handleExportStudentCredentials = async () => {
 		if (!branchId) {
@@ -511,7 +1154,14 @@ export const BranchStudentsPage = () => {
 								<div>{groupMap[student.data.groupId]?.name ?? student.data.groupId}</div>
 								<div>{getStudentClassLevel(student)}</div>
 								<div>{student.data.login ?? "-"}</div>
-								<div>
+								<div className="student-row-actions">
+									<button
+										className="btn ghost"
+										type="button"
+										onClick={() => setSelectedStudentId(student.id)}
+									>
+										Dərslər
+									</button>
 									<button
 										className="btn ghost"
 										type="button"
@@ -537,6 +1187,114 @@ export const BranchStudentsPage = () => {
 					)}
 				</div>
 			</div>
+			<Dialog
+				open={Boolean(selectedStudent)}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSelectedStudentId(null);
+						setExtraAssignmentId("");
+					}
+				}}
+			>
+				<DialogContent className="student-lessons-dialog">
+					<DialogHeader>
+						<DialogTitle>Şagirdin dərsləri</DialogTitle>
+					</DialogHeader>
+					{selectedStudent && (
+						<div className="student-lessons-panel">
+							<div className="student-lessons-toolbar">
+								<div>
+									<div className="section-title">{selectedStudent.data.name}</div>
+									<div className="hint">
+										{groupMap[selectedStudent.data.groupId]?.name ??
+											selectedStudent.data.groupId}{" "}
+										• {selectedStudent.data.login ?? "login yoxdur"}
+									</div>
+								</div>
+								<select
+									className="input"
+									value={lessonYear}
+									onChange={(event) => setLessonYear(event.target.value)}
+								>
+									{assignmentYears.map((year) => (
+										<option key={year} value={year}>
+											{year}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div className="student-lessons-add">
+								<select
+									className="input"
+									value={extraAssignmentId}
+									onChange={(event) => setExtraAssignmentId(event.target.value)}
+									disabled={availableExtraAssignments.length === 0}
+								>
+									<option value="">Əlavə dərs seçin</option>
+									{availableExtraAssignments.map((assignment) => (
+										<option key={assignment.id} value={assignment.id}>
+											{groupMap[assignment.data.groupId]?.name ??
+												assignment.data.groupId}{" "}
+											- {subjectMap[assignment.data.subjectId]?.name ??
+												assignment.data.subjectId}{" "}
+											- {teacherMap[assignment.data.teacherId]?.name ??
+												assignment.data.teacherId}
+										</option>
+									))}
+								</select>
+								<button
+									className="btn primary"
+									type="button"
+									onClick={() => void handleAddLesson()}
+									disabled={!extraAssignmentId || lessonSaving}
+								>
+									Əlavə et
+								</button>
+							</div>
+
+							<div className="data-table student-lessons-table">
+								<div className="data-row header">
+									<div>Qrup</div>
+									<div>Fənn</div>
+									<div>Müəllim</div>
+									<div>Mənbə</div>
+									<div></div>
+								</div>
+								{selectedStudentLessons.map((lesson) => (
+									<div className="data-row" key={lesson.assignmentId}>
+										<div>{lesson.groupName}</div>
+										<div>{lesson.subjectName}</div>
+										<div>{lesson.teacherName}</div>
+										<div>
+											{lesson.source === "base"
+												? "Blok/sinif təyinatı"
+												: "Fərdi əlavə"}
+										</div>
+										<div>
+											<button
+												className="btn ghost"
+												type="button"
+												onClick={() => void handleRemoveLesson(lesson)}
+												disabled={lessonSaving}
+											>
+												Çıxar
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+							{selectedStudentLessons.length === 0 && (
+								<div className="empty">Bu il üçün dərs tapılmadı.</div>
+							)}
+							<div className="hint">
+								Dəyişiklik yalnız bu şagirdə aiddir. Cavabı olan açıq tasklar
+								silinmir, bu halda sistem dəyişiklik etməyə icazə vermir.
+							</div>
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
 			{dialog}
 		</div>
 	);

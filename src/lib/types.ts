@@ -72,6 +72,18 @@ export type StudentGroupMembershipDoc = {
 	createdAt?: unknown;
 };
 
+export type StudentAssignmentOverrideAction = "include" | "exclude";
+
+export type StudentAssignmentOverrideDoc = {
+	studentId: string;
+	userId?: string | null;
+	branchId: string;
+	assignmentId: string;
+	year: number;
+	action: StudentAssignmentOverrideAction;
+	createdAt?: unknown;
+};
+
 export type GroupDoc = {
 	name: string;
 	branchId: string;

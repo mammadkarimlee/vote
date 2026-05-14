@@ -888,6 +888,34 @@
     @apply mt-1 text-sm text-muted-foreground;
   }
 
+  .student-row-actions {
+    @apply flex flex-wrap justify-end gap-2;
+  }
+
+  .student-lessons-dialog {
+    @apply max-w-5xl;
+  }
+
+  .student-lessons-panel {
+    @apply grid gap-4;
+  }
+
+  .student-lessons-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+
+  .student-lessons-toolbar .input {
+    @apply w-36;
+  }
+
+  .student-lessons-add {
+    @apply grid gap-3 md:grid-cols-[1fr_auto];
+  }
+
+  .student-lessons-table {
+    max-height: 26rem;
+  }
+
   .page-hero__content p {
     @apply mt-2 text-sm text-muted-foreground;
   }

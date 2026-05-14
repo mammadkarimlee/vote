@@ -7,6 +7,7 @@ import {
 	mapGroupRow,
 	mapManagementAssignmentRow,
 	mapQuestionSetRow,
+	mapStudentAssignmentOverrideRow,
 	mapStudentGroupMembershipRow,
 	mapStudentRow,
 	mapSubmissionRow,
@@ -22,6 +23,7 @@ import type {
 	GroupDoc,
 	ManagementAssignmentDoc,
 	QuestionSetDoc,
+	StudentAssignmentOverrideDoc,
 	StudentGroupMembershipDoc,
 	StudentDoc,
 	SubmissionDoc,
@@ -36,6 +38,10 @@ import {
 	managementBranchScopeKey,
 	managementDepartmentScopeKey,
 } from "../../lib/managementScope";
+import {
+	buildStudentMembershipMap,
+	resolveStudentAssignments,
+} from "../../lib/studentAssignmentOverrides";
 import { usePagination } from "../../lib/usePagination";
 import { formatShortDate, toJsDate } from "../../lib/utils";
 import { BranchSelector } from "./BranchSelector";
@@ -53,6 +59,7 @@ type BaseData = {
 	departments: Array<DocEntry<DepartmentDoc>>;
 	assignments: Array<DocEntry<TeachingAssignmentDoc>>;
 	studentGroupMemberships: Array<DocEntry<StudentGroupMembershipDoc>>;
+	studentAssignmentOverrides: Array<DocEntry<StudentAssignmentOverrideDoc>>;
 	managementAssignments: Array<DocEntry<ManagementAssignmentDoc>>;
 };
 type CycleData = {
@@ -85,6 +92,7 @@ const emptyBase = (): BaseData => ({
 	departments: [],
 	assignments: [],
 	studentGroupMemberships: [],
+	studentAssignmentOverrides: [],
 	managementAssignments: [],
 });
 
@@ -253,6 +261,7 @@ export const BranchAuditPage = () => {
 					departmentRows,
 					assignmentRows,
 					membershipRows,
+					overrideRows,
 					managementRows,
 				] = await Promise.all([
 					fetchAllBatched<any>(async (from, to) =>
@@ -341,6 +350,19 @@ export const BranchAuditPage = () => {
 					}),
 					fetchAllBatched<any>(async (from, to) =>
 						supabase
+							.from("student_assignment_overrides")
+							.select("*")
+							.eq("org_id", ORG_ID)
+							.is("deleted_at", null)
+							.order("id")
+							.range(from, to),
+					).catch((error) => {
+						const message = error instanceof Error ? error.message : "";
+						if (message.includes("student_assignment_overrides")) return [];
+						throw error;
+					}),
+					fetchAllBatched<any>(async (from, to) =>
+						supabase
 							.from("management_assignments")
 							.select("*")
 							.eq("org_id", ORG_ID)
@@ -379,6 +401,10 @@ export const BranchAuditPage = () => {
 					studentGroupMemberships: membershipRows.map((row) => ({
 						id: row.id,
 						data: mapStudentGroupMembershipRow(row),
+					})),
+					studentAssignmentOverrides: overrideRows.map((row) => ({
+						id: row.id,
+						data: mapStudentAssignmentOverrideRow(row),
 					})),
 					managementAssignments: managementRows.map((row) => ({
 						id: row.id,
@@ -517,6 +543,9 @@ export const BranchAuditPage = () => {
 		const membershipsScoped = baseData.studentGroupMemberships.filter(
 			(membership) => membership.data.branchId === branchId,
 		);
+		const overridesScoped = baseData.studentAssignmentOverrides.filter(
+			(override) => override.data.branchId === branchId,
+		);
 		const managementScoped = baseData.managementAssignments.filter(
 			(assignment) => assignment.data.branchId === branchId,
 		);
@@ -539,6 +568,10 @@ export const BranchAuditPage = () => {
 			assignmentYear === null
 				? []
 				: membershipsScoped.filter((membership) => membership.data.year === assignmentYear);
+		const overridesForYear =
+			assignmentYear === null
+				? []
+				: overridesScoped.filter((override) => override.data.year === assignmentYear);
 		const managementForYear =
 			assignmentYear === null
 				? []
@@ -593,34 +626,15 @@ export const BranchAuditPage = () => {
 		const userMap = Object.fromEntries(
 			baseData.users.map((user) => [user.id, user.data]),
 		) as Record<string, UserDoc>;
-		const studentByUserId = studentsScoped.reduce<Record<string, StudentDoc>>(
+		const studentByUserId = studentsScoped.reduce<Record<string, DocEntry<StudentDoc>>>(
 			(acc, student) => {
-				acc[student.id] = student.data;
-				if (student.data.uid) acc[student.data.uid] = student.data;
+				acc[student.id] = student;
+				if (student.data.uid) acc[student.data.uid] = student;
 				return acc;
 			},
 			{},
 		);
-		const membershipsByStudentKey = new Map<string, Set<string>>();
-		const addMembershipGroup = (key: string | null | undefined, groupId: string) => {
-			if (!key) return;
-			const groupIds = membershipsByStudentKey.get(key) ?? new Set<string>();
-			groupIds.add(groupId);
-			membershipsByStudentKey.set(key, groupIds);
-		};
-		membershipsForYear.forEach((membership) => {
-			addMembershipGroup(membership.data.studentId, membership.data.groupId);
-			addMembershipGroup(membership.data.userId, membership.data.groupId);
-		});
-		const resolveStudentGroupIds = (student: StudentDoc, userId: string) => {
-			const groupIds = new Set<string>();
-			if (student.groupId) groupIds.add(student.groupId);
-			[student.uid, userId].forEach((key) => {
-				const membershipGroups = key ? membershipsByStudentKey.get(key) : null;
-				membershipGroups?.forEach((groupId) => groupIds.add(groupId));
-			});
-			return groupIds;
-		};
+		const membershipsByStudentKey = buildStudentMembershipMap(membershipsForYear);
 		const teacherIdByUserId = baseData.teachers.reduce<Record<string, string>>(
 			(acc, teacher) => {
 				acc[teacher.id] = teacher.id;
@@ -733,19 +747,32 @@ export const BranchAuditPage = () => {
 				.forEach((user) => {
 					const student = studentByUserId[user.id];
 					if (!student) return;
-					const studentGroupIds = resolveStudentGroupIds(student, user.id);
 
 					const grouped = new Map<string, { teacherId: string; teacherName: string }>();
-					assignmentsForYear.forEach((assignment) => {
-						if (!studentGroupIds.has(assignment.data.groupId)) return;
-						const groupLevel = normalizeClassLevel(
-							groupMap[assignment.data.groupId]?.classLevel ?? student.classLevel,
-						);
-						const subject = subjectMap[assignment.data.subjectId] ?? null;
-						if (new Set(["5", "6", "7"]).has(groupLevel) && isPhysicalEducationSubject(subject)) {
-							skippedPe += 1;
-							return;
-						}
+					const studentAssignments = resolveStudentAssignments({
+						student,
+						userId: user.id,
+						assignmentsForYear,
+						membershipsForYear,
+						overridesForYear,
+						membershipsByStudentKey,
+						assignmentFilter: (assignment) => {
+							const groupLevel = normalizeClassLevel(
+								groupMap[assignment.data.groupId]?.classLevel ??
+									student.data.classLevel,
+							);
+							const subject = subjectMap[assignment.data.subjectId] ?? null;
+							if (
+								new Set(["5", "6", "7"]).has(groupLevel) &&
+								isPhysicalEducationSubject(subject)
+							) {
+								skippedPe += 1;
+								return false;
+							}
+							return true;
+						},
+					});
+					studentAssignments.forEach((assignment) => {
 						const key = `${assignment.data.teacherId}_${assignment.data.groupId}`;
 						if (!grouped.has(key)) {
 							grouped.set(key, {
