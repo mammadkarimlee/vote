@@ -850,6 +850,44 @@
     @apply grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr];
   }
 
+  .students-page-grid {
+    align-items: start;
+  }
+
+  .students-side-panel {
+    @apply grid gap-6;
+  }
+
+  .class-filter-card {
+    @apply gap-4;
+  }
+
+  .class-filter-list {
+    @apply grid gap-2 pr-1;
+    max-height: 28rem;
+    overflow-y: auto;
+  }
+
+  .class-filter-button {
+    @apply flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition hover:border-primary/50 hover:bg-secondary hover:text-foreground;
+  }
+
+  .class-filter-button.active {
+    @apply border-primary bg-primary text-primary-foreground shadow-soft;
+  }
+
+  .class-filter-button__count {
+    @apply inline-flex min-w-8 justify-center rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground;
+  }
+
+  .class-filter-button.active .class-filter-button__count {
+    @apply bg-primary-foreground/20 text-primary-foreground;
+  }
+
+  .students-list-meta {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+
   .page-hero__content p {
     @apply mt-2 text-sm text-muted-foreground;
   }

@@ -27,6 +27,7 @@ export const BranchStudentsPage = () => {
 	const [name, setName] = useState("");
 	const [groupId, setGroupId] = useState("");
 	const [classLevel, setClassLevel] = useState("");
+	const [selectedClass, setSelectedClass] = useState("all");
 	const [status, setStatus] = useFeedbackState();
 
 	const loadData = useCallback(async () => {
@@ -219,7 +220,58 @@ export const BranchStudentsPage = () => {
 		() => Object.fromEntries(groups.map((group) => [group.id, group.data])),
 		[groups],
 	);
-	const studentsPagination = usePagination(students);
+	const getStudentClassLevel = useCallback(
+		(student: { id: string; data: StudentDoc }) =>
+			(
+				student.data.classLevel ||
+				groupMap[student.data.groupId]?.classLevel ||
+				"-"
+			).trim() || "-",
+		[groupMap],
+	);
+	const classFilterOptions = useMemo(() => {
+		const counts = new Map<string, number>();
+		students.forEach((student) => {
+			const classLabel = getStudentClassLevel(student);
+			counts.set(classLabel, (counts.get(classLabel) ?? 0) + 1);
+		});
+
+		return Array.from(counts.entries())
+			.map(([classLevel, count]) => ({ classLevel, count }))
+			.sort((a, b) =>
+				a.classLevel.localeCompare(b.classLevel, "az", {
+					numeric: true,
+					sensitivity: "base",
+				}),
+			);
+	}, [getStudentClassLevel, students]);
+	const filteredStudents = useMemo(
+		() =>
+			selectedClass === "all"
+				? students
+				: students.filter(
+						(student) => getStudentClassLevel(student) === selectedClass,
+					),
+		[getStudentClassLevel, selectedClass, students],
+	);
+	const studentsPagination = usePagination(filteredStudents);
+
+	useEffect(() => {
+		setSelectedClass("all");
+	}, [branchId]);
+
+	useEffect(() => {
+		studentsPagination.resetPage();
+	}, [selectedClass, studentsPagination.resetPage]);
+
+	useEffect(() => {
+		if (
+			selectedClass !== "all" &&
+			!classFilterOptions.some((option) => option.classLevel === selectedClass)
+		) {
+			setSelectedClass("all");
+		}
+	}, [classFilterOptions, selectedClass]);
 
 	const handleExportStudentCredentials = async () => {
 		if (!branchId) {
@@ -312,6 +364,9 @@ export const BranchStudentsPage = () => {
 						/>
 					)}
 					<div className="stat-pill">Cəmi: {summary}</div>
+					{selectedClass !== "all" && (
+						<div className="stat-pill">Göstərilən: {filteredStudents.length}</div>
+					)}
 				</div>
 			</div>
 			{isSuperAdmin && !branchId && (
@@ -326,60 +381,100 @@ export const BranchStudentsPage = () => {
 				</div>
 			)}
 
-			<div className="page-grid">
-				<div className="card">
-					<h3>Yeni şagird</h3>
-					<div className="form-grid">
-						<input
-							className="input"
-							placeholder="Ad Soyad"
-							value={name}
-							onChange={(event) => setName(event.target.value)}
-						/>
-						<select
-							className="input"
-							value={groupId}
-							onChange={(event) => setGroupId(event.target.value)}
-						>
-							<option value="">Qrup seçin</option>
-							{groups.map((group) => (
-								<option key={group.id} value={group.id}>
-									{group.data.name}
-								</option>
+			<div className="page-grid students-page-grid">
+				<div className="students-side-panel">
+					<div className="card class-filter-card">
+						<div className="section-header">
+							<div>
+								<div className="section-kicker">Filter</div>
+								<div className="section-title">Siniflər</div>
+							</div>
+						</div>
+						<div className="class-filter-list">
+							<button
+								className={`class-filter-button ${
+									selectedClass === "all" ? "active" : ""
+								}`}
+								type="button"
+								onClick={() => setSelectedClass("all")}
+							>
+								<span>Hamısı</span>
+								<span className="class-filter-button__count">
+									{students.length}
+								</span>
+							</button>
+							{classFilterOptions.map((option) => (
+								<button
+									className={`class-filter-button ${
+										selectedClass === option.classLevel ? "active" : ""
+									}`}
+									key={option.classLevel}
+									type="button"
+									onClick={() => setSelectedClass(option.classLevel)}
+								>
+									<span>{option.classLevel}</span>
+									<span className="class-filter-button__count">
+										{option.count}
+									</span>
+								</button>
 							))}
-						</select>
-						<input
-							className="input"
-							placeholder="Sinif səviyyəsi (məs: 9)"
-							value={classLevel}
-							onChange={(event) => setClassLevel(event.target.value)}
-						/>
-						<button
-							className="btn primary"
-							type="button"
-							onClick={handleCreate}
-							disabled={!hasGroups || !branchId}
-						>
-							Yarat
-						</button>
+						</div>
 					</div>
-					<div className="form-row">
-						<input
-							className="input"
-							type="file"
-							accept=".csv,.xlsx"
-							disabled={!hasGroups || !branchId}
-							onChange={(event) => {
-								const file = event.target.files?.[0];
-								if (file) void handleImport(file);
-							}}
-						/>
-						<span className="hint">
-							Şablon sütunları: name, groupId/groupName, classLevel (istəyə bağlı), branchId (istəyə bağlı)
-						</span>
+
+					<div className="card">
+						<h3>Yeni şagird</h3>
+						<div className="form-grid">
+							<input
+								className="input"
+								placeholder="Ad Soyad"
+								value={name}
+								onChange={(event) => setName(event.target.value)}
+							/>
+							<select
+								className="input"
+								value={groupId}
+								onChange={(event) => setGroupId(event.target.value)}
+							>
+								<option value="">Qrup seçin</option>
+								{groups.map((group) => (
+									<option key={group.id} value={group.id}>
+										{group.data.name}
+									</option>
+								))}
+							</select>
+							<input
+								className="input"
+								placeholder="Sinif səviyyəsi (məs: 9)"
+								value={classLevel}
+								onChange={(event) => setClassLevel(event.target.value)}
+							/>
+							<button
+								className="btn primary"
+								type="button"
+								onClick={handleCreate}
+								disabled={!hasGroups || !branchId}
+							>
+								Yarat
+							</button>
+						</div>
+						<div className="form-row">
+							<input
+								className="input"
+								type="file"
+								accept=".csv,.xlsx"
+								disabled={!hasGroups || !branchId}
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									if (file) void handleImport(file);
+								}}
+							/>
+							<span className="hint">
+								Şablon sütunları: name, groupId/groupName, classLevel (istəyə bağlı), branchId (istəyə bağlı)
+							</span>
+						</div>
+						<div className="hint">Şifrə default olaraq login ilə eynidir.</div>
+						{status && <div className="notice">{status}</div>}
 					</div>
-					<div className="hint">Şifrə default olaraq login ilə eynidir.</div>
-					{status && <div className="notice">{status}</div>}
 				</div>
 
 				<div className="card">
@@ -387,6 +482,11 @@ export const BranchStudentsPage = () => {
 						<div>
 							<div className="section-kicker">Siyahı</div>
 							<div className="section-title">Şagirdlər</div>
+							<div className="students-list-meta">
+								{selectedClass === "all"
+									? `${students.length} şagird`
+									: `${selectedClass} sinfi üzrə ${filteredStudents.length} şagird`}
+							</div>
 						</div>
 						<button
 							className="btn ghost"
@@ -409,7 +509,7 @@ export const BranchStudentsPage = () => {
 							<div className="data-row" key={student.id}>
 								<div>{student.data.name}</div>
 								<div>{groupMap[student.data.groupId]?.name ?? student.data.groupId}</div>
-								<div>{student.data.classLevel}</div>
+								<div>{getStudentClassLevel(student)}</div>
 								<div>{student.data.login ?? "-"}</div>
 								<div>
 									<button
@@ -423,6 +523,9 @@ export const BranchStudentsPage = () => {
 							</div>
 						))}
 					</div>
+					{studentsPagination.totalItems === 0 && (
+						<div className="empty">Bu sinif üzrə şagird tapılmadı.</div>
+					)}
 					{studentsPagination.totalItems > 0 && (
 						<PaginationControls
 							totalItems={studentsPagination.totalItems}
