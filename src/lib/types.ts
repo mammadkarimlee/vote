@@ -60,6 +60,18 @@ export type StudentDoc = {
 	createdAt?: unknown;
 };
 
+export type StudentGroupMembershipType = "class" | "block";
+
+export type StudentGroupMembershipDoc = {
+	studentId: string;
+	userId?: string | null;
+	branchId: string;
+	groupId: string;
+	year: number;
+	type: StudentGroupMembershipType;
+	createdAt?: unknown;
+};
+
 export type GroupDoc = {
 	name: string;
 	branchId: string;

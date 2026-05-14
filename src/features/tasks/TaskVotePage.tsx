@@ -20,6 +20,7 @@ import {
 	isStudentTeacherInstructionQuestion,
 	shouldRenderStudentTeacherInstructionBlock,
 } from "../../lib/surveyQuestions";
+import { isManagementScopeLabel } from "../../lib/managementScope";
 import { chunkArray, formatDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -281,6 +282,17 @@ export const TaskVotePage = () => {
 		return `${cycle.year} • ${cycle.status} • ${start} - ${end}`;
 	}, [cycle]);
 
+	const taskContextLabel = useMemo(() => {
+		if (!task) return null;
+		if (task.raterRole === "manager" && isManagementScopeLabel(task.groupName)) {
+			return task.groupName;
+		}
+		if (task.raterRole === "teacher" && task.targetType === "teacher") {
+			return "Müəllim olaraq";
+		}
+		return null;
+	}, [task]);
+
 	const handleChange = (questionId: string, value: string | number) => {
 		setAnswers((prev) => ({ ...prev, [questionId]: value }));
 	};
@@ -370,6 +382,16 @@ export const TaskVotePage = () => {
 						← Tapşırıqlara qayıt
 					</Link>
 					<h1>Səsvermə formu</h1>
+					{taskContextLabel && (
+						<div className="task-card__context">
+							<span className="task-chip">{taskContextLabel}</span>
+							{task.targetName && (
+								<span className="task-card__reason-label">
+									{task.targetName}
+								</span>
+							)}
+						</div>
+					)}
 					<div className="meta">{cycleInfo}</div>
 				</div>
 				<div className="vote-progress">

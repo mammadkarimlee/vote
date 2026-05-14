@@ -5,10 +5,12 @@ import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapBranchRow,
+	mapDepartmentRow,
 	mapGroupRow,
 	mapManagementAssignmentRow,
 	mapQuestionRow,
 	mapQuestionSetRow,
+	mapStudentGroupMembershipRow,
 	mapStudentRow,
 	mapSubjectRow,
 	mapSurveyCycleRow,
@@ -30,16 +32,72 @@ import {
 	isStudentTeacherInstructionQuestion,
 } from "../../lib/surveyQuestions";
 import { encodeQuestionSetStateTokens } from "../../lib/questionSetState";
+import {
+	MANAGEMENT_SCOPE_BRANCH_LABEL,
+	MANAGEMENT_SCOPE_DEPARTMENT_LABEL,
+	managementBranchScopeKey,
+	managementDepartmentScopeKey,
+} from "../../lib/managementScope";
 import { chunkArray, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
 const flows = ["student_teacher", "management_teacher", "teacher_self"] as const;
 type EnabledFlow = (typeof flows)[number];
 const SUPABASE_BATCH_SIZE = 1000;
+const MANAGEMENT_TEACHER_QUESTION_ID = "management-teacher-score-v1";
 const flowLabels: Record<EnabledFlow, string> = {
 	student_teacher: "Şagird → Müəllim",
 	management_teacher: "Rəhbərlik → Müəllim",
 	teacher_self: "Müəllim → Özünü",
+};
+
+const normalizeQuestionCategory = (category?: string | null) =>
+	String(category ?? "")
+		.trim()
+		.toLocaleLowerCase("az")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[ə]/g, "e")
+		.replace(/[ı]/g, "i")
+		.replace(/[ş]/g, "s")
+		.replace(/[ç]/g, "c")
+		.replace(/[ğ]/g, "g")
+		.replace(/[ö]/g, "o")
+		.replace(/[ü]/g, "u");
+
+const isTeacherSelfQuestion = (question: QuestionDoc) => {
+	const category = normalizeQuestionCategory(question.category);
+	return (
+		category === "teacher_self_pkpd" ||
+		category === "muellim" ||
+		category.includes("ozunu") ||
+		question.text.toLocaleLowerCase("az").includes("özünüzü")
+	);
+};
+
+const isManagementTeacherQuestion = (
+	questionId: string,
+	question: QuestionDoc,
+) => {
+	const category = normalizeQuestionCategory(question.category);
+	return (
+		questionId === MANAGEMENT_TEACHER_QUESTION_ID ||
+		category.includes("rehber") ||
+		category.includes("rəhbər")
+	);
+};
+
+const questionMatchesFlow = (
+	questionId: string,
+	question: QuestionDoc,
+	flow: EnabledFlow,
+) => {
+	if (isStudentTeacherInstructionQuestion(question)) return false;
+	if (flow === "teacher_self") return isTeacherSelfQuestion(question);
+	if (flow === "management_teacher") {
+		return isManagementTeacherQuestion(questionId, question);
+	}
+	return !isTeacherSelfQuestion(question) && !isManagementTeacherQuestion(questionId, question);
 };
 
 const mapQuestionSetSchemaError = (message?: string | null) => {
@@ -326,6 +384,72 @@ const ensureStudentTeacherInstructionQuestionSet = async (
 	};
 };
 
+const ensureManagementTeacherQuestionSet = async (
+	cycleId: string,
+	isOpen?: boolean,
+) => {
+	const { data: existingQuestionSetRow, error: existingQuestionSetError } =
+		await supabase
+			.from("question_sets")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", cycleId)
+			.eq("target_flow", "management_teacher")
+			.maybeSingle();
+	if (existingQuestionSetError) {
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(existingQuestionSetError.message),
+		};
+	}
+
+	const { error: questionError } = await supabase.from("questions").upsert(
+		{
+			id: MANAGEMENT_TEACHER_QUESTION_ID,
+			org_id: ORG_ID,
+			text: "Rəhbərliyinizdə olan müəllimi 1-10 aralığında qiymətləndirin.",
+			type: "scale",
+			required: true,
+			options: null,
+			scale_min: 1,
+			scale_max: 10,
+			category: "rəhbərlik",
+		},
+		{
+			onConflict: "id",
+		},
+	);
+	if (questionError) {
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(questionError.message),
+		};
+	}
+
+	const currentQuestionSet = existingQuestionSetRow
+		? mapQuestionSetRow(existingQuestionSetRow)
+		: null;
+	const currentQuestionIds = currentQuestionSet?.questionIds ?? [];
+	const questionIds = currentQuestionIds.includes(MANAGEMENT_TEACHER_QUESTION_ID)
+		? currentQuestionIds
+		: [MANAGEMENT_TEACHER_QUESTION_ID, ...currentQuestionIds];
+	const resolvedIsOpen = isOpen ?? currentQuestionSet?.isOpen ?? false;
+	const { error: questionSetError } = await upsertQuestionSetWithFlowState({
+		cycleId,
+		targetFlow: "management_teacher",
+		questionIds,
+		isOpen: resolvedIsOpen,
+	});
+	if (questionSetError) {
+		return {
+			questionIds: [] as string[],
+			error: mapQuestionSetSchemaError(questionSetError.message),
+		};
+	}
+
+	return { questionIds, error: null as string | null };
+};
+
 const buildTaskId = (task: {
 	cycleId: string;
 	raterUid: string;
@@ -333,6 +457,7 @@ const buildTaskId = (task: {
 	targetId: string;
 	groupId?: string | null;
 	subjectId?: string | null;
+	scopeKey?: string | null;
 }) =>
 	[
 		task.cycleId,
@@ -340,7 +465,7 @@ const buildTaskId = (task: {
 		task.targetType,
 		task.targetId,
 		task.groupId ?? "all",
-	task.subjectId ?? "all",
+		task.scopeKey ?? task.subjectId ?? "all",
 	].join("_");
 
 const fetchAllBatched = async <T,>(
@@ -495,6 +620,35 @@ export const AdminCyclesPage = () => {
 					}));
 					setQuestions(items);
 				}
+				return;
+			}
+
+			if (selectedFlow === "management_teacher") {
+				const ensured = await ensureManagementTeacherQuestionSet(selectedCycleId);
+				if (ensured.error) {
+					setSelectedQuestionIds([]);
+					setSelectedFlowOpen(false);
+					setStatus(
+						`Rəhbərlik qiymətləndirilməsi sualları hazırlanmadı: ${ensured.error}`,
+					);
+					return;
+				}
+				const { data: setRow, error: setError } = await supabase
+					.from("question_sets")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("target_flow", selectedFlow)
+					.maybeSingle();
+				if (setError || !setRow) {
+					setSelectedQuestionIds(ensured.questionIds);
+					setSelectedFlowOpen(false);
+				} else {
+					const mapped = mapQuestionSetRow(setRow);
+					setSelectedQuestionIds(mapped.questionIds ?? ensured.questionIds);
+					setSelectedFlowOpen(mapped.isOpen);
+				}
+				await loadQuestions();
 				return;
 			}
 
@@ -713,10 +867,16 @@ export const AdminCyclesPage = () => {
 			}
 			setSelectedQuestionIds(ensured.questionIds);
 			setStatus("Özünüqiymətləndirmə sualları avtomatik yeniləndi");
+			await generateTasksForCycle(selectedCycleId);
 			return;
 		}
+		const allowedQuestionIds = new Set(
+			selectableQuestions.map((question) => question.id),
+		);
 		const questionIdsWithoutInstruction = selectedQuestionIds.filter(
-			(id) => id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+			(id) =>
+				id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID &&
+				allowedQuestionIds.has(id),
 		);
 		if (questionIdsWithoutInstruction.length === 0) {
 			setStatus("Ən azı 1 sual seçilməlidir");
@@ -737,13 +897,21 @@ export const AdminCyclesPage = () => {
 			setSelectedQuestionIds(ensured.questionIds);
 			setStatus("Şagird müəllim qiymətləndirilməsi təlimatı avtomatik əlavə olundu");
 			await loadQuestions();
+			await generateTasksForCycle(selectedCycleId);
 			return;
 		}
 
+		const questionIdsForFlow = selectedQuestionIds.filter((id) =>
+			allowedQuestionIds.has(id),
+		);
+		if (questionIdsForFlow.length === 0) {
+			setStatus("Ən azı 1 sual seçilməlidir");
+			return;
+		}
 		const { error } = await upsertQuestionSetWithFlowState({
 			cycleId: selectedCycleId,
 			targetFlow: selectedFlow,
-			questionIds: selectedQuestionIds,
+			questionIds: questionIdsForFlow,
 			isOpen: selectedFlowOpen,
 		});
 
@@ -751,7 +919,9 @@ export const AdminCyclesPage = () => {
 			setStatus(mapQuestionSetSchemaError(error.message));
 			return;
 		}
+		setSelectedQuestionIds(questionIdsForFlow);
 		setStatus("Sual seti yeniləndi");
+		await generateTasksForCycle(selectedCycleId);
 	};
 
 	const handleCopyFromPreviousCycle = async () => {
@@ -846,6 +1016,7 @@ export const AdminCyclesPage = () => {
 
 		await loadQuestions();
 		setStatus(`Sual setləri ${prevCycle.data.year} ilindən köçürüldü`);
+		await generateTasksForCycle(selectedCycle.id);
 	};
 
 	const handleFlowOpenChange = async (nextOpen: boolean) => {
@@ -869,11 +1040,19 @@ export const AdminCyclesPage = () => {
 					nextOpen ? "açıldı" : "bağlandı"
 				}`,
 			);
+			if (nextOpen) {
+				await generateTasksForCycle(selectedCycleId);
+			}
 			return;
 		}
 
+		const allowedQuestionIds = new Set(
+			selectableQuestions.map((question) => question.id),
+		);
 		const questionIdsWithoutInstruction = selectedQuestionIds.filter(
-			(id) => id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID,
+			(id) =>
+				id !== STUDENT_TEACHER_INSTRUCTION_QUESTION_ID &&
+				allowedQuestionIds.has(id),
 		);
 
 		if (selectedFlow === "student_teacher") {
@@ -899,10 +1078,16 @@ export const AdminCyclesPage = () => {
 					nextOpen ? "açıldı" : "bağlandı"
 				}`,
 			);
+			if (nextOpen) {
+				await generateTasksForCycle(selectedCycleId);
+			}
 			return;
 		}
 
-		if (selectedQuestionIds.length === 0) {
+		const questionIdsForFlow = selectedQuestionIds.filter((id) =>
+			allowedQuestionIds.has(id),
+		);
+		if (questionIdsForFlow.length === 0) {
 			setStatus("Əvvəlcə bu Sorğu üçün sual setini saxlayın");
 			return;
 		}
@@ -910,7 +1095,7 @@ export const AdminCyclesPage = () => {
 		const { error } = await upsertQuestionSetWithFlowState({
 			cycleId: selectedCycleId,
 			targetFlow: selectedFlow,
-			questionIds: selectedQuestionIds,
+			questionIds: questionIdsForFlow,
 			isOpen: nextOpen,
 		});
 		if (error) {
@@ -919,9 +1104,13 @@ export const AdminCyclesPage = () => {
 		}
 
 		setSelectedFlowOpen(nextOpen);
+		setSelectedQuestionIds(questionIdsForFlow);
 		setStatus(
 			`${flowLabels[selectedFlow]} sorğusu ${nextOpen ? "açıldı" : "bağlandı"}`,
 		);
+		if (nextOpen) {
+			await generateTasksForCycle(selectedCycleId);
+		}
 	};
 
 	const generateTasksForCycle = async (cycleId: string) => {
@@ -939,11 +1128,22 @@ export const AdminCyclesPage = () => {
 			);
 			return;
 		}
+		const ensuredManagementTeacher =
+			await ensureManagementTeacherQuestionSet(cycleId);
+		if (ensuredManagementTeacher.error) {
+			setStatus(
+				`Rəhbərlik qiymətləndirilməsi sualları hazırlanmadı: ${ensuredManagementTeacher.error}`,
+			);
+			return;
+		}
 		if (selectedCycleId === cycleId && selectedFlow === "teacher_self") {
 			setSelectedQuestionIds(ensured.questionIds);
 		}
 		if (selectedCycleId === cycleId && selectedFlow === "student_teacher") {
 			setSelectedQuestionIds(ensuredStudentTeacher.questionIds);
+		}
+		if (selectedCycleId === cycleId && selectedFlow === "management_teacher") {
+			setSelectedQuestionIds(ensuredManagementTeacher.questionIds);
 		}
 
 		let userRows: any[] = [];
@@ -951,7 +1151,9 @@ export const AdminCyclesPage = () => {
 		let teacherRows: any[] = [];
 		let groupRows: any[] = [];
 		let subjectRows: any[] = [];
+		let departmentRows: any[] = [];
 		let assignmentRows: any[] = [];
+		let studentGroupMembershipRows: any[] = [];
 		let managementAssignmentRows: any[] = [];
 		let existingTaskRows: any[] = [];
 
@@ -962,7 +1164,9 @@ export const AdminCyclesPage = () => {
 				teacherRows,
 				groupRows,
 				subjectRows,
+				departmentRows,
 				assignmentRows,
+				studentGroupMembershipRows,
 				managementAssignmentRows,
 				existingTaskRows,
 			] = await Promise.all([
@@ -1013,6 +1217,15 @@ export const AdminCyclesPage = () => {
 				),
 				fetchAllBatched<any>(async (from, to) =>
 					supabase
+						.from("departments")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
 						.from("teaching_assignments")
 						.select("*")
 						.eq("org_id", ORG_ID)
@@ -1020,6 +1233,19 @@ export const AdminCyclesPage = () => {
 						.order("id")
 						.range(from, to),
 				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("student_group_memberships")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.is("deleted_at", null)
+						.order("id")
+						.range(from, to),
+				).catch((error) => {
+					const message = error instanceof Error ? error.message : "";
+					if (message.includes("student_group_memberships")) return [];
+					throw error;
+				}),
 				fetchAllBatched<any>(async (from, to) =>
 					supabase
 						.from("management_assignments")
@@ -1066,9 +1292,17 @@ export const AdminCyclesPage = () => {
 			id: row.id,
 			data: mapSubjectRow(row),
 		}));
+		const departments = departmentRows.map((row) => ({
+			id: row.id,
+			data: mapDepartmentRow(row),
+		}));
 		const assignments = assignmentRows.map((row) => ({
 			id: row.id,
 			data: mapTeachingAssignmentRow(row),
+		}));
+		const studentGroupMemberships = studentGroupMembershipRows.map((row) => ({
+			id: row.id,
+			data: mapStudentGroupMembershipRow(row),
 		}));
 		const managementAssignments = managementAssignmentRows.map(
 			(row) => ({
@@ -1124,6 +1358,11 @@ export const AdminCyclesPage = () => {
 					inBranchScope(assignment.data.branchId),
 				)
 			: assignments;
+		const studentGroupMembershipsScoped = branchScope
+			? studentGroupMemberships.filter((membership) =>
+					inBranchScope(membership.data.branchId),
+				)
+			: studentGroupMemberships;
 		const managementAssignmentsScoped = branchScope
 			? managementAssignments.filter((assignment) =>
 					inBranchScope(assignment.data.branchId),
@@ -1146,6 +1385,25 @@ export const AdminCyclesPage = () => {
 		const subjectMap = Object.fromEntries(
 			subjects.map((subject) => [subject.id, subject.data]),
 		);
+		const departmentMap = Object.fromEntries(
+			departments.map((department) => [department.id, department.data]),
+		);
+		const normalizeDepartmentName = (departmentId?: string | null) =>
+			departmentId
+				? (departmentMap[departmentId]?.name ?? "")
+						.trim()
+						.toLocaleLowerCase("az")
+				: "";
+		const departmentMatches = (
+			leftDepartmentId?: string | null,
+			rightDepartmentId?: string | null,
+		) => {
+			if (!leftDepartmentId || !rightDepartmentId) return false;
+			if (leftDepartmentId === rightDepartmentId) return true;
+			const leftName = normalizeDepartmentName(leftDepartmentId);
+			const rightName = normalizeDepartmentName(rightDepartmentId);
+			return Boolean(leftName && rightName && leftName === rightName);
+		};
 		const normalizeClassLevel = (value?: string | null) =>
 			String(value ?? "").trim().replace(/[^0-9]/g, "");
 		const normalizeSubjectCode = (value?: string | null) =>
@@ -1230,6 +1488,32 @@ export const AdminCyclesPage = () => {
 		const assignmentsForYear = assignmentsScoped.filter(
 			(assignment) => assignment.data.year === assignmentYear,
 		);
+		const membershipsForYear = studentGroupMembershipsScoped.filter(
+			(membership) => membership.data.year === assignmentYear,
+		);
+		const membershipsByStudentKey = new Map<string, Set<string>>();
+		const addMembershipGroup = (key: string | null | undefined, groupId: string) => {
+			if (!key) return;
+			const groupIds = membershipsByStudentKey.get(key) ?? new Set<string>();
+			groupIds.add(groupId);
+			membershipsByStudentKey.set(key, groupIds);
+		};
+		membershipsForYear.forEach((membership) => {
+			addMembershipGroup(membership.data.studentId, membership.data.groupId);
+			addMembershipGroup(membership.data.userId, membership.data.groupId);
+		});
+		const resolveStudentGroupIds = (
+			student: (typeof studentsScoped)[number],
+			userId: string,
+		) => {
+			const groupIds = new Set<string>();
+			if (student.data.groupId) groupIds.add(student.data.groupId);
+			[student.id, student.data.uid, userId].forEach((key) => {
+				const membershipGroups = key ? membershipsByStudentKey.get(key) : null;
+				membershipGroups?.forEach((groupId) => groupIds.add(groupId));
+			});
+			return groupIds;
+		};
 
 		const studentUsers = usersScoped.filter(
 			(user) => user.data.role === "student",
@@ -1240,9 +1524,10 @@ export const AdminCyclesPage = () => {
 					studentDoc.id === user.id || studentDoc.data.uid === user.id,
 			);
 			if (!student) return;
+			const studentGroupIds = resolveStudentGroupIds(student, user.id);
 			const studentAssignments = assignmentsForYear.filter(
 				(assignment) => {
-					if (assignment.data.groupId !== student.data.groupId) return false;
+					if (!studentGroupIds.has(assignment.data.groupId)) return false;
 
 					const groupClassLevel = normalizeClassLevel(
 						groupMap[assignment.data.groupId]?.classLevel ?? null,
@@ -1364,6 +1649,22 @@ export const AdminCyclesPage = () => {
 		const managementAssignmentsForYear = managementAssignmentsScoped.filter(
 			(assignment) => assignment.data.year === assignmentYear,
 		);
+		const teacherIdsByDepartmentFromAssignments = (
+			departmentId: string,
+			branchId: string,
+		) =>
+			new Set(
+				assignmentsForYear
+					.filter(
+						(assignment) =>
+							assignment.data.branchId === branchId &&
+							departmentMatches(
+								subjectMap[assignment.data.subjectId]?.departmentId,
+								departmentId,
+							),
+					)
+					.map((assignment) => assignment.data.teacherId),
+			);
 
 		if (managementAssignmentsForYear.length === 0) {
 			const managerUsers = usersScoped.filter(
@@ -1377,6 +1678,7 @@ export const AdminCyclesPage = () => {
 					return (teacher.data.branchIds ?? []).includes(managerBranchId);
 				});
 				branchTeachers.forEach((teacher) => {
+					const scopeKey = managementBranchScopeKey(managerBranchId);
 					const task: TaskDoc = {
 						cycleId,
 						raterUid: user.id,
@@ -1385,6 +1687,7 @@ export const AdminCyclesPage = () => {
 						targetId: teacher.id,
 						targetName: teacherMap[teacher.id]?.name ?? null,
 						branchId: managerBranchId,
+						groupName: MANAGEMENT_SCOPE_BRANCH_LABEL,
 						status: "OPEN",
 					};
 					const taskId = buildTaskId({
@@ -1392,6 +1695,7 @@ export const AdminCyclesPage = () => {
 						raterUid: user.id,
 						targetType: "teacher",
 						targetId: teacher.id,
+						scopeKey,
 					});
 					if (!scheduledTaskIds.has(taskId)) {
 						tasksToCreate.push({ id: taskId, data: task });
@@ -1412,13 +1716,25 @@ export const AdminCyclesPage = () => {
 				}
 
 				const raterTeacherId = teacherIdByUserIdAll[assignment.data.managerUid];
+				const assignmentDepartmentTeacherIds = assignment.data.departmentId
+					? teacherIdsByDepartmentFromAssignments(
+							assignment.data.departmentId,
+							assignment.data.branchId,
+						)
+					: null;
 				const targetTeachers = teachersScoped.filter((teacher) => {
 					const inAssignmentBranch =
 						teacher.data.branchId === assignment.data.branchId ||
 						(teacher.data.branchIds ?? []).includes(assignment.data.branchId);
 					if (!inAssignmentBranch) return false;
 					if (assignment.data.departmentId) {
-						return teacher.data.departmentId === assignment.data.departmentId;
+						return (
+							departmentMatches(
+								teacher.data.departmentId,
+								assignment.data.departmentId,
+							) ||
+							assignmentDepartmentTeacherIds?.has(teacher.id) === true
+						);
 					}
 					return true;
 				});
@@ -1429,6 +1745,12 @@ export const AdminCyclesPage = () => {
 						return;
 					}
 
+					const scopeKey = assignment.data.departmentId
+						? managementDepartmentScopeKey(assignment.data.departmentId)
+						: managementBranchScopeKey(assignment.data.branchId);
+					const scopeLabel = assignment.data.departmentId
+						? MANAGEMENT_SCOPE_DEPARTMENT_LABEL
+						: MANAGEMENT_SCOPE_BRANCH_LABEL;
 					const task: TaskDoc = {
 						cycleId,
 						raterUid: assignment.data.managerUid,
@@ -1437,6 +1759,7 @@ export const AdminCyclesPage = () => {
 						targetId: teacher.id,
 						targetName: teacherMap[teacher.id]?.name ?? null,
 						branchId: assignment.data.branchId,
+						groupName: scopeLabel,
 						status: "OPEN",
 					};
 					const taskId = buildTaskId({
@@ -1444,6 +1767,7 @@ export const AdminCyclesPage = () => {
 						raterUid: assignment.data.managerUid,
 						targetType: "teacher",
 						targetId: teacher.id,
+						scopeKey,
 					});
 					if (!scheduledTaskIds.has(taskId)) {
 						tasksToCreate.push({ id: taskId, data: task });
@@ -1538,14 +1862,389 @@ export const AdminCyclesPage = () => {
 		setStatus(`Tapşırıqlar hazırdır: ${tasksToCreate.length}${warningText}`);
 	};
 
+	const rebuildManagementTasksForCycle = async (cycleId: string) => {
+		const ok = window.confirm(
+			"Yalnız cavabsız rəhbərlik/kafedra taskları silinib yenidən yaradılacaq. Şagird və müəllim cavablarına toxunulmayacaq. Davam edək?",
+		);
+		if (!ok) return;
+
+		setStatus("Rəhbərlik taskları yenilənir...");
+		const ensuredManagementTeacher =
+			await ensureManagementTeacherQuestionSet(cycleId, true);
+		if (ensuredManagementTeacher.error) {
+			setStatus(
+				`Rəhbərlik qiymətləndirilməsi sualları hazırlanmadı: ${ensuredManagementTeacher.error}`,
+			);
+			return;
+		}
+		if (selectedCycleId === cycleId && selectedFlow === "management_teacher") {
+			setSelectedQuestionIds(ensuredManagementTeacher.questionIds);
+			setSelectedFlowOpen(true);
+		}
+
+		let userRows: any[] = [];
+		let teacherRows: any[] = [];
+		let subjectRows: any[] = [];
+		let departmentRows: any[] = [];
+		let assignmentRows: any[] = [];
+		let managementAssignmentRows: any[] = [];
+		let existingTaskRows: any[] = [];
+		let submissionRows: any[] = [];
+
+		try {
+			[
+				userRows,
+				teacherRows,
+				subjectRows,
+				departmentRows,
+				assignmentRows,
+				managementAssignmentRows,
+				existingTaskRows,
+				submissionRows,
+			] = await Promise.all([
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("users").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("teachers").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("subjects").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("departments").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("teaching_assignments").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("management_assignments").select("*").eq("org_id", ORG_ID).is("deleted_at", null).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("tasks").select("*").eq("org_id", ORG_ID).eq("cycle_id", cycleId).order("id").range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase.from("submissions").select("task_id").eq("org_id", ORG_ID).eq("cycle_id", cycleId).order("task_id").range(from, to),
+				),
+			]);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Məlumat yüklənmədi";
+			setStatus(`Rəhbərlik taskları yenilənmədi: ${message}`);
+			return;
+		}
+
+		const users = userRows.map((row) => ({ id: row.id, data: mapUserRow(row) }));
+		const teachers = teacherRows.map((row) => ({
+			id: row.id,
+			data: mapTeacherRow(row),
+		}));
+		const subjects = subjectRows.map((row) => ({
+			id: row.id,
+			data: mapSubjectRow(row),
+		}));
+		const departments = departmentRows.map((row) => ({
+			id: row.id,
+			data: mapDepartmentRow(row),
+		}));
+		const assignments = assignmentRows.map((row) => ({
+			id: row.id,
+			data: mapTeachingAssignmentRow(row),
+		}));
+		const managementAssignments = managementAssignmentRows.map((row) => ({
+			id: row.id,
+			data: mapManagementAssignmentRow(row),
+		}));
+		const cycle = cycles.find((item) => item.id === cycleId)?.data;
+		const cycleYear = cycle?.year ?? new Date().getFullYear();
+		const branchScope =
+			cycle?.branchIds && cycle.branchIds.length > 0
+				? new Set(cycle.branchIds)
+				: null;
+		const inBranchScope = (branchId?: string | null) => {
+			if (!branchScope) return true;
+			if (!branchId) return false;
+			return branchScope.has(branchId);
+		};
+		const teachersScoped = branchScope
+			? teachers.filter(
+					(teacher) =>
+						inBranchScope(teacher.data.branchId) ||
+						(teacher.data.branchIds ?? []).some((id) => branchScope.has(id)),
+				)
+			: teachers;
+		const assignmentsScoped = branchScope
+			? assignments.filter((assignment) => inBranchScope(assignment.data.branchId))
+			: assignments;
+		const managementAssignmentsScoped = branchScope
+			? managementAssignments.filter((assignment) =>
+					inBranchScope(assignment.data.branchId),
+				)
+			: managementAssignments;
+		const assignmentYears = Array.from(
+			new Set(assignmentsScoped.map((assignment) => assignment.data.year)),
+		).sort((a, b) => a - b);
+		const assignmentYear =
+			assignmentYears.length === 0
+				? null
+				: assignmentYears.includes(cycleYear)
+					? cycleYear
+					: assignmentYears[assignmentYears.length - 1];
+		if (!assignmentYear) {
+			setStatus("Rəhbərlik taskı yaradılmadı: dərs təyinatı tapılmadı");
+			return;
+		}
+
+		const subjectMap = Object.fromEntries(
+			subjects.map((subject) => [subject.id, subject.data]),
+		);
+		const departmentMap = Object.fromEntries(
+			departments.map((department) => [department.id, department.data]),
+		);
+		const normalizeDepartmentName = (departmentId?: string | null) =>
+			departmentId
+				? (departmentMap[departmentId]?.name ?? "")
+						.trim()
+						.toLocaleLowerCase("az")
+				: "";
+		const departmentMatches = (
+			leftDepartmentId?: string | null,
+			rightDepartmentId?: string | null,
+		) => {
+			if (!leftDepartmentId || !rightDepartmentId) return false;
+			if (leftDepartmentId === rightDepartmentId) return true;
+			const leftName = normalizeDepartmentName(leftDepartmentId);
+			const rightName = normalizeDepartmentName(rightDepartmentId);
+			return Boolean(leftName && rightName && leftName === rightName);
+		};
+		const teacherMap = Object.fromEntries(
+			teachersScoped.map((teacher) => [teacher.id, teacher.data]),
+		);
+		const userMapAll = Object.fromEntries(
+			users.map((account) => [account.id, account.data]),
+		);
+		const teacherIdByUserIdAll = teachers.reduce<Record<string, string>>(
+			(acc, teacher) => {
+				if (teacher.data.uid) acc[teacher.data.uid] = teacher.id;
+				acc[teacher.id] = teacher.id;
+				return acc;
+			},
+			{},
+		);
+		const assignmentsForYear = assignmentsScoped.filter(
+			(assignment) => assignment.data.year === assignmentYear,
+		);
+		const managementAssignmentsForYear = managementAssignmentsScoped.filter(
+			(assignment) => assignment.data.year === assignmentYear,
+		);
+		const teacherIdsByDepartmentFromAssignments = (
+			departmentId: string,
+			branchId: string,
+		) =>
+			new Set(
+				assignmentsForYear
+					.filter(
+						(assignment) =>
+							assignment.data.branchId === branchId &&
+							departmentMatches(
+								subjectMap[assignment.data.subjectId]?.departmentId,
+								departmentId,
+							),
+					)
+					.map((assignment) => assignment.data.teacherId),
+			);
+
+		const submittedTaskIds = new Set(
+			submissionRows.map((row) => row.task_id as string),
+		);
+		const existingManagementTasksScoped = existingTaskRows.filter(
+			(row) =>
+				row.rater_role === "manager" &&
+				row.target_type === "teacher" &&
+				inBranchScope(row.branch_id),
+		);
+		const protectedTaskIds = new Set(
+			existingManagementTasksScoped
+				.filter((row) => submittedTaskIds.has(row.id as string))
+				.map((row) => row.id as string),
+		);
+		const deletableTaskIds = existingManagementTasksScoped
+			.filter((row) => !submittedTaskIds.has(row.id as string))
+			.map((row) => row.id as string);
+		const scheduledTaskIds = new Set(protectedTaskIds);
+		const tasksToCreate: Array<{ id: string; data: TaskDoc }> = [];
+		let skippedManagementAssignments = 0;
+		let skippedManagementSelf = 0;
+
+		const enqueueManagementTask = (params: {
+			managerUid: string;
+			teacherId: string;
+			branchId: string;
+			scopeKey: string;
+			scopeLabel: string;
+		}) => {
+			const taskId = buildTaskId({
+				cycleId,
+				raterUid: params.managerUid,
+				targetType: "teacher",
+				targetId: params.teacherId,
+				scopeKey: params.scopeKey,
+			});
+			if (scheduledTaskIds.has(taskId)) return;
+			tasksToCreate.push({
+				id: taskId,
+				data: {
+					cycleId,
+					raterUid: params.managerUid,
+					raterRole: "manager",
+					targetType: "teacher",
+					targetId: params.teacherId,
+					targetName: teacherMap[params.teacherId]?.name ?? null,
+					branchId: params.branchId,
+					groupName: params.scopeLabel,
+					status: "OPEN",
+				},
+			});
+			scheduledTaskIds.add(taskId);
+		};
+
+		if (managementAssignmentsForYear.length === 0) {
+			users
+				.filter(
+					(user) =>
+						user.data.role === "manager" && inBranchScope(user.data.branchId),
+				)
+				.forEach((user) => {
+					if (!user.data.branchId) return;
+					const branchTeachers = teachersScoped.filter(
+						(teacher) =>
+							teacher.data.branchId === user.data.branchId ||
+							(teacher.data.branchIds ?? []).includes(user.data.branchId ?? ""),
+					);
+					branchTeachers.forEach((teacher) => {
+						enqueueManagementTask({
+							managerUid: user.id,
+							teacherId: teacher.id,
+							branchId: user.data.branchId ?? "",
+							scopeKey: managementBranchScopeKey(user.data.branchId ?? ""),
+							scopeLabel: MANAGEMENT_SCOPE_BRANCH_LABEL,
+						});
+					});
+				});
+		} else {
+			managementAssignmentsForYear.forEach((assignment) => {
+				const rater = userMapAll[assignment.data.managerUid];
+				if (!rater || (rater.role !== "manager" && rater.role !== "teacher")) {
+					skippedManagementAssignments += 1;
+					return;
+				}
+				const raterTeacherId = teacherIdByUserIdAll[assignment.data.managerUid];
+				const assignmentDepartmentTeacherIds = assignment.data.departmentId
+					? teacherIdsByDepartmentFromAssignments(
+							assignment.data.departmentId,
+							assignment.data.branchId,
+						)
+					: null;
+				const targetTeachers = teachersScoped.filter((teacher) => {
+					const inAssignmentBranch =
+						teacher.data.branchId === assignment.data.branchId ||
+						(teacher.data.branchIds ?? []).includes(assignment.data.branchId);
+					if (!inAssignmentBranch) return false;
+					if (assignment.data.departmentId) {
+						return (
+							departmentMatches(
+								teacher.data.departmentId,
+								assignment.data.departmentId,
+							) ||
+							assignmentDepartmentTeacherIds?.has(teacher.id) === true
+						);
+					}
+					return true;
+				});
+				targetTeachers.forEach((teacher) => {
+					if (raterTeacherId && raterTeacherId === teacher.id) {
+						skippedManagementSelf += 1;
+						return;
+					}
+					enqueueManagementTask({
+						managerUid: assignment.data.managerUid,
+						teacherId: teacher.id,
+						branchId: assignment.data.branchId,
+						scopeKey: assignment.data.departmentId
+							? managementDepartmentScopeKey(assignment.data.departmentId)
+							: managementBranchScopeKey(assignment.data.branchId),
+						scopeLabel: assignment.data.departmentId
+							? MANAGEMENT_SCOPE_DEPARTMENT_LABEL
+							: MANAGEMENT_SCOPE_BRANCH_LABEL,
+					});
+				});
+			});
+		}
+
+		for (const chunk of chunkArray(deletableTaskIds, 100)) {
+			const { error } = await supabase
+				.from("tasks")
+				.delete()
+				.eq("org_id", ORG_ID)
+				.in("id", chunk);
+			if (error) {
+				setStatus(`Rəhbərlik taskları silinmədi: ${error.message}`);
+				return;
+			}
+		}
+
+		for (const chunk of chunkArray(tasksToCreate, 400)) {
+			const rows = chunk.map((item) => ({
+				id: item.id,
+				org_id: ORG_ID,
+				cycle_id: item.data.cycleId,
+				rater_id: item.data.raterUid,
+				rater_role: item.data.raterRole,
+				target_type: item.data.targetType,
+				target_id: item.data.targetId,
+				target_name: item.data.targetName ?? null,
+				branch_id: item.data.branchId,
+				group_id: null,
+				subject_id: null,
+				group_name: item.data.groupName ?? null,
+				subject_name: null,
+				status: item.data.status,
+			}));
+			const { error } = await supabase.from("tasks").upsert(rows, {
+				onConflict: "id",
+				ignoreDuplicates: true,
+			});
+			if (error) {
+				setStatus(`Rəhbərlik taskları yaradılmadı: ${error.message}`);
+				return;
+			}
+		}
+
+		const warnings: string[] = [];
+		if (protectedTaskIds.size > 0) {
+			warnings.push(`${protectedTaskIds.size} cavablanmÄ±ÅŸ task qorundu`);
+		}
+		if (skippedManagementAssignments > 0) {
+			warnings.push(`${skippedManagementAssignments} tÉ™yinat buraxÄ±ldÄ±`);
+		}
+		if (skippedManagementSelf > 0) {
+			warnings.push(`${skippedManagementSelf} Ã¶zÃ¼nÉ™ dÃ¼ÅŸÉ™n task buraxÄ±ldÄ±`);
+		}
+		setStatus(
+			`Rəhbərlik taskları yeniləndi: ${deletableTaskIds.length} silindi, ${tasksToCreate.length} yaradıldı${
+				warnings.length > 0 ? `. ${warnings.join(". ")}` : ""
+			}`,
+		);
+	};
+
 	const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId);
 	const branchMap = Object.fromEntries(
 		branches.map((branch) => [branch.id, branch.data]),
 	);
 	const selectableQuestions = useMemo(
 		() => {
-			const visibleQuestions = questions.filter(
-				(question) => !isStudentTeacherInstructionQuestion(question.data),
+			const visibleQuestions = questions.filter((question) =>
+				questionMatchesFlow(question.id, question.data, selectedFlow),
 			);
 			if (selectedFlow !== "teacher_self") {
 				return visibleQuestions;
@@ -1800,25 +2499,34 @@ export const AdminCyclesPage = () => {
 						</div>
 					)}
 					<div className="checkbox-grid">
-						{selectableQuestions.map((question) => (
-							<label key={question.id} className="checkbox-item">
-								<input
-									type="checkbox"
-									disabled={selectedFlow === "teacher_self"}
-									checked={selectedQuestionIds.includes(question.id)}
-									onChange={(event) => {
-										if (event.target.checked) {
-											setSelectedQuestionIds((prev) => [...prev, question.id]);
-										} else {
-											setSelectedQuestionIds((prev) =>
-												prev.filter((id) => id !== question.id),
-											);
-										}
-									}}
-								/>
-								<span>{question.data.text}</span>
-							</label>
-						))}
+						{selectableQuestions.length === 0 ? (
+							<div className="hint">
+								Bu bölmə üçün uyğun sual tapılmadı.
+							</div>
+						) : (
+							selectableQuestions.map((question) => (
+								<label key={question.id} className="checkbox-item">
+									<input
+										type="checkbox"
+										disabled={selectedFlow === "teacher_self"}
+										checked={selectedQuestionIds.includes(question.id)}
+										onChange={(event) => {
+											if (event.target.checked) {
+												setSelectedQuestionIds((prev) => [
+													...prev,
+													question.id,
+												]);
+											} else {
+												setSelectedQuestionIds((prev) =>
+													prev.filter((id) => id !== question.id),
+												);
+											}
+										}}
+									/>
+									<span>{question.data.text}</span>
+								</label>
+							))
+						)}
 					</div>
 					{selectedFlow === "teacher_self" && (
 						<div className="hint">
@@ -1848,6 +2556,15 @@ export const AdminCyclesPage = () => {
 							onClick={() => void generateTasksForCycle(selectedCycle.id)}
 						>
 							Tapşırıqları yarat
+						</button>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() =>
+								void rebuildManagementTasksForCycle(selectedCycle.id)
+							}
+						>
+							Rəhbərlik tasklarını yenilə
 						</button>
 					</div>
 				</div>

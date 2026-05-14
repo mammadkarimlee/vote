@@ -16,6 +16,7 @@ import type {
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	QuestionSetDoc,
+	StudentGroupMembershipDoc,
 	StudentDoc,
 	SubjectDoc,
 	SubmissionDoc,
@@ -69,6 +70,18 @@ export const mapStudentRow = (row: Row): StudentDoc => ({
 	classLevel: row.class_level,
 	uid: row.user_id ?? null,
 	login: row.login ?? null,
+	createdAt: row.created_at ?? null,
+});
+
+export const mapStudentGroupMembershipRow = (
+	row: Row,
+): StudentGroupMembershipDoc => ({
+	studentId: row.student_id,
+	userId: row.user_id ?? null,
+	branchId: row.branch_id,
+	groupId: row.group_id,
+	year: row.year,
+	type: row.membership_type ?? "block",
 	createdAt: row.created_at ?? null,
 });
 

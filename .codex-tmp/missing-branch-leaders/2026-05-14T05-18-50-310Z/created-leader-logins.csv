@@ -1,0 +1,5 @@
+name,branch,role,login,password,user_id,user_status,assignment_status
+"Alcan Haciyev Təşkilat Oğlu","Nəsimi Campusu","manager","alcha","alcha","bc4b4d12-9839-478c-93e9-4b209cc5b502","created","created"
+"Məmməd Məmmədli Əhməd Oğlu","Qurtuluş Campusu","manager","memme","memme","23980bd0-0562-44d2-85fe-b7cb67663c89","created","created"
+"Yaşar Zeynalov İsax Oğlu","Azadlıq Campusu","manager","yasze","yasze","baf52d76-c1dd-4110-8a1f-316d07f57705","created","created"
+"Elmin Yaqubbəyli Vaqif Oğlu","Xətai Campusu","manager","elmya","elmya","c8cd0c6a-a54a-4be1-a708-1e1d19908613","created","created"

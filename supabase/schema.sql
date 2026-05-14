@@ -251,6 +251,33 @@ alter table public.students
 create index if not exists students_branch_idx on public.students (branch_id);
 create index if not exists students_group_idx on public.students (group_id);
 
+create table if not exists public.student_group_memberships (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  student_id text not null references public.students (id) on delete cascade,
+  user_id text references public.users (id) on delete set null,
+  group_id text not null references public.groups (id) on delete cascade,
+  year integer not null,
+  membership_type text not null default 'block'
+    check (membership_type in ('class', 'block')),
+  created_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  unique (org_id, branch_id, student_id, group_id, year, membership_type)
+);
+
+create index if not exists student_group_memberships_student_idx
+  on public.student_group_memberships (student_id, year)
+  where deleted_at is null;
+
+create index if not exists student_group_memberships_user_idx
+  on public.student_group_memberships (user_id, year)
+  where deleted_at is null;
+
+create index if not exists student_group_memberships_group_idx
+  on public.student_group_memberships (group_id, year)
+  where deleted_at is null;
+
 create table if not exists public.teaching_assignments (
   id text primary key default gen_random_uuid()::text,
   org_id text not null references public.orgs (id) on delete cascade,
@@ -1498,6 +1525,7 @@ alter table public.subjects enable row level security;
 alter table public.departments enable row level security;
 alter table public.teachers enable row level security;
 alter table public.students enable row level security;
+alter table public.student_group_memberships enable row level security;
 alter table public.teaching_assignments enable row level security;
 alter table public.management_assignments enable row level security;
 alter table public.questions enable row level security;
@@ -1558,6 +1586,11 @@ drop policy if exists students_select on public.students;
 drop policy if exists students_insert on public.students;
 drop policy if exists students_update on public.students;
 drop policy if exists students_delete on public.students;
+
+drop policy if exists student_group_memberships_select on public.student_group_memberships;
+drop policy if exists student_group_memberships_insert on public.student_group_memberships;
+drop policy if exists student_group_memberships_update on public.student_group_memberships;
+drop policy if exists student_group_memberships_delete on public.student_group_memberships;
 
 drop policy if exists teaching_assignments_select on public.teaching_assignments;
 drop policy if exists teaching_assignments_insert on public.teaching_assignments;
@@ -2057,6 +2090,58 @@ create policy students_update on public.students
   );
 
 create policy students_delete on public.students
+  for delete
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy student_group_memberships_select on public.student_group_memberships
+  for select
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy student_group_memberships_insert on public.student_group_memberships
+  for insert
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy student_group_memberships_update on public.student_group_memberships
+  for update
+  using (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy student_group_memberships_delete on public.student_group_memberships
   for delete
   using (
     public.is_superadmin()

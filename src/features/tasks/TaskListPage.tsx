@@ -30,6 +30,11 @@ import {
 	isStudentTeacherInstructionQuestion,
 	shouldRenderStudentTeacherInstructionBlock,
 } from "../../lib/surveyQuestions";
+import {
+	MANAGEMENT_SCOPE_BRANCH_LABEL,
+	MANAGEMENT_SCOPE_DEPARTMENT_LABEL,
+	isManagementScopeLabel,
+} from "../../lib/managementScope";
 import { chunkArray, formatShortDate, toJsDate } from "../../lib/utils";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -485,6 +490,9 @@ export const TaskListPage = () => {
 
 	const resolveMeta = useCallback(
 		(task: TaskDoc) => {
+			if (task.raterRole === "manager" && isManagementScopeLabel(task.groupName)) {
+				return "";
+			}
 			const { groupLabel, subjectLabel } = resolveMetaParts(task);
 			return [groupLabel, subjectLabel].filter(Boolean).join(" - ");
 		},
@@ -519,6 +527,35 @@ export const TaskListPage = () => {
 				null;
 			const branchAssignment =
 				matchingAssignments.find((assignment) => !assignment.data.departmentId) ?? null;
+			const taskScopeLabel =
+				task.raterRole === "manager" && isManagementScopeLabel(task.groupName)
+					? task.groupName
+					: null;
+
+			if (taskScopeLabel === MANAGEMENT_SCOPE_DEPARTMENT_LABEL) {
+				const departmentId =
+					departmentAssignment?.data.departmentId ?? targetTeacher?.departmentId;
+				const departmentName = departmentId
+					? departmentNames[departmentId] ?? departmentId
+					: "kafedranız";
+				return {
+					badge: "Kafedra",
+					label: taskScopeLabel,
+					detail: `${targetName} sizə görünür, çünki ${departmentName} üzrə kafedranızın müəllimidir.`,
+				};
+			}
+
+			if (taskScopeLabel === MANAGEMENT_SCOPE_BRANCH_LABEL) {
+				const branchName =
+					branchNames[branchAssignment?.data.branchId ?? task.branchId] ??
+					branchNames[task.branchId] ??
+					"filial";
+				return {
+					badge: "Rəhbərlik",
+					label: taskScopeLabel,
+					detail: `${targetName} sizə görünür, çünki ${branchName} üzrə rəhbərlik qiymətləndirməsi sizə təyin olunub.`,
+				};
+			}
 
 			if (departmentAssignment?.data.departmentId) {
 				const departmentName =

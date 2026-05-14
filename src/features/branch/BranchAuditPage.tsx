@@ -3,9 +3,11 @@ import { PaginationControls } from "../../components/PaginationControls";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
+	mapDepartmentRow,
 	mapGroupRow,
 	mapManagementAssignmentRow,
 	mapQuestionSetRow,
+	mapStudentGroupMembershipRow,
 	mapStudentRow,
 	mapSubmissionRow,
 	mapSubjectRow,
@@ -16,9 +18,11 @@ import {
 	mapUserRow,
 } from "../../lib/supabaseMappers";
 import type {
+	DepartmentDoc,
 	GroupDoc,
 	ManagementAssignmentDoc,
 	QuestionSetDoc,
+	StudentGroupMembershipDoc,
 	StudentDoc,
 	SubmissionDoc,
 	SubjectDoc,
@@ -28,6 +32,10 @@ import type {
 	TeachingAssignmentDoc,
 	UserDoc,
 } from "../../lib/types";
+import {
+	managementBranchScopeKey,
+	managementDepartmentScopeKey,
+} from "../../lib/managementScope";
 import { usePagination } from "../../lib/usePagination";
 import { formatShortDate, toJsDate } from "../../lib/utils";
 import { BranchSelector } from "./BranchSelector";
@@ -42,7 +50,9 @@ type BaseData = {
 	teachers: Array<DocEntry<TeacherDoc>>;
 	groups: Array<DocEntry<GroupDoc>>;
 	subjects: Array<DocEntry<SubjectDoc>>;
+	departments: Array<DocEntry<DepartmentDoc>>;
 	assignments: Array<DocEntry<TeachingAssignmentDoc>>;
+	studentGroupMemberships: Array<DocEntry<StudentGroupMembershipDoc>>;
 	managementAssignments: Array<DocEntry<ManagementAssignmentDoc>>;
 };
 type CycleData = {
@@ -72,7 +82,9 @@ const emptyBase = (): BaseData => ({
 	teachers: [],
 	groups: [],
 	subjects: [],
+	departments: [],
 	assignments: [],
+	studentGroupMemberships: [],
 	managementAssignments: [],
 });
 
@@ -89,6 +101,7 @@ const buildTaskId = (task: {
 	targetId: string;
 	groupId?: string | null;
 	subjectId?: string | null;
+	scopeKey?: string | null;
 }) =>
 	[
 		task.cycleId,
@@ -96,7 +109,7 @@ const buildTaskId = (task: {
 		task.targetType,
 		task.targetId,
 		task.groupId ?? "all",
-		task.subjectId ?? "all",
+		task.scopeKey ?? task.subjectId ?? "all",
 	].join("_");
 
 const fetchAllBatched = async <T,>(
@@ -237,7 +250,9 @@ export const BranchAuditPage = () => {
 					teacherRows,
 					groupRows,
 					subjectRows,
+					departmentRows,
 					assignmentRows,
+					membershipRows,
 					managementRows,
 				] = await Promise.all([
 					fetchAllBatched<any>(async (from, to) =>
@@ -295,6 +310,15 @@ export const BranchAuditPage = () => {
 					),
 					fetchAllBatched<any>(async (from, to) =>
 						supabase
+							.from("departments")
+							.select("*")
+							.eq("org_id", ORG_ID)
+							.is("deleted_at", null)
+							.order("id")
+							.range(from, to),
+					),
+					fetchAllBatched<any>(async (from, to) =>
+						supabase
 							.from("teaching_assignments")
 							.select("*")
 							.eq("org_id", ORG_ID)
@@ -302,6 +326,19 @@ export const BranchAuditPage = () => {
 							.order("id")
 							.range(from, to),
 					),
+					fetchAllBatched<any>(async (from, to) =>
+						supabase
+							.from("student_group_memberships")
+							.select("*")
+							.eq("org_id", ORG_ID)
+							.is("deleted_at", null)
+							.order("id")
+							.range(from, to),
+					).catch((error) => {
+						const message = error instanceof Error ? error.message : "";
+						if (message.includes("student_group_memberships")) return [];
+						throw error;
+					}),
 					fetchAllBatched<any>(async (from, to) =>
 						supabase
 							.from("management_assignments")
@@ -331,9 +368,17 @@ export const BranchAuditPage = () => {
 						id: row.id,
 						data: mapSubjectRow(row),
 					})),
+					departments: departmentRows.map((row) => ({
+						id: row.id,
+						data: mapDepartmentRow(row),
+					})),
 					assignments: assignmentRows.map((row) => ({
 						id: row.id,
 						data: mapTeachingAssignmentRow(row),
+					})),
+					studentGroupMemberships: membershipRows.map((row) => ({
+						id: row.id,
+						data: mapStudentGroupMembershipRow(row),
 					})),
 					managementAssignments: managementRows.map((row) => ({
 						id: row.id,
@@ -469,6 +514,9 @@ export const BranchAuditPage = () => {
 		const assignmentsScoped = baseData.assignments.filter(
 			(assignment) => assignment.data.branchId === branchId,
 		);
+		const membershipsScoped = baseData.studentGroupMemberships.filter(
+			(membership) => membership.data.branchId === branchId,
+		);
 		const managementScoped = baseData.managementAssignments.filter(
 			(assignment) => assignment.data.branchId === branchId,
 		);
@@ -487,17 +535,55 @@ export const BranchAuditPage = () => {
 			assignmentYear === null
 				? []
 				: assignmentsScoped.filter((assignment) => assignment.data.year === assignmentYear);
+		const membershipsForYear =
+			assignmentYear === null
+				? []
+				: membershipsScoped.filter((membership) => membership.data.year === assignmentYear);
 		const managementForYear =
 			assignmentYear === null
 				? []
 				: managementScoped.filter((assignment) => assignment.data.year === assignmentYear);
-
 		const groupMap = Object.fromEntries(
 			groupsScoped.map((group) => [group.id, group.data]),
 		) as Record<string, GroupDoc>;
 		const subjectMap = Object.fromEntries(
 			baseData.subjects.map((subject) => [subject.id, subject.data]),
 		) as Record<string, SubjectDoc>;
+		const departmentMap = Object.fromEntries(
+			baseData.departments.map((department) => [department.id, department.data]),
+		) as Record<string, DepartmentDoc>;
+		const normalizeDepartmentName = (departmentId?: string | null) =>
+			departmentId
+				? (departmentMap[departmentId]?.name ?? "")
+						.trim()
+						.toLocaleLowerCase("az")
+				: "";
+		const departmentMatches = (
+			leftDepartmentId?: string | null,
+			rightDepartmentId?: string | null,
+		) => {
+			if (!leftDepartmentId || !rightDepartmentId) return false;
+			if (leftDepartmentId === rightDepartmentId) return true;
+			const leftName = normalizeDepartmentName(leftDepartmentId);
+			const rightName = normalizeDepartmentName(rightDepartmentId);
+			return Boolean(leftName && rightName && leftName === rightName);
+		};
+		const teacherIdsByDepartmentFromAssignments = (
+			departmentId: string,
+			assignmentBranchId: string,
+		) =>
+			new Set(
+				assignmentsForYear
+					.filter(
+						(assignment) =>
+							assignment.data.branchId === assignmentBranchId &&
+							departmentMatches(
+								subjectMap[assignment.data.subjectId]?.departmentId,
+								departmentId,
+							),
+					)
+					.map((assignment) => assignment.data.teacherId),
+			);
 		const teacherMap = Object.fromEntries(
 			teachersScoped.map((teacher) => [teacher.id, teacher.data]),
 		) as Record<string, TeacherDoc>;
@@ -515,6 +601,26 @@ export const BranchAuditPage = () => {
 			},
 			{},
 		);
+		const membershipsByStudentKey = new Map<string, Set<string>>();
+		const addMembershipGroup = (key: string | null | undefined, groupId: string) => {
+			if (!key) return;
+			const groupIds = membershipsByStudentKey.get(key) ?? new Set<string>();
+			groupIds.add(groupId);
+			membershipsByStudentKey.set(key, groupIds);
+		};
+		membershipsForYear.forEach((membership) => {
+			addMembershipGroup(membership.data.studentId, membership.data.groupId);
+			addMembershipGroup(membership.data.userId, membership.data.groupId);
+		});
+		const resolveStudentGroupIds = (student: StudentDoc, userId: string) => {
+			const groupIds = new Set<string>();
+			if (student.groupId) groupIds.add(student.groupId);
+			[student.uid, userId].forEach((key) => {
+				const membershipGroups = key ? membershipsByStudentKey.get(key) : null;
+				membershipGroups?.forEach((groupId) => groupIds.add(groupId));
+			});
+			return groupIds;
+		};
 		const teacherIdByUserId = baseData.teachers.reduce<Record<string, string>>(
 			(acc, teacher) => {
 				acc[teacher.id] = teacher.id;
@@ -627,10 +733,11 @@ export const BranchAuditPage = () => {
 				.forEach((user) => {
 					const student = studentByUserId[user.id];
 					if (!student) return;
+					const studentGroupIds = resolveStudentGroupIds(student, user.id);
 
 					const grouped = new Map<string, { teacherId: string; teacherName: string }>();
 					assignmentsForYear.forEach((assignment) => {
-						if (assignment.data.groupId !== student.groupId) return;
+						if (!studentGroupIds.has(assignment.data.groupId)) return;
 						const groupLevel = normalizeClassLevel(
 							groupMap[assignment.data.groupId]?.classLevel ?? student.classLevel,
 						);
@@ -711,6 +818,7 @@ export const BranchAuditPage = () => {
 									raterUid: user.id,
 									targetType: "teacher",
 									targetId: teacher.id,
+									scopeKey: managementBranchScopeKey(branchId),
 								}),
 							);
 						});
@@ -719,6 +827,12 @@ export const BranchAuditPage = () => {
 				managementForYear.forEach((assignment) => {
 					const manager = userMap[assignment.data.managerUid];
 					if (!manager) return;
+					const assignmentDepartmentTeacherIds = assignment.data.departmentId
+						? teacherIdsByDepartmentFromAssignments(
+								assignment.data.departmentId,
+								assignment.data.branchId,
+							)
+						: null;
 					teachersScoped
 						.filter((teacher) => {
 							const inBranch =
@@ -726,16 +840,26 @@ export const BranchAuditPage = () => {
 								(teacher.data.branchIds ?? []).includes(assignment.data.branchId);
 							if (!inBranch) return false;
 							if (!assignment.data.departmentId) return true;
-							return teacher.data.departmentId === assignment.data.departmentId;
+							return (
+								departmentMatches(
+									teacher.data.departmentId,
+									assignment.data.departmentId,
+								) ||
+								assignmentDepartmentTeacherIds?.has(teacher.id) === true
+							);
 						})
 						.forEach((teacher) => {
 							if (teacherIdByUserId[assignment.data.managerUid] === teacher.id) return;
+							const scopeKey = assignment.data.departmentId
+								? managementDepartmentScopeKey(assignment.data.departmentId)
+								: managementBranchScopeKey(assignment.data.branchId);
 							expectedByFlow.management_teacher.add(
 								buildTaskId({
 									cycleId: selectedCycle.id,
 									raterUid: assignment.data.managerUid,
 									targetType: "teacher",
 									targetId: teacher.id,
+									scopeKey,
 								}),
 							);
 						});
