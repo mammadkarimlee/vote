@@ -25,19 +25,55 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Content>,
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-	<DialogPortal>
-		<DialogOverlay />
-		<DialogPrimitive.Content
-			ref={ref}
-			className={cn(
-				"fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-strong",
-				className,
-			)}
-			{...props}
-		/>
-	</DialogPortal>
-));
+>(
+	(
+		{
+			className,
+			onEscapeKeyDown,
+			onFocusOutside,
+			onInteractOutside,
+			onPointerDownOutside,
+			...props
+		},
+		ref,
+	) => {
+		const keepOpenForConfirmDialog = (event: { preventDefault: () => void }) => {
+			if (document.querySelector(".modal-overlay")) {
+				event.preventDefault();
+			}
+		};
+
+		return (
+			<DialogPortal>
+				<DialogOverlay />
+				<DialogPrimitive.Content
+					ref={ref}
+					className={cn(
+						"fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-strong",
+						className,
+					)}
+					onEscapeKeyDown={(event) => {
+						keepOpenForConfirmDialog(event);
+						onEscapeKeyDown?.(event);
+					}}
+					onFocusOutside={(event) => {
+						keepOpenForConfirmDialog(event);
+						onFocusOutside?.(event);
+					}}
+					onInteractOutside={(event) => {
+						keepOpenForConfirmDialog(event);
+						onInteractOutside?.(event);
+					}}
+					onPointerDownOutside={(event) => {
+						keepOpenForConfirmDialog(event);
+						onPointerDownOutside?.(event);
+					}}
+					{...props}
+				/>
+			</DialogPortal>
+		);
+	},
+);
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({

@@ -784,11 +784,15 @@
   }
 
   .modal-overlay {
-    @apply fixed inset-0 z-50 grid place-items-center bg-slate-900/45 p-4 backdrop-blur-sm;
+    @apply fixed inset-0 grid place-items-center bg-slate-900/45 p-4 backdrop-blur-sm;
+    z-index: 1000;
+    pointer-events: auto;
   }
 
   .modal-card {
     @apply w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-strong;
+    position: relative;
+    z-index: 1001;
     animation: page-fade 0.2s ease both;
   }
 

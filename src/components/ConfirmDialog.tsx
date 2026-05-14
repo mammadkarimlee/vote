@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type ConfirmOptions = {
 	title?: string;
@@ -39,7 +40,7 @@ export const useConfirmDialog = () => {
 		};
 	}, [state]);
 
-	const dialog = state ? (
+	const dialogContent = state ? (
 		<div className="modal-overlay" role="dialog" aria-modal="true">
 			<div className="modal-card">
 				<div className="modal-title">{state.title ?? "Təsdiq"}</div>
@@ -63,6 +64,10 @@ export const useConfirmDialog = () => {
 			</div>
 		</div>
 	) : null;
+	const dialog =
+		dialogContent && typeof document !== "undefined"
+			? createPortal(dialogContent, document.body)
+			: dialogContent;
 
 	return { confirm, dialog };
 };
