@@ -893,11 +893,18 @@
   }
 
   .student-lessons-dialog {
-    @apply max-w-5xl;
+    @apply flex flex-col overflow-hidden rounded-2xl;
+    width: calc(100vw - 2rem) !important;
+    max-width: 1800px !important;
+    height: 90vh !important;
+  }
+
+  .student-lessons-header {
+    @apply flex-row items-center justify-between gap-3 space-y-0;
   }
 
   .student-lessons-panel {
-    @apply grid gap-4;
+    @apply flex min-h-0 flex-1 flex-col gap-4;
   }
 
   .student-lessons-toolbar {
@@ -913,7 +920,25 @@
   }
 
   .student-lessons-table {
-    max-height: 26rem;
+    @apply min-h-0 flex-1;
+    max-height: none;
+    overflow: auto;
+  }
+
+  .student-lessons-table .data-row {
+    display: grid;
+    grid-template-columns:
+      minmax(8rem, 0.8fr)
+      minmax(12rem, 1fr)
+      minmax(14rem, 1.1fr)
+      minmax(10rem, 0.8fr)
+      minmax(6rem, auto);
+    min-width: 0;
+  }
+
+  .student-lessons-table .data-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .page-hero__content p {

@@ -1197,8 +1197,18 @@ export const BranchStudentsPage = () => {
 				}}
 			>
 				<DialogContent className="student-lessons-dialog">
-					<DialogHeader>
+					<DialogHeader className="student-lessons-header">
 						<DialogTitle>Şagirdin dərsləri</DialogTitle>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => {
+								setSelectedStudentId(null);
+								setExtraAssignmentId("");
+							}}
+						>
+							Bağla
+						</button>
 					</DialogHeader>
 					{selectedStudent && (
 						<div className="student-lessons-panel">
