@@ -130,3 +130,5 @@ create policy tasks_delete on public.tasks
       and public.current_branch_id() = branch_id
     )
   );
+
+notify pgrst, 'reload schema';
