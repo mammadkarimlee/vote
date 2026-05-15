@@ -81,7 +81,10 @@ export type StudentAssignmentOverrideDoc = {
 	assignmentId: string;
 	year: number;
 	action: StudentAssignmentOverrideAction;
+	createdBy?: string | null;
 	createdAt?: unknown;
+	deletedBy?: string | null;
+	deletedAt?: unknown;
 };
 
 export type GroupDoc = {

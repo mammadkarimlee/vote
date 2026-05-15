@@ -305,7 +305,9 @@ create table if not exists public.student_assignment_overrides (
   assignment_id text not null references public.teaching_assignments (id) on delete cascade,
   year integer not null,
   action text not null check (action in ('include', 'exclude')),
+  created_by text references public.users (id) on delete set null,
   created_at timestamptz not null default now(),
+  deleted_by text references public.users (id) on delete set null,
   deleted_at timestamptz
 );
 

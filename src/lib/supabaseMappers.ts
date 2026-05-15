@@ -95,7 +95,10 @@ export const mapStudentAssignmentOverrideRow = (
 	assignmentId: row.assignment_id,
 	year: row.year,
 	action: row.action ?? "include",
+	createdBy: row.created_by ?? null,
 	createdAt: row.created_at ?? null,
+	deletedBy: row.deleted_by ?? null,
+	deletedAt: row.deleted_at ?? null,
 });
 
 export const mapGroupRow = (row: Row): GroupDoc => ({

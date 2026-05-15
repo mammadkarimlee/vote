@@ -19,6 +19,7 @@ import {
 	mapSurveyCycleRow,
 	mapTeacherRow,
 	mapTeachingAssignmentRow,
+	mapUserRow,
 } from "../../lib/supabaseMappers";
 import {
 	buildStudentMembershipMap,
@@ -35,6 +36,7 @@ import type {
 	TaskDoc,
 	TeacherDoc,
 	TeachingAssignmentDoc,
+	UserDoc,
 } from "../../lib/types";
 import { usePagination } from "../../lib/usePagination";
 import { downloadWorkbook } from "../../lib/xlsx";
@@ -58,6 +60,16 @@ type StudentLesson = {
 	source: "base" | "included";
 };
 
+type LessonOverrideLog = {
+	id: string;
+	assignmentId: string;
+	lessonLabel: string;
+	action: "added" | "removed" | "restored";
+	status: "active" | "history";
+	at: unknown;
+	actorId?: string | null;
+};
+
 const buildTaskId = (task: {
 	cycleId: string;
 	raterUid: string;
@@ -76,6 +88,36 @@ const buildTaskId = (task: {
 		task.scopeKey ?? task.subjectId ?? "all",
 	].join("_");
 
+const formatAuditTime = (value: unknown) => {
+	if (!value) return "-";
+	const date = new Date(String(value));
+	if (Number.isNaN(date.getTime())) return "-";
+	return date.toLocaleString("az-AZ", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+};
+
+const lessonLogActionLabel: Record<LessonOverrideLog["action"], string> = {
+	added: "Əlavə edildi",
+	removed: "Çıxarıldı",
+	restored: "Geri əlavə edildi",
+};
+
+const isOverrideAuditColumnMissing = (
+	error: { message?: string } | null | undefined,
+) => {
+	const message = error?.message ?? "";
+	return (
+		message.includes("student_assignment_overrides") &&
+		message.includes("schema cache") &&
+		(message.includes("created_by") || message.includes("deleted_by"))
+	);
+};
+
 export const BranchStudentsPage = () => {
 	const { user } = useAuth();
 	const { confirm, dialog } = useConfirmDialog();
@@ -89,6 +131,7 @@ export const BranchStudentsPage = () => {
 	);
 	const [teachers, setTeachers] = useState<Array<DocEntry<TeacherDoc>>>([]);
 	const [subjects, setSubjects] = useState<Array<DocEntry<SubjectDoc>>>([]);
+	const [users, setUsers] = useState<Array<DocEntry<UserDoc>>>([]);
 	const [assignments, setAssignments] = useState<
 		Array<DocEntry<TeachingAssignmentDoc>>
 	>([]);
@@ -123,6 +166,7 @@ export const BranchStudentsPage = () => {
 			setGroups([]);
 			setTeachers([]);
 			setSubjects([]);
+			setUsers([]);
 			setAssignments([]);
 			setStudentGroupMemberships([]);
 			setAssignmentOverrides([]);
@@ -149,6 +193,10 @@ export const BranchStudentsPage = () => {
 			.select("*")
 			.eq("org_id", ORG_ID)
 			.is("deleted_at", null);
+		const userQuery = supabase
+			.from("users")
+			.select("*")
+			.eq("org_id", ORG_ID);
 		let assignmentQuery = supabase
 			.from("teaching_assignments")
 			.select("*")
@@ -162,8 +210,7 @@ export const BranchStudentsPage = () => {
 		let overrideQuery = supabase
 			.from("student_assignment_overrides")
 			.select("*")
-			.eq("org_id", ORG_ID)
-			.is("deleted_at", null);
+			.eq("org_id", ORG_ID);
 		studentQuery = studentQuery.eq("branch_id", branchId);
 		groupQuery = groupQuery.eq("branch_id", branchId);
 		teacherQuery = teacherQuery.or(
@@ -178,6 +225,7 @@ export const BranchStudentsPage = () => {
 			groupRes,
 			teacherRes,
 			subjectRes,
+			userRes,
 			assignmentRes,
 			membershipRes,
 			overrideRes,
@@ -186,6 +234,7 @@ export const BranchStudentsPage = () => {
 			groupQuery,
 			teacherQuery,
 			subjectQuery,
+			userQuery,
 			assignmentQuery,
 			membershipQuery,
 			overrideQuery,
@@ -216,6 +265,10 @@ export const BranchStudentsPage = () => {
 			id: row.id,
 			data: mapSubjectRow(row),
 		}));
+		const userDocs = (userRes.data ?? []).map((row) => ({
+			id: row.id,
+			data: mapUserRow(row),
+		}));
 		const assignmentDocs = (assignmentRes.data ?? []).map((row) => ({
 			id: row.id,
 			data: mapTeachingAssignmentRow(row),
@@ -236,6 +289,7 @@ export const BranchStudentsPage = () => {
 			}),
 		);
 		setSubjects(subjectDocs);
+		setUsers(userDocs);
 		setAssignments(
 			assignmentDocs.filter(
 				(assignment) => assignment.data.branchId === branchId,
@@ -508,10 +562,36 @@ export const BranchStudentsPage = () => {
 		() => Object.fromEntries(subjects.map((subject) => [subject.id, subject.data])),
 		[subjects],
 	);
+	const userMap = useMemo(
+		() => Object.fromEntries(users.map((item) => [item.id, item.data])),
+		[users],
+	);
 	const assignmentMap = useMemo(
 		() =>
 			Object.fromEntries(assignments.map((assignment) => [assignment.id, assignment])),
 		[assignments],
+	);
+	const getLessonLabel = useCallback(
+		(assignmentId: string) => {
+			const assignment = assignmentMap[assignmentId];
+			if (!assignment) return assignmentId;
+			const groupName =
+				groupMap[assignment.data.groupId]?.name ?? assignment.data.groupId;
+			const subjectName =
+				subjectMap[assignment.data.subjectId]?.name ?? assignment.data.subjectId;
+			const teacherName =
+				teacherMap[assignment.data.teacherId]?.name ?? assignment.data.teacherId;
+			return `${subjectName} - ${teacherName} (${groupName})`;
+		},
+		[assignmentMap, groupMap, subjectMap, teacherMap],
+	);
+	const getActorName = useCallback(
+		(actorId?: string | null) => {
+			if (!actorId) return "Sistem";
+			const actor = userMap[actorId];
+			return actor?.displayName || actor?.login || actor?.email || actorId;
+		},
+		[userMap],
 	);
 	const assignmentYears = useMemo(() => {
 		const years = new Set(assignments.map((assignment) => assignment.data.year));
@@ -566,6 +646,7 @@ export const BranchStudentsPage = () => {
 	const getStudentOverrides = useCallback(
 		(student: DocEntry<StudentDoc>, year: number) =>
 			assignmentOverrides.filter((override) => {
+				if (override.data.deletedAt) return false;
 				if (override.data.year !== year) return false;
 				const studentKeys = new Set(
 					[student.id, student.data.uid].filter(Boolean) as string[],
@@ -588,7 +669,7 @@ export const BranchStudentsPage = () => {
 				(membership) => membership.data.year === year,
 			);
 			const overridesForYear = assignmentOverrides.filter(
-				(override) => override.data.year === year,
+				(override) => override.data.year === year && !override.data.deletedAt,
 			);
 			const membershipsByStudentKey = buildStudentMembershipMap(membershipsForYear);
 			const studentGroupIds = resolveStudentGroupIds(
@@ -650,6 +731,64 @@ export const BranchStudentsPage = () => {
 				? getStudentLessons(selectedStudent, lessonYearNumber)
 				: [],
 		[getStudentLessons, lessonYearNumber, selectedStudent],
+	);
+	const selectedStudentOverrideLogs = useMemo(() => {
+		if (!selectedStudent) return [];
+		const studentKeys = new Set(
+			[selectedStudent.id, selectedStudent.data.uid].filter(Boolean) as string[],
+		);
+		const logs: LessonOverrideLog[] = [];
+
+		assignmentOverrides.forEach((override) => {
+			if (override.data.year !== lessonYearNumber) return;
+			const matchesStudent =
+				studentKeys.has(override.data.studentId) ||
+				(Boolean(override.data.userId) &&
+					studentKeys.has(override.data.userId ?? ""));
+			if (!matchesStudent) return;
+
+			const lessonLabel = getLessonLabel(override.data.assignmentId);
+			const status = override.data.deletedAt ? "history" : "active";
+			logs.push({
+				id: `${override.id}:created`,
+				assignmentId: override.data.assignmentId,
+				lessonLabel,
+				action: override.data.action === "exclude" ? "removed" : "added",
+				status,
+				at: override.data.createdAt,
+				actorId: override.data.createdBy,
+			});
+
+			if (override.data.deletedAt) {
+				logs.push({
+					id: `${override.id}:deleted`,
+					assignmentId: override.data.assignmentId,
+					lessonLabel,
+					action: override.data.action === "exclude" ? "restored" : "removed",
+					status: "history",
+					at: override.data.deletedAt,
+					actorId: override.data.deletedBy,
+				});
+			}
+		});
+
+		return logs.sort((a, b) => {
+			const left = new Date(String(a.at ?? 0)).getTime();
+			const right = new Date(String(b.at ?? 0)).getTime();
+			return right - left;
+		});
+	}, [
+		assignmentOverrides,
+		getLessonLabel,
+		lessonYearNumber,
+		selectedStudent,
+	]);
+	const removedStudentLessons = useMemo(
+		() =>
+			selectedStudentOverrideLogs.filter(
+				(log) => log.action === "removed" && log.status === "active",
+			),
+		[selectedStudentOverrideLogs],
 	);
 	const availableExtraAssignments = useMemo(() => {
 		if (!selectedStudent) return [];
@@ -901,7 +1040,7 @@ export const BranchStudentsPage = () => {
 		year: number,
 	) => {
 		if (!branchId) throw new Error("Filial seçilməyib");
-		const { error } = await supabase.from("student_assignment_overrides").insert({
+		const overridePayload = {
 			org_id: ORG_ID,
 			branch_id: branchId,
 			student_id: student.id,
@@ -909,16 +1048,40 @@ export const BranchStudentsPage = () => {
 			assignment_id: assignmentId,
 			year,
 			action,
+		};
+		const { error } = await supabase.from("student_assignment_overrides").insert({
+			...overridePayload,
+			created_by: user?.id ?? null,
 		});
+		if (isOverrideAuditColumnMissing(error)) {
+			const { error: retryError } = await supabase
+				.from("student_assignment_overrides")
+				.insert(overridePayload);
+			if (retryError) throw new Error(retryError.message);
+			return;
+		}
 		if (error) throw new Error(error.message);
 	};
 
 	const removeOverride = async (overrideId: string) => {
+		const deletedAt = new Date().toISOString();
 		const { error } = await supabase
 			.from("student_assignment_overrides")
-			.update({ deleted_at: new Date().toISOString() })
+			.update({
+				deleted_at: deletedAt,
+				deleted_by: user?.id ?? null,
+			})
 			.eq("org_id", ORG_ID)
 			.eq("id", overrideId);
+		if (isOverrideAuditColumnMissing(error)) {
+			const { error: retryError } = await supabase
+				.from("student_assignment_overrides")
+				.update({ deleted_at: deletedAt })
+				.eq("org_id", ORG_ID)
+				.eq("id", overrideId);
+			if (retryError) throw new Error(retryError.message);
+			return;
+		}
 		if (error) throw new Error(error.message);
 	};
 
@@ -935,6 +1098,7 @@ export const BranchStudentsPage = () => {
 		if (!ok) return;
 		setLessonSaving(true);
 		try {
+			const lessonLabel = getLessonLabel(lesson.assignmentId);
 			await ensureNoSubmittedOpenTasks(selectedStudent);
 			const overrides = getStudentOverrides(selectedStudent, lesson.year);
 			const includeOverride = overrides.find(
@@ -954,7 +1118,7 @@ export const BranchStudentsPage = () => {
 			}
 			await loadData();
 			await rebuildOpenStudentTasks(selectedStudent, lesson.year);
-			setStatus("Şagirdin dərs siyahısı yeniləndi.");
+			setStatus(`Şagirdin dərs cədvəlindən ${lessonLabel} çıxarıldı.`);
 		} catch (error) {
 			setStatus(error instanceof Error ? error.message : "Dəyişiklik saxlanmadı");
 		} finally {
@@ -971,6 +1135,7 @@ export const BranchStudentsPage = () => {
 		}
 		setLessonSaving(true);
 		try {
+			const lessonLabel = getLessonLabel(extraAssignmentId);
 			await ensureNoSubmittedOpenTasks(selectedStudent);
 			const overrides = getStudentOverrides(selectedStudent, lessonYearNumber);
 			const excludeOverride = overrides.find(
@@ -1007,7 +1172,11 @@ export const BranchStudentsPage = () => {
 			await loadData();
 			await rebuildOpenStudentTasks(selectedStudent, lessonYearNumber);
 			setExtraAssignmentId("");
-			setStatus("Əlavə dərs şagird üçün aktiv edildi.");
+			setStatus(
+				excludeOverride
+					? `${lessonLabel} şagirdin dərs cədvəlinə geri əlavə edildi.`
+					: `${lessonLabel} şagirdin dərs cədvəlinə əlavə edildi.`,
+			);
 		} catch (error) {
 			setStatus(error instanceof Error ? error.message : "Dəyişiklik saxlanmadı");
 		} finally {
@@ -1404,6 +1573,62 @@ export const BranchStudentsPage = () => {
 							{selectedStudentLessons.length === 0 && (
 								<div className="empty">Bu il üçün dərs tapılmadı.</div>
 							)}
+							<div className="stack">
+								<div className="section-header">
+									<div>
+										<div className="section-kicker">Çıxarılan dərslər</div>
+										<div className="hint">
+											Hazırda bu şagirdin cədvəlindən çıxarılan dərslər
+										</div>
+									</div>
+								</div>
+								{removedStudentLessons.length > 0 ? (
+									<div className="list">
+										{removedStudentLessons.map((log) => (
+											<div className="list-item" key={log.id}>
+												<div>
+													<div className="list-title">{log.lessonLabel}</div>
+													<div className="list-meta">
+														{formatAuditTime(log.at)} • {getActorName(log.actorId)}
+													</div>
+												</div>
+												<span className="tag warn">Çıxarılıb</span>
+											</div>
+										))}
+									</div>
+								) : (
+									<div className="empty">Çıxarılan dərs yoxdur.</div>
+								)}
+							</div>
+							<div className="stack">
+								<div className="section-header">
+									<div>
+										<div className="section-kicker">Dəyişiklik tarixçəsi</div>
+										<div className="hint">Əlavə etmə, çıxarma və geri əlavə etmə logları</div>
+									</div>
+								</div>
+								{selectedStudentOverrideLogs.length > 0 ? (
+									<div className="list">
+										{selectedStudentOverrideLogs.map((log) => (
+											<div className="list-item" key={log.id}>
+												<div>
+													<div className="list-title">
+														{lessonLogActionLabel[log.action]}: {log.lessonLabel}
+													</div>
+													<div className="list-meta">
+														{formatAuditTime(log.at)} • {getActorName(log.actorId)}
+													</div>
+												</div>
+												<span className="tag">
+													{log.status === "active" ? "Aktiv" : "Tarixçə"}
+												</span>
+											</div>
+										))}
+									</div>
+								) : (
+									<div className="empty">Dəyişiklik tarixçəsi yoxdur.</div>
+								)}
+							</div>
 							<div className="hint">
 								Dəyişiklik yalnız bu şagirdə aiddir. Cavabı olan açıq tasklar
 								silinmir, bu halda sistem dəyişiklik etməyə icazə vermir.
