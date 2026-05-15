@@ -8,6 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../../components/ui/dialog";
+import { toErrorMessage } from "../../lib/errorMessage";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapGroupRow,
@@ -100,6 +101,11 @@ export const BranchStudentsPage = () => {
 	const [name, setName] = useState("");
 	const [groupId, setGroupId] = useState("");
 	const [classLevel, setClassLevel] = useState("");
+	const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+	const [editName, setEditName] = useState("");
+	const [editGroupId, setEditGroupId] = useState("");
+	const [editClassLevel, setEditClassLevel] = useState("");
+	const [savingStudentEdit, setSavingStudentEdit] = useState(false);
 	const [selectedClass, setSelectedClass] = useState("all");
 	const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
 		null,
@@ -286,6 +292,13 @@ export const BranchStudentsPage = () => {
 		}
 	};
 
+	const handleEditCancel = useCallback(() => {
+		setEditingStudentId(null);
+		setEditName("");
+		setEditGroupId("");
+		setEditClassLevel("");
+	}, []);
+
 	const handleDelete = async (studentId: string) => {
 		const ok = await confirm({
 			title: "Şagirdi sil",
@@ -295,15 +308,99 @@ export const BranchStudentsPage = () => {
 			tone: "danger",
 		});
 		if (!ok) return;
-		await supabase
-			.from("students")
-			.update({
-				deleted_at: new Date().toISOString(),
-				deleted_by: user?.id ?? null,
-			})
-			.eq("org_id", ORG_ID)
-			.eq("id", studentId);
-		await loadData();
+		try {
+			const { error } = await supabase
+				.from("students")
+				.update({
+					deleted_at: new Date().toISOString(),
+					deleted_by: user?.id ?? null,
+				})
+				.eq("org_id", ORG_ID)
+				.eq("id", studentId);
+			if (error) throw error;
+			if (editingStudentId === studentId) {
+				handleEditCancel();
+			}
+			if (selectedStudentId === studentId) {
+				setSelectedStudentId(null);
+			}
+			setStatus("Şagird silindi.");
+			await loadData();
+		} catch (error) {
+			setStatus(toErrorMessage(error, "Şagird silinmədi"));
+		}
+	};
+
+	const handleEditStart = (student: DocEntry<StudentDoc>) => {
+		setEditingStudentId(student.id);
+		setEditName(student.data.name);
+		setEditGroupId(student.data.groupId);
+		setEditClassLevel(getStudentClassLevel(student));
+	};
+
+	const handleEditSave = async () => {
+		if (!branchId || !editingStudentId) return;
+		const student = students.find((item) => item.id === editingStudentId);
+		if (!student) {
+			setStatus("Şagird tapılmadı.");
+			return;
+		}
+		if (!editName.trim() || !editGroupId || !editClassLevel.trim()) {
+			setStatus("Ad, qrup və sinif səviyyəsi tələb olunur");
+			return;
+		}
+
+		const nextGroup = groups.find((group) => group.id === editGroupId);
+		if (!nextGroup) {
+			setStatus("Qrup tapılmadı.");
+			return;
+		}
+
+		setSavingStudentEdit(true);
+		try {
+			const groupChanged = student.data.groupId !== editGroupId;
+			let openCycleYears: number[] = [];
+			if (groupChanged) {
+				await ensureNoSubmittedOpenTasks(student);
+				openCycleYears = Array.from(
+					new Set((await loadOpenCycles()).map((cycle) => cycle.data.year)),
+				);
+			}
+
+			const nextName = editName.trim();
+			const nextClassLevel = editClassLevel.trim();
+			const { error } = await supabase
+				.from("students")
+				.update({
+					name: nextName,
+					group_id: editGroupId,
+					class_level: nextClassLevel,
+				})
+				.eq("org_id", ORG_ID)
+				.eq("id", editingStudentId);
+			if (error) throw error;
+
+			const updatedStudent: DocEntry<StudentDoc> = {
+				id: student.id,
+				data: {
+					...student.data,
+					name: nextName,
+					groupId: editGroupId,
+					classLevel: nextClassLevel,
+				},
+			};
+			for (const year of openCycleYears) {
+				await rebuildOpenStudentTasks(updatedStudent, year);
+			}
+
+			handleEditCancel();
+			setStatus("Şagird yeniləndi.");
+			await loadData();
+		} catch (error) {
+			setStatus(toErrorMessage(error, "Şagird yenilənmədi"));
+		} finally {
+			setSavingStudentEdit(false);
+		}
 	};
 
 	const handleImport = async (file: File) => {
@@ -456,6 +553,7 @@ export const BranchStudentsPage = () => {
 		[getStudentClassLevel, selectedClass, students],
 	);
 	const studentsPagination = usePagination(filteredStudents);
+	const resetStudentsPage = studentsPagination.resetPage;
 	const selectedStudent = useMemo(
 		() =>
 			selectedStudentId
@@ -585,11 +683,12 @@ export const BranchStudentsPage = () => {
 
 	useEffect(() => {
 		setSelectedClass("all");
-	}, [branchId]);
+		handleEditCancel();
+	}, [branchId, handleEditCancel]);
 
 	useEffect(() => {
-		studentsPagination.resetPage();
-	}, [selectedClass, studentsPagination.resetPage]);
+		resetStudentsPage();
+	}, [selectedClass, resetStudentsPage]);
 
 	useEffect(() => {
 		if (
@@ -1118,6 +1217,63 @@ export const BranchStudentsPage = () => {
 						<div className="hint">Şifrə default olaraq login ilə eynidir.</div>
 						{status && <div className="notice">{status}</div>}
 					</div>
+
+					{editingStudentId && (
+						<div className="card">
+							<h3>Şagirdi redaktə et</h3>
+							<div className="form-grid">
+								<input
+									className="input"
+									placeholder="Ad Soyad"
+									value={editName}
+									onChange={(event) => setEditName(event.target.value)}
+								/>
+								<select
+									className="input"
+									value={editGroupId}
+									onChange={(event) => {
+										const nextGroupId = event.target.value;
+										setEditGroupId(nextGroupId);
+										const nextGroup = groupMap[nextGroupId];
+										if (nextGroup?.classLevel) {
+											setEditClassLevel(nextGroup.classLevel);
+										}
+									}}
+								>
+									<option value="">Qrup seçin</option>
+									{groups.map((group) => (
+										<option key={group.id} value={group.id}>
+											{group.data.name}
+										</option>
+									))}
+								</select>
+								<input
+									className="input"
+									placeholder="Sinif səviyyəsi (məs: 9)"
+									value={editClassLevel}
+									onChange={(event) => setEditClassLevel(event.target.value)}
+								/>
+							</div>
+							<div className="form-row">
+								<button
+									className="btn primary"
+									type="button"
+									onClick={() => void handleEditSave()}
+									disabled={savingStudentEdit}
+								>
+									Yadda saxla
+								</button>
+								<button
+									className="btn ghost"
+									type="button"
+									onClick={handleEditCancel}
+									disabled={savingStudentEdit}
+								>
+									Ləğv et
+								</button>
+							</div>
+						</div>
+					)}
 				</div>
 
 				<div className="card">
@@ -1155,6 +1311,13 @@ export const BranchStudentsPage = () => {
 								<div>{getStudentClassLevel(student)}</div>
 								<div>{student.data.login ?? "-"}</div>
 								<div className="student-row-actions">
+									<button
+										className="btn ghost"
+										type="button"
+										onClick={() => handleEditStart(student)}
+									>
+										Redaktə
+									</button>
 									<button
 										className="btn ghost"
 										type="button"

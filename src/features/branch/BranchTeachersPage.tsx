@@ -507,15 +507,24 @@ const resetTeachersPage = teachersPagination.resetPage;
 			tone: "danger",
 		});
 		if (!ok) return;
-		await supabase
-			.from("teachers")
-			.update({
-				deleted_at: new Date().toISOString(),
-				deleted_by: user?.id ?? null,
-			})
-			.eq("org_id", ORG_ID)
-			.eq("id", teacherId);
-		await loadLookups();
+		try {
+			const { error } = await supabase
+				.from("teachers")
+				.update({
+					deleted_at: new Date().toISOString(),
+					deleted_by: user?.id ?? null,
+				})
+				.eq("org_id", ORG_ID)
+				.eq("id", teacherId);
+			if (error) throw error;
+			if (editingId === teacherId) {
+				handleEditCancel();
+			}
+			setStatus("Müəllim silindi.");
+			await loadLookups();
+		} catch (error) {
+			setStatus(toErrorMessage(error, "Müəllim silinmədi"));
+		}
 	};
 
 	const handleEditStart = (teacher: DocEntry<TeacherDoc>) => {
