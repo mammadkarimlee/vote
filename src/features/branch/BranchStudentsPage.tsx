@@ -1218,62 +1218,6 @@ export const BranchStudentsPage = () => {
 						{status && <div className="notice">{status}</div>}
 					</div>
 
-					{editingStudentId && (
-						<div className="card">
-							<h3>Şagirdi redaktə et</h3>
-							<div className="form-grid">
-								<input
-									className="input"
-									placeholder="Ad Soyad"
-									value={editName}
-									onChange={(event) => setEditName(event.target.value)}
-								/>
-								<select
-									className="input"
-									value={editGroupId}
-									onChange={(event) => {
-										const nextGroupId = event.target.value;
-										setEditGroupId(nextGroupId);
-										const nextGroup = groupMap[nextGroupId];
-										if (nextGroup?.classLevel) {
-											setEditClassLevel(nextGroup.classLevel);
-										}
-									}}
-								>
-									<option value="">Qrup seçin</option>
-									{groups.map((group) => (
-										<option key={group.id} value={group.id}>
-											{group.data.name}
-										</option>
-									))}
-								</select>
-								<input
-									className="input"
-									placeholder="Sinif səviyyəsi (məs: 9)"
-									value={editClassLevel}
-									onChange={(event) => setEditClassLevel(event.target.value)}
-								/>
-							</div>
-							<div className="form-row">
-								<button
-									className="btn primary"
-									type="button"
-									onClick={() => void handleEditSave()}
-									disabled={savingStudentEdit}
-								>
-									Yadda saxla
-								</button>
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={handleEditCancel}
-									disabled={savingStudentEdit}
-								>
-									Ləğv et
-								</button>
-							</div>
-						</div>
-					)}
 				</div>
 
 				<div className="card">
@@ -1466,6 +1410,71 @@ export const BranchStudentsPage = () => {
 							</div>
 						</div>
 					)}
+				</DialogContent>
+			</Dialog>
+			<Dialog
+				open={Boolean(editingStudentId)}
+				onOpenChange={(open) => {
+					if (!open) {
+						handleEditCancel();
+					}
+				}}
+			>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>Şagirdi redaktə et</DialogTitle>
+					</DialogHeader>
+					<div className="stack">
+						<input
+							className="input"
+							placeholder="Ad Soyad"
+							value={editName}
+							onChange={(event) => setEditName(event.target.value)}
+						/>
+						<select
+							className="input"
+							value={editGroupId}
+							onChange={(event) => {
+								const nextGroupId = event.target.value;
+								setEditGroupId(nextGroupId);
+								const nextGroup = groupMap[nextGroupId];
+								if (nextGroup?.classLevel) {
+									setEditClassLevel(nextGroup.classLevel);
+								}
+							}}
+						>
+							<option value="">Qrup seçin</option>
+							{groups.map((group) => (
+								<option key={group.id} value={group.id}>
+									{group.data.name}
+								</option>
+							))}
+						</select>
+						<input
+							className="input"
+							placeholder="Sinif səviyyəsi (məs: 9)"
+							value={editClassLevel}
+							onChange={(event) => setEditClassLevel(event.target.value)}
+						/>
+						<div className="actions modal-actions">
+							<button
+								className="btn ghost"
+								type="button"
+								onClick={handleEditCancel}
+								disabled={savingStudentEdit}
+							>
+								Ləğv et
+							</button>
+							<button
+								className="btn primary"
+								type="button"
+								onClick={() => void handleEditSave()}
+								disabled={savingStudentEdit}
+							>
+								Yadda saxla
+							</button>
+						</div>
+					</div>
 				</DialogContent>
 			</Dialog>
 			{dialog}

@@ -997,6 +997,17 @@
     @apply grid gap-2 md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))];
   }
 
+  .assignment-picker__list {
+    max-height: 18rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    overscroll-behavior: contain;
+  }
+
+  .assignment-picker__list.compact {
+    max-height: 12rem;
+  }
+
   .check-item {
     @apply flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm transition hover:bg-secondary;
     cursor: pointer;

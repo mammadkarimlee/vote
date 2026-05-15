@@ -3,6 +3,12 @@ import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link } from "react-router-dom";
 import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 import { toErrorMessage } from "../../lib/errorMessage";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { downloadWorkbook } from "../../lib/xlsx";
@@ -40,6 +46,13 @@ const splitName = (value: string) => {
 	const last = parts.length > 1 ? parts.slice(1).join(" ") : (parts[0] ?? "");
 	return { first, last };
 };
+
+const normalizeSearch = (value: string) =>
+	value
+		.trim()
+		.toLocaleLowerCase("az")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "");
 
 const uploadTeacherPhoto = async (teacherId: string, file: File) => {
 	const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
@@ -106,6 +119,8 @@ export const BranchTeachersPage = () => {
 	);
 	const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
 	const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+	const [subjectSearch, setSubjectSearch] = useState("");
+	const [groupSearch, setGroupSearch] = useState("");
 
 	const [filterDepartmentId, setFilterDepartmentId] = useState("");
 	const [filterSubjectId, setFilterSubjectId] = useState("");
@@ -254,6 +269,51 @@ export const BranchTeachersPage = () => {
 		});
 		return map;
 	}, [assignments]);
+	const canonicalSubjects = useMemo(() => {
+		const byName = new Map<string, DocEntry<SubjectDoc>>();
+		subjects.forEach((subject) => {
+			const name = subject.data.name.trim();
+			if (!name) return;
+			const key = normalizeSearch(name);
+			if (!byName.has(key)) {
+				byName.set(key, { id: subject.id, data: { ...subject.data, name } });
+			}
+		});
+		return Array.from(byName.values()).sort((a, b) =>
+			a.data.name.localeCompare(b.data.name, "az", {
+				numeric: true,
+				sensitivity: "base",
+			}),
+		);
+	}, [subjects]);
+	const visibleSubjects = useMemo(() => {
+		const query = normalizeSearch(subjectSearch);
+		return canonicalSubjects.filter((subject) => {
+			if (!query) return true;
+			return normalizeSearch(subject.data.name).includes(query);
+		});
+	}, [canonicalSubjects, subjectSearch]);
+	const visibleGroups = useMemo(() => {
+		const query = normalizeSearch(groupSearch);
+		return groups
+			.filter((group) => {
+				if (!query) return true;
+				const label = `${group.data.name} ${group.data.classLevel}`;
+				return normalizeSearch(label).includes(query);
+			})
+			.sort((a, b) => {
+				const classCompare = a.data.classLevel.localeCompare(
+					b.data.classLevel,
+					"az",
+					{ numeric: true, sensitivity: "base" },
+				);
+				if (classCompare !== 0) return classCompare;
+				return a.data.name.localeCompare(b.data.name, "az", {
+					numeric: true,
+					sensitivity: "base",
+				});
+			});
+	}, [groups, groupSearch]);
 
 	const filteredTeachers = useMemo(() => {
 		return teachers.filter((teacher) => {
@@ -326,7 +386,9 @@ const resetTeachersPage = teachersPagination.resetPage;
 	};
 
 	const selectAllSubjects = () => {
-		setSelectedSubjectIds(subjects.map((subject) => subject.id));
+		setSelectedSubjectIds((prev) =>
+			Array.from(new Set([...prev, ...visibleSubjects.map((subject) => subject.id)])),
+		);
 	};
 
 	const clearSubjects = () => {
@@ -334,7 +396,9 @@ const resetTeachersPage = teachersPagination.resetPage;
 	};
 
 	const selectAllGroups = () => {
-		setSelectedGroupIds(groups.map((group) => group.id));
+		setSelectedGroupIds((prev) =>
+			Array.from(new Set([...prev, ...visibleGroups.map((group) => group.id)])),
+		);
 	};
 
 	const clearGroups = () => {
@@ -491,6 +555,8 @@ const resetTeachersPage = teachersPagination.resetPage;
 			setPhotoPreview(null);
 			setSelectedGroupIds([]);
 			setSelectedSubjectIds([]);
+			setSubjectSearch("");
+			setGroupSearch("");
 			setStatus(`Login: ${result.login} • Şifrə: ${result.password}`);
 			await loadLookups();
 		} catch (error) {
@@ -887,8 +953,14 @@ const resetTeachersPage = teachersPagination.resetPage;
 									</button>
 								</div>
 							</div>
-							<div className="check-grid">
-								{subjects.map((subject) => {
+							<input
+								className="input"
+								placeholder="Fənn axtar"
+								value={subjectSearch}
+								onChange={(event) => setSubjectSearch(event.target.value)}
+							/>
+							<div className="check-grid assignment-picker__list">
+								{visibleSubjects.map((subject) => {
 									const active = selectedSubjectIds.includes(subject.id);
 									return (
 										<label
@@ -924,8 +996,14 @@ const resetTeachersPage = teachersPagination.resetPage;
 									</button>
 								</div>
 							</div>
-							<div className="check-grid">
-								{groups.map((group) => {
+							<input
+								className="input"
+								placeholder="Sinif və ya qrup axtar"
+								value={groupSearch}
+								onChange={(event) => setGroupSearch(event.target.value)}
+							/>
+							<div className="check-grid assignment-picker__list compact">
+								{visibleGroups.map((group) => {
 									const active = selectedGroupIds.includes(group.id);
 									return (
 										<label
@@ -959,86 +1037,6 @@ const resetTeachersPage = teachersPagination.resetPage;
 							</span>
 						</div>
 					</div>
-
-					{editingId && (
-						<div className="card">
-							<h3>Müəllimi redaktə et</h3>
-							<div className="form-grid">
-								<input
-									className="input"
-									placeholder="Ad"
-									value={editFirstName}
-									onChange={(event) => setEditFirstName(event.target.value)}
-								/>
-								<input
-									className="input"
-									placeholder="Soyad"
-									value={editLastName}
-									onChange={(event) => setEditLastName(event.target.value)}
-								/>
-								<select
-									className="input"
-									value={editDepartmentId}
-									onChange={(event) => setEditDepartmentId(event.target.value)}
-								>
-									<option value="">Kafedra seçin</option>
-									{departments.map((department) => (
-										<option key={department.id} value={department.id}>
-											{department.data.name}
-										</option>
-									))}
-								</select>
-								<select
-									className="input"
-									value={editCategory}
-									onChange={(event) =>
-										setEditCategory(event.target.value as TeacherCategory)
-									}
-								>
-									{teacherCategories.map((item) => (
-										<option key={item.value} value={item.value}>
-											{item.label}
-										</option>
-									))}
-								</select>
-								<input
-									className="input"
-									type="file"
-									accept="image/*"
-									onChange={(event) =>
-										setEditPhotoFile(event.target.files?.[0] ?? null)
-									}
-								/>
-							</div>
-							{editPhotoPreview && (
-								<div className="form-row">
-									<img
-										src={editPhotoPreview}
-										alt="Müəllim şəkli"
-										style={{ width: 72, height: 72, borderRadius: 16 }}
-									/>
-								</div>
-							)}
-							<div className="form-row">
-								<button
-									className="btn primary"
-									type="button"
-									onClick={handleEditSave}
-									disabled={savingEdit}
-								>
-									Yadda saxla
-								</button>
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={handleEditCancel}
-									disabled={savingEdit}
-								>
-									Ləğv et
-								</button>
-							</div>
-						</div>
-					)}
 
 					<div className="card">
 						<h3>Bulk import</h3>
@@ -1215,6 +1213,96 @@ const resetTeachersPage = teachersPagination.resetPage;
 					)}
 				</div>
 			</div>
+			<Dialog
+				open={Boolean(editingId)}
+				onOpenChange={(open) => {
+					if (!open) {
+						handleEditCancel();
+					}
+				}}
+			>
+				<DialogContent className="max-w-xl">
+					<DialogHeader>
+						<DialogTitle>Müəllimi redaktə et</DialogTitle>
+					</DialogHeader>
+					<div className="stack">
+						<div className="form-grid">
+							<input
+								className="input"
+								placeholder="Ad"
+								value={editFirstName}
+								onChange={(event) => setEditFirstName(event.target.value)}
+							/>
+							<input
+								className="input"
+								placeholder="Soyad"
+								value={editLastName}
+								onChange={(event) => setEditLastName(event.target.value)}
+							/>
+							<select
+								className="input"
+								value={editDepartmentId}
+								onChange={(event) => setEditDepartmentId(event.target.value)}
+							>
+								<option value="">Kafedra seçin</option>
+								{departments.map((department) => (
+									<option key={department.id} value={department.id}>
+										{department.data.name}
+									</option>
+								))}
+							</select>
+							<select
+								className="input"
+								value={editCategory}
+								onChange={(event) =>
+									setEditCategory(event.target.value as TeacherCategory)
+								}
+							>
+								{teacherCategories.map((item) => (
+									<option key={item.value} value={item.value}>
+										{item.label}
+									</option>
+								))}
+							</select>
+							<input
+								className="input"
+								type="file"
+								accept="image/*"
+								onChange={(event) =>
+									setEditPhotoFile(event.target.files?.[0] ?? null)
+								}
+							/>
+						</div>
+						{editPhotoPreview && (
+							<div className="form-row">
+								<img
+									src={editPhotoPreview}
+									alt="Müəllim şəkli"
+									style={{ width: 72, height: 72, borderRadius: 16 }}
+								/>
+							</div>
+						)}
+						<div className="actions modal-actions">
+							<button
+								className="btn ghost"
+								type="button"
+								onClick={handleEditCancel}
+								disabled={savingEdit}
+							>
+								Ləğv et
+							</button>
+							<button
+								className="btn primary"
+								type="button"
+								onClick={() => void handleEditSave()}
+								disabled={savingEdit}
+							>
+								Yadda saxla
+							</button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 			{dialog}
 		</div>
 	);
