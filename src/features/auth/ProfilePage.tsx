@@ -113,29 +113,53 @@ export const ProfilePage = () => {
 						<div className="value">{userDoc.email ?? "-"}</div>
 					</div>
 				</div>
-				<label className="field">
-					<span>Ad və Soyad</span>
-					<input
-						className="input"
-						value={displayName}
-						onChange={(event) => setDisplayName(event.target.value)}
-					/>
-				</label>
-				<div className="actions">
-					<button className="btn primary" onClick={handleSave} type="button">
-						Yadda saxla
-					</button>
-					<button
-						className="btn ghost"
-						onClick={() => signOutUser()}
-						type="button"
-					>
-						Çıxış
-					</button>
-				</div>
+				<form
+					className="stack"
+					onKeyDown={(event) => {
+						if (event.key !== "Enter") return;
+						event.preventDefault();
+						event.currentTarget.requestSubmit();
+					}}
+					onSubmit={(event) => {
+						event.preventDefault();
+						void handleSave();
+					}}
+				>
+					<label className="field">
+						<span>Ad və Soyad</span>
+						<input
+							className="input"
+							value={displayName}
+							onChange={(event) => setDisplayName(event.target.value)}
+						/>
+					</label>
+					<div className="actions">
+						<button className="btn primary" type="submit">
+							Yadda saxla
+						</button>
+						<button
+							className="btn ghost"
+							onClick={() => signOutUser()}
+							type="button"
+						>
+							Çıxış
+						</button>
+					</div>
+				</form>
 				{status && <div className="notice">{status}</div>}
 				<div className="divider" />
-				<div className="stack">
+				<form
+					className="stack"
+					onKeyDown={(event) => {
+						if (event.key !== "Enter") return;
+						event.preventDefault();
+						event.currentTarget.requestSubmit();
+					}}
+					onSubmit={(event) => {
+						event.preventDefault();
+						void handlePasswordChange();
+					}}
+				>
 					<h3>Şifrəni dəyiş</h3>
 					<label className="field">
 						<span>Yeni şifrə</span>
@@ -156,16 +180,12 @@ export const ProfilePage = () => {
 						/>
 					</label>
 					<div className="actions">
-						<button
-							className="btn"
-							type="button"
-							onClick={handlePasswordChange}
-						>
+						<button className="btn" type="submit">
 							Şifrəni yenilə
 						</button>
 					</div>
 					{passwordStatus && <div className="notice">{passwordStatus}</div>}
-				</div>
+				</form>
 			</div>
 		</div>
 	);

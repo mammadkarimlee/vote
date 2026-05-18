@@ -76,7 +76,18 @@ export const LoginPage = () => {
 					</p>
 				</div>
 
-				<div className="stack">
+				<form
+					className="stack"
+					onKeyDown={(event) => {
+						if (event.key !== "Enter") return;
+						event.preventDefault();
+						event.currentTarget.requestSubmit();
+					}}
+					onSubmit={(event) => {
+						event.preventDefault();
+						void handleLogin();
+					}}
+				>
 					<label className="field">
 						<span>Login və ya email</span>
 						<input
@@ -95,10 +106,10 @@ export const LoginPage = () => {
 							onChange={(event) => setPassword(event.target.value)}
 						/>
 					</label>
-					<button className="btn primary" onClick={handleLogin} type="button">
+					<button className="btn primary" type="submit">
 						Daxil ol
 					</button>
-				</div>
+				</form>
 
 				{status && <div className="notice">{status}</div>}
 			</div>

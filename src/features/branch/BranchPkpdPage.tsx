@@ -152,6 +152,13 @@ export const BranchPkpdPage = () => {
 	const [teacherBiqGroupId, setTeacherBiqGroupId] = useState("");
 	const [teacherBiqSubjectId, setTeacherBiqSubjectId] = useState("");
 	const [teacherBiqScore, setTeacherBiqScore] = useState("");
+	const [teacherBiqEditTeacherId, setTeacherBiqEditTeacherId] = useState<
+		string | null
+	>(null);
+	const [teacherBiqEditAssignmentKey, setTeacherBiqEditAssignmentKey] =
+		useState("");
+	const [teacherBiqEditScore, setTeacherBiqEditScore] = useState("");
+	const [teacherBiqEditSaving, setTeacherBiqEditSaving] = useState(false);
 	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useFeedbackState();
 
 	const [examDrafts, setExamDrafts] = useState<Record<string, string>>({});
@@ -800,6 +807,86 @@ export const BranchPkpdPage = () => {
 	const selectedSummaryAssignments = selectedSummaryTeacherId
 		? (assignmentByTeacher[selectedSummaryTeacherId] ?? [])
 		: [];
+	const teacherBiqEditAssignments = teacherBiqEditTeacherId
+		? (assignmentByTeacher[teacherBiqEditTeacherId] ?? [])
+		: [];
+	const teacherBiqEditTeacher = teacherBiqEditTeacherId
+		? (teacherMap[teacherBiqEditTeacherId] ?? null)
+		: null;
+	const selectedTeacherBiqEditAssignment = teacherBiqEditAssignments.find(
+		(assignment) =>
+			`${assignment.groupId}_${assignment.subjectId}` === teacherBiqEditAssignmentKey,
+	);
+
+	const refreshTeacherBiqResults = async () => {
+		if (!branchId || !selectedCycleId) return;
+		const { data } = await supabase
+			.from("pkpd_teacher_biq_results")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		setTeacherBiqResults(
+			(data ?? []).map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqResultRow(row),
+			})),
+		);
+	};
+
+	const openTeacherBiqEdit = (teacherId: string) => {
+		const teacherAssignments = assignmentByTeacher[teacherId] ?? [];
+		const firstAssignment = teacherAssignments[0];
+		const firstKey = firstAssignment
+			? `${firstAssignment.groupId}_${firstAssignment.subjectId}`
+			: "";
+		const existingScore = firstAssignment
+			? teacherBiqMap[
+					`${teacherId}_${firstAssignment.groupId}_${firstAssignment.subjectId}`
+				]?.score
+			: null;
+		setTeacherBiqEditTeacherId(teacherId);
+		setTeacherBiqEditAssignmentKey(firstKey);
+		setTeacherBiqEditScore(
+			existingScore === null || existingScore === undefined
+				? ""
+				: String(existingScore),
+		);
+	};
+
+	const openTeacherBiqEditForAssignment = (
+		teacherId: string,
+		groupId: string,
+		subjectId: string,
+	) => {
+		const existingScore =
+			teacherBiqMap[`${teacherId}_${groupId}_${subjectId}`]?.score;
+		setTeacherBiqEditTeacherId(teacherId);
+		setTeacherBiqEditAssignmentKey(`${groupId}_${subjectId}`);
+		setTeacherBiqEditScore(
+			existingScore === null || existingScore === undefined
+				? ""
+				: String(existingScore),
+		);
+	};
+
+	const handleTeacherBiqEditAssignmentChange = (assignmentKey: string) => {
+		if (!teacherBiqEditTeacherId) return;
+		const assignment = (assignmentByTeacher[teacherBiqEditTeacherId] ?? []).find(
+			(item) => `${item.groupId}_${item.subjectId}` === assignmentKey,
+		);
+		const existingScore = assignment
+			? teacherBiqMap[
+					`${teacherBiqEditTeacherId}_${assignment.groupId}_${assignment.subjectId}`
+				]?.score
+			: null;
+		setTeacherBiqEditAssignmentKey(assignmentKey);
+		setTeacherBiqEditScore(
+			existingScore === null || existingScore === undefined
+				? ""
+				: String(existingScore),
+		);
+	};
 
 	const handleSaveBiq = async () => {
 		if (!branchId || !selectedCycleId) return;
@@ -859,6 +946,7 @@ export const BranchPkpdPage = () => {
 		let missingGroup = 0;
 		let missingSubject = 0;
 		let invalidScore = 0;
+		let emptyScore = 0;
 
 		rows.forEach((row) => {
 			const normalized: Record<string, string> = {};
@@ -881,6 +969,10 @@ export const BranchPkpdPage = () => {
 				normalized["fÉ™nn"] ||
 				normalized.fen;
 			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
+			if (String(scoreRaw ?? "").trim() === "") {
+				emptyScore += 1;
+				return;
+			}
 
 			const groupId =
 				(groupRaw && groupMap[groupRaw]?.branchId ? groupRaw : null) ||
@@ -949,7 +1041,7 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 
-		const report = `YÃ¼klÉ™ndi: ${prepared.length}. Qrup tapÄ±lmadÄ±: ${missingGroup}. FÉ™nn tapÄ±lmadÄ±: ${missingSubject}. Bal sÉ™hv: ${invalidScore}.`;
+		const report = `Yükləndi: ${prepared.length}. Boş bal: ${emptyScore}. Qrup tapılmadı: ${missingGroup}. Fənn tapılmadı: ${missingSubject}. Bal səhv: ${invalidScore}.`;
 		setBiqImportStatus(report);
 	};
 
@@ -990,19 +1082,60 @@ export const BranchPkpdPage = () => {
 			return;
 		}
 		setTeacherBiqScore("");
-		setStatus("MÃ¼É™llim Ã¼zrÉ™ BÄ°Q nÉ™ticÉ™si saxlanÄ±ldÄ±");
-		const { data } = await supabase
-			.from("pkpd_teacher_biq_results")
-			.select("*")
-			.eq("org_id", ORG_ID)
-			.eq("cycle_id", selectedCycleId)
-			.eq("branch_id", branchId);
-		setTeacherBiqResults(
-			(data ?? []).map((row) => ({
-				id: row.id,
-				data: mapPkpdTeacherBiqResultRow(row),
-			})),
-		);
+		setStatus("Müəllim üzrə BİQ nəticəsi saxlanıldı");
+		await refreshTeacherBiqResults();
+	};
+
+	const handleSaveTeacherBiqEdit = async () => {
+		if (
+			!branchId ||
+			!selectedCycleId ||
+			!teacherBiqEditTeacherId ||
+			!selectedTeacherBiqEditAssignment
+		) {
+			setStatus("Müəllim üçün dərs təyinatı seçin");
+			return;
+		}
+		const scoreValue = Number(teacherBiqEditScore);
+		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+			setStatus("BİQ balı 0-100 arası olmalıdır");
+			return;
+		}
+
+		setTeacherBiqEditSaving(true);
+		try {
+			const { error } = await supabase.from("pkpd_teacher_biq_results").upsert(
+				{
+					org_id: ORG_ID,
+					branch_id: branchId,
+					cycle_id: selectedCycleId,
+					teacher_id: teacherBiqEditTeacherId,
+					group_id: selectedTeacherBiqEditAssignment.groupId,
+					subject_id: selectedTeacherBiqEditAssignment.subjectId,
+					score: scoreValue,
+				},
+				{
+					onConflict:
+						"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
+				},
+			);
+			if (error) throw error;
+			await refreshTeacherBiqResults();
+			setStatus(
+				`${teacherBiqEditTeacher?.name ?? "Müəllim"} üçün BİQ balı saxlanıldı`,
+			);
+			setTeacherBiqEditTeacherId(null);
+			setTeacherBiqEditAssignmentKey("");
+			setTeacherBiqEditScore("");
+		} catch (error) {
+			setStatus(
+				error instanceof Error
+					? error.message
+					: "Müəllim üzrə BİQ nəticəsi saxlanmadı",
+			);
+		} finally {
+			setTeacherBiqEditSaving(false);
+		}
 	};
 
 	const handleImportTeacherBiq = async (file: File) => {
@@ -1023,6 +1156,7 @@ export const BranchPkpdPage = () => {
 		let missingSubject = 0;
 		let missingAssignment = 0;
 		let invalidScore = 0;
+		let emptyScore = 0;
 
 		rows.forEach((row) => {
 			const normalized: Record<string, string> = {};
@@ -1051,6 +1185,10 @@ export const BranchPkpdPage = () => {
 				normalized["fÉ™nn"] ||
 				normalized.fen;
 			const scoreRaw = normalized.score || normalized.biq || normalized.bal;
+			if (String(scoreRaw ?? "").trim() === "") {
+				emptyScore += 1;
+				return;
+			}
 
 			const teacherId =
 				(teacherRaw && teacherMap[teacherRaw] ? teacherRaw : null) ||
@@ -1139,7 +1277,7 @@ export const BranchPkpdPage = () => {
 			})),
 		);
 
-		const report = `YÃ¼klÉ™ndi: ${prepared.length}. MÃ¼É™llim tapÄ±lmadÄ±: ${missingTeacher}. Qrup tapÄ±lmadÄ±: ${missingGroup}. FÉ™nn tapÄ±lmadÄ±: ${missingSubject}. TÉ™yinat tapÄ±lmadÄ±: ${missingAssignment}. Bal sÉ™hv: ${invalidScore}.`;
+		const report = `Yükləndi: ${prepared.length}. Boş bal: ${emptyScore}. Müəllim tapılmadı: ${missingTeacher}. Qrup tapılmadı: ${missingGroup}. Fənn tapılmadı: ${missingSubject}. Təyinat tapılmadı: ${missingAssignment}. Bal səhv: ${invalidScore}.`;
 		setTeacherBiqImportStatus(report);
 	};
 
@@ -1883,6 +2021,19 @@ export const BranchPkpdPage = () => {
 									<div>{subjectMap[item.data.subjectId]?.name ?? item.data.subjectId}</div>
 									<div>{item.data.score}</div>
 									<div className="actions">
+										<button
+											className="btn"
+											type="button"
+											onClick={() =>
+												openTeacherBiqEditForAssignment(
+													item.data.teacherId,
+													item.data.groupId,
+													item.data.subjectId,
+												)
+											}
+										>
+											Redaktə
+										</button>
 										<button className="btn ghost" type="button" onClick={() => void handleDeleteTeacherBiq(item.id)}>Sil</button>
 									</div>
 								</div>
@@ -2058,7 +2209,10 @@ export const BranchPkpdPage = () => {
 										<div>{pkpdBucket(row.total)}</div>
 										<div>{decisionLabel[decision?.status ?? 'PENDING']}</div>
 										<div>{notePreview}</div>
-										<div className="actions"><button className="btn" type="button" onClick={() => setSelectedSummaryTeacherId(row.teacherId)}>Detallar</button></div>
+										<div className="actions">
+											<button className="btn" type="button" onClick={() => setSelectedSummaryTeacherId(row.teacherId)}>Detallar</button>
+											<button className="btn ghost" type="button" onClick={() => openTeacherBiqEdit(row.teacherId)}>BİQ</button>
+										</div>
 									</div>
 								);
 							})}
@@ -2197,6 +2351,102 @@ export const BranchPkpdPage = () => {
 							</div>
 						</>
 					)}
+				</DialogContent>
+			</Dialog>
+			<Dialog
+				open={Boolean(teacherBiqEditTeacherId)}
+				onOpenChange={(open) => {
+					if (!open) {
+						setTeacherBiqEditTeacherId(null);
+						setTeacherBiqEditAssignmentKey("");
+						setTeacherBiqEditScore("");
+					}
+				}}
+			>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>BİQ balını redaktə et</DialogTitle>
+						<DialogDescription>
+							{teacherBiqEditTeacher?.name ?? "Müəllim"} üçün sinif və fənn üzrə
+							fərdi BİQ balını daxil edin.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="stack">
+						<label className="field">
+							<span className="label">Dərs təyinatı</span>
+							<select
+								className="input"
+								value={teacherBiqEditAssignmentKey}
+								onChange={(event) =>
+									handleTeacherBiqEditAssignmentChange(event.target.value)
+								}
+							>
+								<option value="">Sinif və fənn seçin</option>
+								{teacherBiqEditAssignments.map((assignment) => {
+									const key = `${assignment.groupId}_${assignment.subjectId}`;
+									const currentScore =
+										teacherBiqMap[
+											`${teacherBiqEditTeacherId}_${assignment.groupId}_${assignment.subjectId}`
+										]?.score;
+									return (
+										<option key={key} value={key}>
+											{groupMap[assignment.groupId]?.name ?? assignment.groupId} -{" "}
+											{subjectMap[assignment.subjectId]?.name ?? assignment.subjectId}
+											{currentScore !== undefined ? ` (${currentScore})` : ""}
+										</option>
+									);
+								})}
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">BİQ balı</span>
+							<input
+								className="input"
+								type="number"
+								min="0"
+								max="100"
+								step="0.01"
+								value={teacherBiqEditScore}
+								onChange={(event) => setTeacherBiqEditScore(event.target.value)}
+								placeholder="0-100"
+							/>
+						</label>
+						{selectedTeacherBiqEditAssignment && (
+							<div className="notice">
+								Ümumi sinif/fənn balı:{" "}
+								{biqMap[
+									`${selectedTeacherBiqEditAssignment.groupId}_${selectedTeacherBiqEditAssignment.subjectId}`
+								]?.score ?? "-"}
+							</div>
+						)}
+						{teacherBiqEditAssignments.length === 0 && (
+							<div className="empty">
+								Bu müəllim üçün cari ildə dərs təyinatı yoxdur.
+							</div>
+						)}
+					</div>
+					<DialogFooter>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => setTeacherBiqEditTeacherId(null)}
+							disabled={teacherBiqEditSaving}
+						>
+							Ləğv et
+						</button>
+						<button
+							className="btn primary"
+							type="button"
+							onClick={() => void handleSaveTeacherBiqEdit()}
+							disabled={
+								teacherBiqEditSaving ||
+								!teacherBiqEditAssignmentKey ||
+								teacherBiqEditAssignments.length === 0
+							}
+						>
+							{teacherBiqEditSaving ? "Saxlanır..." : "Saxla"}
+						</button>
+					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 			<Dialog open={selfReviewUnlockOpen} onOpenChange={setSelfReviewUnlockOpen}>

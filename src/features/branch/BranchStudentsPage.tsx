@@ -1510,124 +1510,139 @@ export const BranchStudentsPage = () => {
 								</select>
 							</div>
 
-							<div className="student-lessons-add">
-								<select
-									className="input"
-									value={extraAssignmentId}
-									onChange={(event) => setExtraAssignmentId(event.target.value)}
-									disabled={availableExtraAssignments.length === 0}
-								>
-									<option value="">Əlavə dərs seçin</option>
-									{availableExtraAssignments.map((assignment) => (
-										<option key={assignment.id} value={assignment.id}>
-											{groupMap[assignment.data.groupId]?.name ??
-												assignment.data.groupId}{" "}
-											- {subjectMap[assignment.data.subjectId]?.name ??
-												assignment.data.subjectId}{" "}
-											- {teacherMap[assignment.data.teacherId]?.name ??
-												assignment.data.teacherId}
-										</option>
-									))}
-								</select>
-								<button
-									className="btn primary"
-									type="button"
-									onClick={() => void handleAddLesson()}
-									disabled={!extraAssignmentId || lessonSaving}
-								>
-									Əlavə et
-								</button>
-							</div>
-
-							<div className="data-table student-lessons-table">
-								<div className="data-row header">
-									<div>Qrup</div>
-									<div>Fənn</div>
-									<div>Müəllim</div>
-									<div>Mənbə</div>
-									<div></div>
-								</div>
-								{selectedStudentLessons.map((lesson) => (
-									<div className="data-row" key={lesson.assignmentId}>
-										<div>{lesson.groupName}</div>
-										<div>{lesson.subjectName}</div>
-										<div>{lesson.teacherName}</div>
-										<div>
-											{lesson.source === "base"
-												? "Blok/sinif təyinatı"
-												: "Fərdi əlavə"}
-										</div>
-										<div>
-											<button
-												className="btn ghost"
-												type="button"
-												onClick={() => void handleRemoveLesson(lesson)}
-												disabled={lessonSaving}
-											>
-												Çıxar
-											</button>
-										</div>
-									</div>
-								))}
-							</div>
-							{selectedStudentLessons.length === 0 && (
-								<div className="empty">Bu il üçün dərs tapılmadı.</div>
-							)}
-							<div className="stack">
+							<div className="student-lessons-current">
 								<div className="section-header">
 									<div>
-										<div className="section-kicker">Çıxarılan dərslər</div>
+										<div className="section-kicker">Hazırkı dərslər</div>
 										<div className="hint">
-											Hazırda bu şagirdin cədvəlindən çıxarılan dərslər
+											Bu şagirdin hazırda cədvəldə görünən dərsləri
+										</div>
+									</div>
+									<span className="tag">{selectedStudentLessons.length} dərs</span>
+								</div>
+
+								<div className="student-lessons-add">
+									<select
+										className="input"
+										value={extraAssignmentId}
+										onChange={(event) => setExtraAssignmentId(event.target.value)}
+										disabled={availableExtraAssignments.length === 0}
+									>
+										<option value="">Əlavə dərs seçin</option>
+										{availableExtraAssignments.map((assignment) => (
+											<option key={assignment.id} value={assignment.id}>
+												{groupMap[assignment.data.groupId]?.name ??
+													assignment.data.groupId}{" "}
+												- {subjectMap[assignment.data.subjectId]?.name ??
+													assignment.data.subjectId}{" "}
+												- {teacherMap[assignment.data.teacherId]?.name ??
+													assignment.data.teacherId}
+											</option>
+										))}
+									</select>
+									<button
+										className="btn primary"
+										type="button"
+										onClick={() => void handleAddLesson()}
+										disabled={!extraAssignmentId || lessonSaving}
+									>
+										Əlavə et
+									</button>
+								</div>
+
+								<div className="data-table student-lessons-table">
+									<div className="data-row header">
+										<div>Qrup</div>
+										<div>Fənn</div>
+										<div>Müəllim</div>
+										<div>Mənbə</div>
+										<div></div>
+									</div>
+									{selectedStudentLessons.map((lesson) => (
+										<div className="data-row" key={lesson.assignmentId}>
+											<div>{lesson.groupName}</div>
+											<div>{lesson.subjectName}</div>
+											<div>{lesson.teacherName}</div>
+											<div>
+												{lesson.source === "base"
+													? "Blok/sinif təyinatı"
+													: "Fərdi əlavə"}
+											</div>
+											<div>
+												<button
+													className="btn ghost"
+													type="button"
+													onClick={() => void handleRemoveLesson(lesson)}
+													disabled={lessonSaving}
+												>
+													Çıxar
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+								{selectedStudentLessons.length === 0 && (
+									<div className="empty">Bu il üçün dərs tapılmadı.</div>
+								)}
+							</div>
+							<div className="student-lessons-notes">
+								<div className="section-header">
+									<div>
+										<div className="section-kicker">Keçmiş qeydlər</div>
+										<div className="hint">
+											Əvvəl olub, sonra çıxarılan və hesab üzrə dəyişən dərslər
 										</div>
 									</div>
 								</div>
-								{removedStudentLessons.length > 0 ? (
-									<div className="list">
-										{removedStudentLessons.map((log) => (
-											<div className="list-item" key={log.id}>
-												<div>
-													<div className="list-title">{log.lessonLabel}</div>
-													<div className="list-meta">
-														{formatAuditTime(log.at)} • {getActorName(log.actorId)}
+								<div className="student-lessons-notes-grid">
+									<div className="student-lessons-note-block">
+										<div className="student-lessons-note-heading">
+											Hazırda çıxarılanlar
+										</div>
+										{removedStudentLessons.length > 0 ? (
+											<div className="student-lessons-note-list">
+												{removedStudentLessons.map((log) => (
+													<div className="student-lessons-note" key={log.id}>
+														<div className="student-lessons-note__title">
+															{log.lessonLabel}
+														</div>
+														<div className="student-lessons-note__meta">
+															{formatAuditTime(log.at)} • {getActorName(log.actorId)}
+														</div>
 													</div>
-												</div>
-												<span className="tag warn">Çıxarılıb</span>
+												))}
 											</div>
-										))}
+										) : (
+											<div className="student-lessons-note-empty">
+												Çıxarılan dərs yoxdur.
+											</div>
+										)}
 									</div>
-								) : (
-									<div className="empty">Çıxarılan dərs yoxdur.</div>
-								)}
-							</div>
-							<div className="stack">
-								<div className="section-header">
-									<div>
-										<div className="section-kicker">Dəyişiklik tarixçəsi</div>
-										<div className="hint">Əlavə etmə, çıxarma və geri əlavə etmə logları</div>
+									<div className="student-lessons-note-block">
+										<div className="student-lessons-note-heading">
+											Dəyişiklik tarixçəsi
+										</div>
+										{selectedStudentOverrideLogs.length > 0 ? (
+											<div className="student-lessons-note-list">
+												{selectedStudentOverrideLogs.map((log) => (
+													<div className="student-lessons-note" key={log.id}>
+														<div className="student-lessons-note__title">
+															{lessonLogActionLabel[log.action]}: {log.lessonLabel}
+														</div>
+														<div className="student-lessons-note__meta">
+															{formatAuditTime(log.at)} • {getActorName(log.actorId)} •{" "}
+															{log.status === "active" ? "Qüvvədə" : "Keçmiş"}
+														</div>
+													</div>
+												))}
+											</div>
+										) : (
+											<div className="student-lessons-note-empty">
+												Dəyişiklik tarixçəsi yoxdur.
+											</div>
+										)}
 									</div>
 								</div>
-								{selectedStudentOverrideLogs.length > 0 ? (
-									<div className="list">
-										{selectedStudentOverrideLogs.map((log) => (
-											<div className="list-item" key={log.id}>
-												<div>
-													<div className="list-title">
-														{lessonLogActionLabel[log.action]}: {log.lessonLabel}
-													</div>
-													<div className="list-meta">
-														{formatAuditTime(log.at)} • {getActorName(log.actorId)}
-													</div>
-												</div>
-												<span className="tag">
-													{log.status === "active" ? "Aktiv" : "Tarixçə"}
-												</span>
-											</div>
-										))}
-									</div>
-								) : (
-									<div className="empty">Dəyişiklik tarixçəsi yoxdur.</div>
-								)}
 							</div>
 							<div className="hint">
 								Dəyişiklik yalnız bu şagirdə aiddir. Cavabı olan açıq tasklar
