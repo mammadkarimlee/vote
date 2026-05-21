@@ -36,6 +36,33 @@ import { BranchSelector } from "./BranchSelector";
 import { useBranchScope } from "./useBranchScope";
 
 type DocEntry<T> = { id: string; data: T };
+const SUPABASE_BATCH_SIZE = 1000;
+
+const fetchAllBatched = async <T,>(
+	fetchPage: (
+		from: number,
+		to: number,
+	) => Promise<{ data: T[] | null; error: { message?: string } | null }>,
+) => {
+	const rows: T[] = [];
+	let from = 0;
+
+	while (true) {
+		const to = from + SUPABASE_BATCH_SIZE - 1;
+		const { data, error } = await fetchPage(from, to);
+		if (error) {
+			throw new Error(error.message ?? "Data load failed");
+		}
+
+		const page = data ?? [];
+		rows.push(...page);
+		if (page.length < SUPABASE_BATCH_SIZE) break;
+
+		from += SUPABASE_BATCH_SIZE;
+	}
+
+	return rows;
+};
 
 const formatAvg = (avg: number | null | undefined, count: number) => {
 	if (avg === null || avg === undefined || count === 0) return "—";
@@ -167,14 +194,18 @@ export const BranchResultsPage = () => {
 			if (!isSuperAdmin) return;
 			if (!selectedCycleId || !branchId) return;
 
-			const submissionRes = await supabase
-				.from("submissions")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.eq("cycle_id", selectedCycleId)
-				.eq("branch_id", branchId);
+			const submissionRows = await fetchAllBatched<any>(async (from, to) =>
+				supabase
+					.from("submissions")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("branch_id", branchId)
+					.order("task_id")
+					.range(from, to),
+			);
 
-			const submissionDocs = (submissionRes.data ?? []).map((row) => ({
+			const submissionDocs = submissionRows.map((row) => ({
 				id: row.task_id ?? row.id,
 				data: mapSubmissionRow(row),
 			}));
@@ -185,12 +216,17 @@ export const BranchResultsPage = () => {
 			const chunks = chunkValuesForInFilter(ids);
 			for (const chunk of chunks) {
 				if (chunk.length === 0) continue;
-				const answerRes = await supabase
-					.from("answers")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.in("submission_id", chunk);
-				(answerRes.data ?? []).forEach((row) => {
+				const answerRows = await fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("answers")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.in("submission_id", chunk)
+						.order("submission_id")
+						.order("question_id")
+						.range(from, to),
+				);
+				answerRows.forEach((row) => {
 					const key = `${row.submission_id}_${row.question_id}`;
 					answerDocs.push({ id: key, data: mapAnswerRow(row) });
 				});

@@ -11,6 +11,7 @@ import {
 	mapPkpdExamRow,
 	mapPkpdPortfolioRow,
 	mapPkpdSelfReviewRow,
+	mapPkpdTeacherBiqAverageRow,
 	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
 	mapSubjectRow,
@@ -25,6 +26,7 @@ import {
 } from "../../lib/pkpdSelfReview";
 import {
 	computePkpdPortfolioScore,
+	computePkpdTotalScore,
 	getPkpdPortfolioLimits,
 	getPkpdWeights,
 	normalizePkpdScale,
@@ -40,6 +42,7 @@ import type {
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
 	PkpdSelfReviewDoc,
+	PkpdTeacherBiqAverageDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	SubjectDoc,
@@ -72,14 +75,49 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
 type DocEntry<T> = { id: string; data: T };
+const SUPABASE_BATCH_SIZE = 1000;
+
+const fetchAllBatched = async <T,>(
+	fetchPage: (
+		from: number,
+		to: number,
+	) => Promise<{ data: T[] | null; error: { message?: string } | null }>,
+) => {
+	const rows: T[] = [];
+	let from = 0;
+
+	while (true) {
+		const to = from + SUPABASE_BATCH_SIZE - 1;
+		const { data, error } = await fetchPage(from, to);
+		if (error) {
+			throw new Error(error.message ?? "Data load failed");
+		}
+
+		const page = data ?? [];
+		rows.push(...page);
+		if (page.length < SUPABASE_BATCH_SIZE) break;
+
+		from += SUPABASE_BATCH_SIZE;
+	}
+
+	return rows;
+};
+
 type SummaryRow = {
 	teacherId: string;
 	name: string;
 	category: TeacherCategory;
+	isBiqTeacher: boolean;
+	assessmentResultLabel: string;
 	studentScore: number | null;
 	managementScore: number | null;
 	selfScore: number | null;
+	teacherCriteriaTotal: number | null;
 	hrSelfReviewScore: number | null;
+	biqAvg: number | null;
+	computedBiqAvg: number | null;
+	manualBiqAvg: number | null;
+	biqAverageSource: "manual" | "computed" | "none";
 	biqScore: number | null;
 	examScore: number | null;
 	portfolioScore: number | null;
@@ -107,6 +145,32 @@ const decisionLabel: Record<PkpdDecisionStatus, string> = {
 const formatScoreValue = (value: number | null) =>
 	value === null ? "-" : value.toFixed(1);
 
+const getIsBiqTeacher = (teacher: TeacherDoc) =>
+	teacher.isBiqTeacher ?? (teacher.category ?? "standard") === "standard";
+
+const clampExamScore = (score: number | null | undefined) =>
+	typeof score === "number" && !Number.isNaN(score)
+		? Math.min(Math.max(score, 0), 30)
+		: null;
+
+const clampBiqAverageScore = (score: number | null | undefined) =>
+	typeof score === "number" && !Number.isNaN(score)
+		? Math.min(Math.max(score, 0), 100)
+		: null;
+
+const sumQuestionScores = (scores: Array<number | null | undefined>) => {
+	const values = scores.filter(
+		(value): value is number => typeof value === "number" && !Number.isNaN(value),
+	);
+	if (values.length === 0) return null;
+	return values.reduce((acc, value) => acc + value, 0);
+};
+
+const getTeacherCriteriaTotal = (review?: PkpdSelfReviewDoc | null) => {
+	if (!review) return null;
+	return sumQuestionScores(Object.values(review.questionScores ?? {}));
+};
+
 export const BranchPkpdPage = () => {
 	const { user } = useAuth();
 	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
@@ -126,6 +190,9 @@ export const BranchPkpdPage = () => {
 	>([]);
 	const [teacherBiqResults, setTeacherBiqResults] = useState<
 		Array<DocEntry<PkpdTeacherBiqResultDoc>>
+	>([]);
+	const [teacherBiqAverages, setTeacherBiqAverages] = useState<
+		Array<DocEntry<PkpdTeacherBiqAverageDoc>>
 	>([]);
 	const [examResults, setExamResults] = useState<Array<DocEntry<PkpdExamDoc>>>(
 		[],
@@ -160,6 +227,9 @@ export const BranchPkpdPage = () => {
 	const [teacherBiqEditScore, setTeacherBiqEditScore] = useState("");
 	const [teacherBiqEditSaving, setTeacherBiqEditSaving] = useState(false);
 	const [teacherBiqImportStatus, setTeacherBiqImportStatus] = useFeedbackState();
+	const [teacherBiqAverageDrafts, setTeacherBiqAverageDrafts] = useState<
+		Record<string, string>
+	>({});
 
 	const [examDrafts, setExamDrafts] = useState<Record<string, string>>({});
 	const [examImportStatus, setExamImportStatus] = useFeedbackState();
@@ -279,91 +349,155 @@ export const BranchPkpdPage = () => {
 			if (!branchId || !selectedCycleId) return;
 
 			const [
-				questionRes,
-				taskRes,
-				biqRes,
-				teacherBiqRes,
-				examRes,
-				portfolioRes,
-				selfReviewRes,
-				achievementRes,
-				decisionRes,
+				questionRows,
+				taskRows,
+				biqRows,
+				teacherBiqRows,
+				teacherBiqAverageRows,
+				examRows,
+				portfolioRows,
+				selfReviewRows,
+				achievementRows,
+				decisionRows,
 			] = await Promise.all([
-				supabase.from("questions").select("*").eq("org_id", ORG_ID),
-				supabase
-					.from("tasks")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("biq_class_results")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_teacher_biq_results")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_exam_results")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_portfolios")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_self_reviews")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_achievements")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
-				supabase
-					.from("pkpd_decisions")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("questions")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("tasks")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("biq_class_results")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_teacher_biq_results")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_teacher_biq_averages")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_exam_results")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_portfolios")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_self_reviews")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_achievements")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
+				fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("pkpd_decisions")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.eq("cycle_id", selectedCycleId)
+						.eq("branch_id", branchId)
+						.order("id")
+						.range(from, to),
+				),
 			]);
 
 			const questionMap: Record<string, QuestionDoc> = {};
-			(questionRes.data ?? []).forEach((row) => {
+			questionRows.forEach((row) => {
 				questionMap[row.id] = mapQuestionRow(row);
 			});
 			setQuestions(questionMap);
 
-			const taskDocs = (taskRes.data ?? []).map((row) => ({
+			const taskDocs = taskRows.map((row) => ({
 				id: row.id,
 				data: mapTaskRow(row),
 			}));
 			setTasks(taskDocs);
 
-			const biqDocs = (biqRes.data ?? []).map((row) => ({
+			const biqDocs = biqRows.map((row) => ({
 				id: row.id,
 				data: mapBiqClassResultRow(row),
 			}));
 			setBiqResults(biqDocs);
-			const teacherBiqDocs = (teacherBiqRes.data ?? []).map((row) => ({
+			const teacherBiqDocs = teacherBiqRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdTeacherBiqResultRow(row),
 			}));
 			setTeacherBiqResults(teacherBiqDocs);
 
-			const examDocs = (examRes.data ?? []).map((row) => ({
+			const teacherBiqAverageDocs = teacherBiqAverageRows.map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqAverageRow(row),
+			}));
+			setTeacherBiqAverages(teacherBiqAverageDocs);
+			setTeacherBiqAverageDrafts(
+				Object.fromEntries(
+					teacherBiqAverageDocs.map((row) => [
+						row.data.teacherId,
+						row.data.score !== null ? String(row.data.score) : "",
+					]),
+				),
+			);
+
+			const examDocs = examRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdExamRow(row),
 			}));
@@ -377,25 +511,25 @@ export const BranchPkpdPage = () => {
 				),
 			);
 
-			const portfolioDocs = (portfolioRes.data ?? []).map((row) => ({
+			const portfolioDocs = portfolioRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdPortfolioRow(row),
 			}));
 			setPortfolios(portfolioDocs);
 
-			const selfReviewDocs = (selfReviewRes.data ?? []).map((row) => ({
+			const selfReviewDocs = selfReviewRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdSelfReviewRow(row),
 			}));
 			setSelfReviews(selfReviewDocs);
 
-			const achievementDocs = (achievementRes.data ?? []).map((row) => ({
+			const achievementDocs = achievementRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdAchievementRow(row),
 			}));
 			setAchievements(achievementDocs);
 
-			const decisionDocs = (decisionRes.data ?? []).map((row) => ({
+			const decisionDocs = decisionRows.map((row) => ({
 				id: row.id,
 				data: mapPkpdDecisionRow(row),
 			}));
@@ -422,12 +556,17 @@ export const BranchPkpdPage = () => {
 			const answerDocs: Array<DocEntry<AnswerDoc>> = [];
 			for (const chunk of chunks) {
 				if (chunk.length === 0) continue;
-				const answerRes = await supabase
-					.from("answers")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.in("submission_id", chunk);
-				(answerRes.data ?? []).forEach((row) => {
+				const answerRows = await fetchAllBatched<any>(async (from, to) =>
+					supabase
+						.from("answers")
+						.select("*")
+						.eq("org_id", ORG_ID)
+						.in("submission_id", chunk)
+						.order("submission_id")
+						.order("question_id")
+						.range(from, to),
+				);
+				answerRows.forEach((row) => {
 					const key = `${row.submission_id}_${row.question_id}`;
 					answerDocs.push({ id: key, data: mapAnswerRow(row) });
 				});
@@ -504,6 +643,13 @@ export const BranchPkpdPage = () => {
 				]),
 			),
 		[teacherBiqResults],
+	);
+	const teacherBiqAverageMap = useMemo(
+		() =>
+			Object.fromEntries(
+				teacherBiqAverages.map((item) => [item.data.teacherId, item.data]),
+			),
+		[teacherBiqAverages],
 	);
 
 	const portfolioMap = useMemo(
@@ -691,11 +837,8 @@ export const BranchPkpdPage = () => {
 		return stats;
 	}, [answers, questions, tasks]);
 
-	const standardTeachers = useMemo(
-		() =>
-			teachers.filter(
-				(teacher) => (teacher.data.category ?? "standard") === "standard",
-			),
+	const examTeachers = useMemo(
+		() => teachers.filter((teacher) => getIsBiqTeacher(teacher.data)),
 		[teachers],
 	);
 
@@ -703,6 +846,8 @@ export const BranchPkpdPage = () => {
 		return teachers.map((teacher) => {
 			const category = teacher.data.category ?? "standard";
 			const weights = getPkpdWeights(category);
+			const isBiqTeacher = getIsBiqTeacher(teacher.data);
+			const assessmentResultLabel = isBiqTeacher ? "BİQ nəticəsi" : "BİQ tətbiq edilmir";
 
 			const stats = flowStats[teacher.id];
 			const studentAvg =
@@ -736,42 +881,67 @@ export const BranchPkpdPage = () => {
 					return biqMap[`${assignment.groupId}_${assignment.subjectId}`]?.score;
 				})
 				.filter((value): value is number => typeof value === "number");
-			const biqAvg =
+			const computedBiqAvg =
 				biqScores.length > 0
 					? biqScores.reduce((a, b) => a + b, 0) / biqScores.length
 					: null;
+			const manualBiqAvg = clampBiqAverageScore(
+				teacherBiqAverageMap[teacher.id]?.score,
+			);
+			const biqAvg = isBiqTeacher
+				? (manualBiqAvg ?? computedBiqAvg)
+				: null;
+			const biqAverageSource: "manual" | "computed" | "none" = !isBiqTeacher
+				? "none"
+				: manualBiqAvg !== null
+					? "manual"
+					: computedBiqAvg !== null
+						? "computed"
+						: "none";
+			const examInputScore = clampExamScore(examMap[teacher.id]?.score);
 			const biqScore =
-				weights.biq === 0 || biqAvg === null
-					? null
-					: (biqAvg * weights.biq) / 100;
+				isBiqTeacher
+					? weights.biq === 0 || biqAvg === null
+						? null
+						: (biqAvg * weights.biq) / 100
+					: null;
 
-			const examScore =
-				weights.exam === 0 ? null : (examMap[teacher.id]?.score ?? null);
+			const examScore = isBiqTeacher ? examInputScore : null;
 			const portfolioScore = computePkpdPortfolioScore(
 				portfolioMap[teacher.id] ?? null,
 				category,
 			);
-			const hrSelfReviewScore = selfReviewMap[teacher.id]?.score ?? null;
+			const selfReview = selfReviewMap[teacher.id] ?? null;
+			const teacherCriteriaTotal = getTeacherCriteriaTotal(selfReview);
+			const hrSelfReviewScore = selfReview?.score ?? null;
 			const bonus = achievementTotals[teacher.id] ?? 0;
 
-			const baseTotal =
-				(studentScore ?? 0) +
-				(managementScore ?? 0) +
-				(selfScore ?? 0) +
-				(biqScore ?? 0) +
-				(examScore ?? 0) +
-				(portfolioScore ?? 0);
-
-			const total = baseTotal + (hrSelfReviewScore ?? 0) + bonus;
+			const total =
+				computePkpdTotalScore({
+					studentScore,
+					managementScore,
+					selfScore,
+					biqScore,
+					examScore,
+					portfolioScore,
+					bonusScore: bonus,
+				}) ?? 0;
 
 			return {
 				teacherId: teacher.id,
 				name: teacher.data.name,
 				category,
+				isBiqTeacher,
+				assessmentResultLabel,
 				studentScore,
 				managementScore,
 				selfScore,
+				teacherCriteriaTotal,
 				hrSelfReviewScore,
+				biqAvg,
+				computedBiqAvg,
+				manualBiqAvg,
+				biqAverageSource,
 				biqScore,
 				examScore,
 				portfolioScore,
@@ -787,13 +957,15 @@ export const BranchPkpdPage = () => {
 		flowStats,
 		portfolioMap,
 		selfReviewMap,
+		teacherBiqAverageMap,
 		teacherBiqMap,
 		teachers,
 	]);
 
 	const biqPagination = usePagination(biqResults);
 	const teacherBiqPagination = usePagination(teacherBiqResults);
-	const examPagination = usePagination(standardTeachers);
+	const teacherBiqAveragePagination = usePagination(examTeachers);
+	const examPagination = usePagination(examTeachers);
 	const achievementPagination = usePagination(achievements);
 	const summaryPagination = usePagination(summaryRows);
 
@@ -803,6 +975,10 @@ export const BranchPkpdPage = () => {
 				? (summaryRows.find((row) => row.teacherId === selectedSummaryTeacherId) ?? null)
 				: null,
 		[selectedSummaryTeacherId, summaryRows],
+	);
+	const summaryByTeacherId = useMemo(
+		() => Object.fromEntries(summaryRows.map((row) => [row.teacherId, row])),
+		[summaryRows],
 	);
 	const selectedSummaryAssignments = selectedSummaryTeacherId
 		? (assignmentByTeacher[selectedSummaryTeacherId] ?? [])
@@ -831,6 +1007,29 @@ export const BranchPkpdPage = () => {
 				id: row.id,
 				data: mapPkpdTeacherBiqResultRow(row),
 			})),
+		);
+	};
+
+	const refreshTeacherBiqAverages = async () => {
+		if (!branchId || !selectedCycleId) return;
+		const { data } = await supabase
+			.from("pkpd_teacher_biq_averages")
+			.select("*")
+			.eq("org_id", ORG_ID)
+			.eq("cycle_id", selectedCycleId)
+			.eq("branch_id", branchId);
+		const docs = (data ?? []).map((row) => ({
+			id: row.id,
+			data: mapPkpdTeacherBiqAverageRow(row),
+		}));
+		setTeacherBiqAverages(docs);
+		setTeacherBiqAverageDrafts(
+			Object.fromEntries(
+				docs.map((row) => [
+					row.data.teacherId,
+					row.data.score !== null ? String(row.data.score) : "",
+				]),
+			),
 		);
 	};
 
@@ -886,6 +1085,39 @@ export const BranchPkpdPage = () => {
 				? ""
 				: String(existingScore),
 		);
+	};
+
+	const handleSaveTeacherBiqAverage = async (teacherId: string) => {
+		if (!branchId || !selectedCycleId) return;
+		const raw = teacherBiqAverageDrafts[teacherId]?.trim();
+		if (!raw) {
+			setStatus("Boş BİQ ortalaması saxlanmadı; mövcud qeyd silinmədi");
+			return;
+		}
+
+		const scoreValue = Number(raw.replace(",", "."));
+		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+			setStatus("BİQ ortalaması 0-100 arası olmalıdır");
+			return;
+		}
+
+		const { error } = await supabase.from("pkpd_teacher_biq_averages").upsert(
+			{
+				org_id: ORG_ID,
+				branch_id: branchId,
+				cycle_id: selectedCycleId,
+				teacher_id: teacherId,
+				score: scoreValue,
+			},
+			{ onConflict: "org_id,cycle_id,teacher_id" },
+		);
+		if (error) {
+			setStatus("BİQ ortalaması saxlanmadı");
+			return;
+		}
+
+		setStatus("BİQ ortalaması saxlanıldı");
+		await refreshTeacherBiqAverages();
 	};
 
 	const handleSaveBiq = async () => {
@@ -1305,20 +1537,12 @@ export const BranchPkpdPage = () => {
 		if (!branchId || !selectedCycleId) return;
 		const raw = examDrafts[teacherId];
 		if (!raw || raw.trim() === "") {
-			await supabase
-				.from("pkpd_exam_results")
-				.delete()
-				.eq("org_id", ORG_ID)
-				.eq("cycle_id", selectedCycleId)
-				.eq("teacher_id", teacherId);
-			setExamResults((prev) =>
-				prev.filter((item) => item.data.teacherId !== teacherId),
-			);
+			setStatus("Boş imtahan balı saxlanmadı; mövcud qeyd silinmədi");
 			return;
 		}
 		const scoreValue = Number(raw);
 		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 30) {
-			setStatus("Ä°mtahan balÄ± 0-30 arasÄ± olmalÄ±dÄ±r");
+			setStatus("Attestasiya imtahanı balı 0-30 arası olmalıdır");
 			return;
 		}
 		const { error } = await supabase.from("pkpd_exam_results").upsert(
@@ -1332,7 +1556,7 @@ export const BranchPkpdPage = () => {
 			{ onConflict: "org_id,cycle_id,teacher_id" },
 		);
 		if (error) {
-			setStatus("Ä°mtahan balÄ± saxlanmadÄ±");
+			setStatus("Attestasiya imtahanı balı saxlanmadı");
 			return;
 		}
 		const { data } = await supabase
@@ -1367,7 +1591,7 @@ export const BranchPkpdPage = () => {
 		}> = [];
 
 		let missingTeacher = 0;
-		let nonStandardTeacher = 0;
+		let nonBiqTeacher = 0;
 		let invalidScore = 0;
 
 		rows.forEach((row) => {
@@ -1384,6 +1608,8 @@ export const BranchPkpdPage = () => {
 				normalized["mÃ¼É™llim"];
 			const scoreRaw =
 				normalized.score ||
+				normalized.miq ||
+				normalized.miq_score ||
 				normalized.exam ||
 				normalized.exam_score ||
 				normalized.imtahan ||
@@ -1402,8 +1628,8 @@ export const BranchPkpdPage = () => {
 				return;
 			}
 
-			if ((teacherMap[teacherId]?.category ?? "standard") !== "standard") {
-				nonStandardTeacher += 1;
+			if (!getIsBiqTeacher(teacherMap[teacherId])) {
+				nonBiqTeacher += 1;
 				return;
 			}
 
@@ -1437,7 +1663,7 @@ export const BranchPkpdPage = () => {
 				onConflict: "org_id,cycle_id,teacher_id",
 			});
 			if (error) {
-				setExamImportStatus("Ä°mtahan import zamanÄ± xÉ™ta oldu");
+				setExamImportStatus("Attestasiya imtahanı import zamanı xəta oldu");
 				return;
 			}
 		}
@@ -1465,7 +1691,7 @@ export const BranchPkpdPage = () => {
 		);
 
 		setExamImportStatus(
-			`YÃ¼klÉ™ndi: ${prepared.length}. MÃ¼É™llim tapÄ±lmadÄ±: ${missingTeacher}. Standart olmayan mÃ¼É™llim: ${nonStandardTeacher}. Bal sÉ™hv: ${invalidScore}.`,
+			`Yükləndi: ${prepared.length}. Müəllim tapılmadı: ${missingTeacher}. BİQ olmayan müəllim: ${nonBiqTeacher}. Bal səhv: ${invalidScore}.`,
 		);
 	};
 
@@ -1630,26 +1856,7 @@ export const BranchPkpdPage = () => {
 
 		if (scoreRaw === "") {
 			if (!noteValue) {
-				await supabase
-					.from("pkpd_self_reviews")
-					.delete()
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("teacher_id", selfReviewTeacherId);
-
-				const { data } = await supabase
-					.from("pkpd_self_reviews")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", selectedCycleId)
-					.eq("branch_id", branchId);
-				setSelfReviews(
-					(data ?? []).map((row) => ({
-						id: row.id,
-						data: mapPkpdSelfReviewRow(row),
-					})),
-				);
-				setStatus("HR qiymÉ™tlÉ™ndirmÉ™si silindi");
+				setStatus("Boş HR qiymətləndirməsi saxlanmadı; mövcud qeyd silinmədi");
 				return;
 			}
 
@@ -2057,10 +2264,97 @@ export const BranchPkpdPage = () => {
 					<div className="card">
 						<div className="section-header">
 							<div>
-								<h3>Attestasiya imtahanÄ± (0-30)</h3>
-								<p className="hint">Bu siyahÄ± 15-li sÉ™hifÉ™lÉ™nir ki, imtahan ballarÄ± daha rahat idarÉ™ olunsun.</p>
+								<h3>Müəllim üzrə BİQ ortalaması</h3>
+								<p className="hint">
+									Hazır ortalama varsa buraya 0-100 arası yazın. Bu xana doludursa,
+									yekun hesablamada qrup/fənn ortalamasından üstün götürülür.
+								</p>
 							</div>
-							<div className="stat-pill">CÉ™mi: {standardTeachers.length}</div>
+							<div className="stat-pill">Cəmi: {examTeachers.length}</div>
+						</div>
+						<div className="data-table">
+							<div className="data-row header">
+								<div>Müəllim</div>
+								<div>BİQ ortalaması</div>
+								<div>Mənbə</div>
+								<div></div>
+							</div>
+							{teacherBiqAveragePagination.paginatedItems.map((teacher) => {
+								const summary = summaryByTeacherId[teacher.id];
+								const sourceText =
+									summary?.biqAverageSource === "manual"
+										? "Manual"
+										: summary?.biqAverageSource === "computed"
+											? "Qrup/fənn"
+											: "Yoxdur";
+								return (
+									<div className="data-row" key={teacher.id}>
+										<div>{teacher.data.name}</div>
+										<div>
+											<input
+												className="input"
+												type="number"
+												min="0"
+												max="100"
+												step="0.01"
+												placeholder={
+													summary?.computedBiqAvg !== null &&
+													summary?.computedBiqAvg !== undefined
+														? `Hesablanan: ${formatScoreValue(summary.computedBiqAvg)}`
+														: "0-100"
+												}
+												value={teacherBiqAverageDrafts[teacher.id] ?? ""}
+												onChange={(event) =>
+													setTeacherBiqAverageDrafts((prev) => ({
+														...prev,
+														[teacher.id]: event.target.value,
+													}))
+												}
+											/>
+										</div>
+										<div>
+											<div>{sourceText}</div>
+											<div className="hint">
+												Yekun orta: {formatScoreValue(summary?.biqAvg ?? null)}
+											</div>
+										</div>
+										<div className="actions">
+											<button
+												className="btn"
+												type="button"
+												onClick={() => void handleSaveTeacherBiqAverage(teacher.id)}
+											>
+												Saxla
+											</button>
+										</div>
+									</div>
+								);
+							})}
+							{examTeachers.length === 0 && (
+								<div className="empty">BİQ ortalaması üçün müəllim yoxdur.</div>
+							)}
+						</div>
+						{examTeachers.length > 0 && (
+							<PaginationControls
+								totalItems={teacherBiqAveragePagination.totalItems}
+								page={teacherBiqAveragePagination.page}
+								pageSize={teacherBiqAveragePagination.pageSize}
+								onPageChange={teacherBiqAveragePagination.setPage}
+								onPageSizeChange={(nextSize) => {
+									teacherBiqAveragePagination.setPageSize(nextSize);
+									teacherBiqAveragePagination.setPage(1);
+								}}
+							/>
+						)}
+					</div>
+
+					<div className="card">
+						<div className="section-header">
+							<div>
+								<h3>Attestasiya imtahanı (0-30)</h3>
+								<p className="hint">BİQ keçirilən fənn müəllimləri üçün attestasiya imtahanı balı.</p>
+							</div>
+							<div className="stat-pill">Cəmi: {examTeachers.length}</div>
 						</div>
 						<div className="form-row">
 							<input
@@ -2072,7 +2366,7 @@ export const BranchPkpdPage = () => {
 									if (file) void handleImportExam(file);
 								}}
 							/>
-							<span className="hint">Şablon: teacher/teacher_id, score/exam/bal</span>
+							<span className="hint">Şablon: teacher/teacher_id, score/exam/imtahan/bal</span>
 						</div>
 						{examImportStatus && <div className="notice">{examImportStatus}</div>}
 						<div className="data-table">
@@ -2098,9 +2392,9 @@ export const BranchPkpdPage = () => {
 									<div className="actions"><button className="btn" type="button" onClick={() => void handleSaveExam(teacher.id)}>Saxla</button></div>
 								</div>
 							))}
-							{standardTeachers.length === 0 && <div className="empty">Standart mÃ¼É™llim yoxdur.</div>}
+							{examTeachers.length === 0 && <div className="empty">Attestasiya imtahanı üçün müəllim yoxdur.</div>}
 						</div>
-						{standardTeachers.length > 0 && (
+						{examTeachers.length > 0 && (
 							<PaginationControls
 								totalItems={examPagination.totalItems}
 								page={examPagination.page}
@@ -2211,7 +2505,9 @@ export const BranchPkpdPage = () => {
 										<div>{notePreview}</div>
 										<div className="actions">
 											<button className="btn" type="button" onClick={() => setSelectedSummaryTeacherId(row.teacherId)}>Detallar</button>
-											<button className="btn ghost" type="button" onClick={() => openTeacherBiqEdit(row.teacherId)}>BİQ</button>
+											{row.isBiqTeacher && (
+												<button className="btn ghost" type="button" onClick={() => openTeacherBiqEdit(row.teacherId)}>BİQ</button>
+											)}
 										</div>
 									</div>
 								);
@@ -2287,14 +2583,16 @@ export const BranchPkpdPage = () => {
 								<DialogDescription>{cycleYear} dÃ¶vrÃ¼ Ã¼Ã§Ã¼n PKPD detal gÃ¶rÃ¼nÃ¼ÅŸÃ¼ vÉ™ qÉ™rar redaktÉ™si.</DialogDescription>
 							</DialogHeader>
 							<div className="grid three">
-								<div className="stat-card"><div className="stat-label">Åžagird</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">RÉ™hbÉ™rlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Ã–zÃ¼</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">BIQ</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Ä°mtahan</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Şagird sorğusu</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Rəhbərlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Özünüqiymətləndirmə</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">BİQ ortalaması</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqAvg)}</div><div className="stat-meta">{selectedSummaryRow.biqAverageSource === "manual" ? "manual daxil edilib" : selectedSummaryRow.biqAverageSource === "computed" ? "qrup/fənn üzrə hesablanıb" : "məlumat yoxdur"}</div></div>
+								<div className="stat-card"><div className="stat-label">{selectedSummaryRow.assessmentResultLabel}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">Attestasiya imtahanı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">HR</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Bonus</div><div className="stat-value">{selectedSummaryRow.bonus.toFixed(1)}</div></div>
+								<div className="stat-card"><div className="stat-label">Əlavə bal</div><div className="stat-value">{selectedSummaryRow.bonus.toFixed(1)}</div></div>
+								<div className="stat-card"><div className="stat-label">3 meyar qeydi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.teacherCriteriaTotal)}</div></div>
+								<div className="stat-card"><div className="stat-label">HR qeydi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Yekun</div><div className="stat-value">{selectedSummaryRow.total.toFixed(1)}</div><div className="stat-meta">{pkpdBucket(selectedSummaryRow.total)}</div></div>
 							</div>
 							<div className="card">

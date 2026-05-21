@@ -345,6 +345,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				department_id: payload.docData?.departmentId ?? null,
 				photo_url: payload.docData?.photoUrl ?? null,
 				teacher_category: payload.docData?.teacherCategory ?? "standard",
+				is_biq_teacher: payload.docData?.isBiqTeacher ?? true,
 			});
 			if (teacherError) {
 				if (mode === "login") {

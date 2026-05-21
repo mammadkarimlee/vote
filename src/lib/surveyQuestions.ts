@@ -1,10 +1,10 @@
 import type { QuestionDoc } from "./types";
 
 export const STUDENT_EVALUATION_CRITERIA = [
-	"Savadı",
-	"Davranışı",
+	"Savadlılığı",
 	"Yumor hissi",
-	"Dərsi izah etməsi",
+	"Sinfi idarəetməsi",
+	"İnkişafıma təsiri",
 ] as const;
 
 export const STUDENT_TEACHER_INSTRUCTION_QUESTION_ID =

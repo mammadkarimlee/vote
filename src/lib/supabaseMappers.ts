@@ -13,6 +13,7 @@ import type {
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
 	PkpdSelfReviewDoc,
+	PkpdTeacherBiqAverageDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	QuestionSetDoc,
@@ -59,6 +60,10 @@ export const mapTeacherRow = (row: Row): TeacherDoc => ({
 	branchId: row.branch_id ?? null,
 	branchIds: row.branch_ids ?? undefined,
 	category: row.teacher_category ?? "standard",
+	isBiqTeacher:
+		typeof row.is_biq_teacher === "boolean"
+			? row.is_biq_teacher
+			: (row.teacher_category ?? "standard") === "standard",
 	uid: row.user_id ?? null,
 	login: row.login ?? null,
 	createdAt: row.created_at ?? null,
@@ -244,6 +249,17 @@ export const mapPkpdTeacherBiqResultRow = (
 	groupId: row.group_id,
 	subjectId: row.subject_id,
 	score: Number(row.score ?? 0),
+	createdAt: row.created_at ?? null,
+});
+
+export const mapPkpdTeacherBiqAverageRow = (
+	row: Row,
+): PkpdTeacherBiqAverageDoc => ({
+	cycleId: row.cycle_id,
+	branchId: row.branch_id,
+	teacherId: row.teacher_id,
+	score: Number(row.score ?? 0),
+	note: row.note ?? null,
 	createdAt: row.created_at ?? null,
 });
 

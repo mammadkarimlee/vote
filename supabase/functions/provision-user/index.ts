@@ -23,6 +23,7 @@ type ProvisionRequest = {
 		departmentId?: string;
 		photoUrl?: string;
 		teacherCategory?: string;
+		isBiqTeacher?: boolean;
 	};
 };
 
@@ -283,6 +284,7 @@ Deno.serve(async (req) => {
 				department_id: payload.docData?.departmentId ?? null,
 				photo_url: payload.docData?.photoUrl ?? null,
 				teacher_category: payload.docData?.teacherCategory ?? "standard",
+				is_biq_teacher: payload.docData?.isBiqTeacher ?? true,
 			});
 			if (teacherError) {
 				await supabase.auth.admin.deleteUser(uid);

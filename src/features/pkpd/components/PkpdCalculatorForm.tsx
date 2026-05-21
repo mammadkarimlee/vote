@@ -14,6 +14,8 @@ import { DecisionBadge } from "./DecisionBadge";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { ScoreCard } from "./ScoreCard";
 
+const bonusMax = bonusOptions.reduce((sum, option) => sum + option.points, 0);
+
 const fieldMeta = {
 	biq: { min: 0, max: 100, label: "BİQ orta göstərici (0–100)", weight: 15 },
 	survey: { min: 0, max: 100, label: "Sorğu orta göstərici (0–100)", weight: 15 },
@@ -159,7 +161,7 @@ export const PkpdCalculatorForm = () => {
 			{ label: "Rəhbərlik", value: values.breakdown.leadershipPoints, max: 10 },
 			{ label: "İmtahan", value: values.breakdown.examPoints, max: 30 },
 			{ label: "Portfolio", value: values.breakdown.portfolioPoints, max: 20 },
-			{ label: "Bonus", value: values.breakdown.bonusPoints, max: 10 },
+			{ label: "Bonus", value: values.breakdown.bonusPoints, max: bonusMax },
 		],
 		[values.breakdown],
 	);

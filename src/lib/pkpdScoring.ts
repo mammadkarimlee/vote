@@ -1,5 +1,14 @@
 import type { PkpdPortfolioDoc, TeacherCategory } from "./types";
 
+const sumScores = (values: Array<number | null | undefined>) => {
+	const numericValues = values.filter(
+		(value): value is number => typeof value === "number" && !Number.isNaN(value),
+	);
+	return numericValues.length > 0
+		? numericValues.reduce((sum, value) => sum + value, 0)
+		: null;
+};
+
 export const normalizePkpdScale = (
 	value: number,
 	min?: number | null,
@@ -32,7 +41,7 @@ export const getPkpdWeights = (category?: TeacherCategory) =>
 			};
 
 export const getPkpdPortfolioLimits = (category?: TeacherCategory) => {
-	if (category === "drama_gym") {
+	if (category === "drama_gym" || category === "chess") {
 		return {
 			education: 3,
 			attendance: 3,
@@ -42,17 +51,7 @@ export const getPkpdPortfolioLimits = (category?: TeacherCategory) => {
 		};
 	}
 
-	if (category === "chess") {
-		return {
-			education: 3,
-			attendance: 3,
-			training: 9,
-			olympiad: 30,
-			events: 15,
-		};
-	}
-
-	return { education: 3, attendance: 3, training: 5, olympiad: 4, events: 5 };
+	return { education: 3, attendance: 3, training: 4, olympiad: 4, events: 6 };
 };
 
 export const computePkpdPortfolioScore = (
@@ -69,6 +68,37 @@ export const computePkpdPortfolioScore = (
 		Math.min(portfolio.olympiadScore ?? 0, limits.olympiad) +
 		Math.min(portfolio.eventsScore ?? 0, limits.events)
 	);
+};
+
+type PkpdScoreParts = {
+	studentScore?: number | null;
+	managementScore?: number | null;
+	selfScore?: number | null;
+	biqScore?: number | null;
+	examScore?: number | null;
+	portfolioScore?: number | null;
+	bonusScore?: number | null;
+};
+
+export const computePkpdBaseScore = (parts: PkpdScoreParts) =>
+	sumScores([
+		parts.studentScore,
+		parts.managementScore,
+		parts.selfScore,
+		parts.biqScore,
+		parts.examScore,
+		parts.portfolioScore,
+	]);
+
+export const computePkpdTotalScore = (parts: PkpdScoreParts) => {
+	const baseScore = computePkpdBaseScore(parts);
+	const bonusScore =
+		typeof parts.bonusScore === "number" && !Number.isNaN(parts.bonusScore)
+			? parts.bonusScore
+			: null;
+
+	if (baseScore === null && bonusScore === null) return null;
+	return (baseScore ?? 0) + (bonusScore ?? 0);
 };
 
 export const pkpdBucket = (score: number | null) => {

@@ -47,6 +47,13 @@ const splitName = (value: string) => {
 	return { first, last };
 };
 
+const getTeacherDisplayName = (teacher: TeacherDoc, fallbackId = "") => {
+	const nameFromParts = [teacher.firstName?.trim(), teacher.lastName?.trim()]
+		.filter(Boolean)
+		.join(" ");
+	return nameFromParts || teacher.name?.trim() || fallbackId;
+};
+
 const normalizeSearch = (value: string) =>
 	value
 		.trim()
@@ -90,6 +97,14 @@ const parseTeacherCategory = (raw?: string | null): TeacherCategory => {
 	return "standard";
 };
 
+const parseBiqTeacherFlag = (raw?: string | null) => {
+	const value = (raw ?? "").trim().toLowerCase();
+	if (!value) return null;
+	if (["1", "true", "yes", "beli", "bəli", "biq"].includes(value)) return true;
+	if (["0", "false", "no", "xeyr", "miq"].includes(value)) return false;
+	return null;
+};
+
 const DEFAULT_DEPARTMENT_NAME = "Ümumi";
 
 export const BranchTeachersPage = () => {
@@ -111,6 +126,7 @@ export const BranchTeachersPage = () => {
 	const [lastName, setLastName] = useState("");
 	const [departmentId, setDepartmentId] = useState("");
 	const [category, setCategory] = useState<TeacherCategory>("standard");
+	const [isBiqTeacher, setIsBiqTeacher] = useState(true);
 	const [photoFile, setPhotoFile] = useState<File | null>(null);
 	const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -132,6 +148,7 @@ export const BranchTeachersPage = () => {
 	const [editLastName, setEditLastName] = useState("");
 	const [editDepartmentId, setEditDepartmentId] = useState("");
 	const [editCategory, setEditCategory] = useState<TeacherCategory>("standard");
+	const [editIsBiqTeacher, setEditIsBiqTeacher] = useState(true);
 	const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
 	const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
 	const [savingEdit, setSavingEdit] = useState(false);
@@ -514,6 +531,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 					lastName: lastName.trim(),
 					departmentId: resolvedDepartmentId,
 					teacherCategory: category,
+					isBiqTeacher,
 				},
 			});
 
@@ -551,6 +569,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 			setFirstName("");
 			setLastName("");
 			setCategory("standard");
+			setIsBiqTeacher(true);
 			setPhotoFile(null);
 			setPhotoPreview(null);
 			setSelectedGroupIds([]);
@@ -603,6 +622,10 @@ const resetTeachersPage = teachersPagination.resetPage;
 		);
 		setEditDepartmentId(departmentExists ? nextDepartmentId : "");
 		setEditCategory(teacher.data.category ?? "standard");
+		setEditIsBiqTeacher(
+			teacher.data.isBiqTeacher ??
+				(teacher.data.category ?? "standard") === "standard",
+		);
 		setEditPhotoFile(null);
 		setEditPhotoPreview(teacher.data.photoUrl ?? null);
 		setStatus(
@@ -618,6 +641,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 		setEditLastName("");
 		setEditDepartmentId("");
 		setEditCategory("standard");
+		setEditIsBiqTeacher(true);
 		setEditPhotoFile(null);
 		setEditPhotoPreview(null);
 	};
@@ -649,6 +673,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 					last_name: editLastName.trim(),
 					department_id: editDepartmentId,
 					teacher_category: editCategory,
+					is_biq_teacher: editIsBiqTeacher,
 					photo_url: photoUrl ?? null,
 				})
 				.eq("org_id", ORG_ID)
@@ -664,6 +689,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 			setEditLastName("");
 			setEditDepartmentId("");
 			setEditCategory("standard");
+			setEditIsBiqTeacher(true);
 			setEditPhotoFile(null);
 			setEditPhotoPreview(null);
 			await loadLookups();
@@ -693,7 +719,9 @@ const resetTeachersPage = teachersPagination.resetPage;
 
 		const rows = await parseSpreadsheet(file);
 		const existingNames = new Set(
-			teachers.map((teacher) => teacher.data.name.toLowerCase()),
+			teachers.map((teacher) =>
+				getTeacherDisplayName(teacher.data, teacher.id).toLowerCase(),
+			),
 		);
 		const seen = new Set<string>();
 
@@ -735,6 +763,13 @@ const resetTeachersPage = teachersPagination.resetPage;
 				const categoryValue = parseTeacherCategory(
 					row.category || row.kateqoriya || row.teacher_category,
 				);
+				const importedBiqFlag = parseBiqTeacherFlag(
+					row.is_biq_teacher ||
+						row.isBiqTeacher ||
+						row.biq_teacher ||
+						row.biq ||
+						row.miq,
+				);
 				await provisionLoginUser({
 					name: buildFullName(parsed.first, parsed.last),
 					branchId,
@@ -745,6 +780,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 						lastName: parsed.last,
 						departmentId: resolvedDepartmentId,
 						teacherCategory: categoryValue,
+						isBiqTeacher: importedBiqFlag ?? (categoryValue === "standard"),
 					},
 				});
 				created += 1;
@@ -774,7 +810,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 			.filter((teacher) => teacher.data.login)
 			.map((teacher) => ({
 				departmentName: departmentMap[teacher.data.departmentId ?? ""]?.name ?? "-",
-				teacherName: teacher.data.name,
+				teacherName: getTeacherDisplayName(teacher.data, teacher.id),
 				login: teacher.data.login ?? "",
 			}))
 			.sort((a, b) => {
@@ -894,6 +930,19 @@ const resetTeachersPage = teachersPagination.resetPage;
 									</option>
 								))}
 							</select>
+							<label className="field">
+								<span className="label">BİQ statusu</span>
+								<select
+									className="input"
+									value={isBiqTeacher ? "biq" : "miq"}
+									onChange={(event) =>
+										setIsBiqTeacher(event.target.value === "biq")
+									}
+								>
+									<option value="biq">BİQ müəllimi</option>
+									<option value="miq">BİQ müəllimi deyil</option>
+								</select>
+							</label>
 							<input
 								className="input"
 								type="file"
@@ -1063,7 +1112,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 								}}
 							/>
 							<span className="hint">
-								Şablon sütunları: name, category (istəyə bağlı), branchId (istəyə bağlı)
+									Şablon sütunları: name, category, is_biq_teacher, branchId (istəyə bağlı)
 							</span>
 						</div>
 					</div>
@@ -1143,16 +1192,21 @@ const resetTeachersPage = teachersPagination.resetPage;
 							<div>Müəllim</div>
 							<div>Kafedra</div>
 							<div>Kateqoriya</div>
+							<div>BİQ statusu</div>
 							<div>Login</div>
 							<div>Dərslər</div>
 							<div></div>
 						</div>
 						{teachersPagination.paginatedItems.map((teacher) => {
 							const teacherAssignments = assignmentMap[teacher.id] ?? [];
+							const teacherName = getTeacherDisplayName(
+								teacher.data,
+								teacher.id,
+							);
 							return (
 								<div className="data-row" key={teacher.id}>
 									<div className="stack">
-										<div className="list-title">{teacher.data.name}</div>
+										<div className="list-title">{teacherName}</div>
 										{teacher.data.photoUrl && (
 											<img
 												src={teacher.data.photoUrl}
@@ -1171,6 +1225,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 												item.value === (teacher.data.category ?? "standard"),
 										)?.label ?? "-"}
 									</div>
+									<div>{teacher.data.isBiqTeacher ? "BİQ" : "MİQ"}</div>
 									<div>{teacher.data.login ?? "-"}</div>
 									<div>{teacherAssignments.length} təyinat</div>
 									<div className="actions">
@@ -1264,6 +1319,19 @@ const resetTeachersPage = teachersPagination.resetPage;
 									</option>
 								))}
 							</select>
+							<label className="field">
+								<span className="label">BİQ statusu</span>
+								<select
+									className="input"
+									value={editIsBiqTeacher ? "biq" : "miq"}
+									onChange={(event) =>
+										setEditIsBiqTeacher(event.target.value === "biq")
+									}
+								>
+									<option value="biq">BİQ müəllimi</option>
+									<option value="miq">BİQ müəllimi deyil</option>
+								</select>
+							</label>
 							<input
 								className="input"
 								type="file"

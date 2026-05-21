@@ -1,14 +1,13 @@
 ﻿export const bonusOptions = [
-	{ id: "19.1", label: "Respublika səviyyəli olimpiada qalibi", points: 5 },
+	{ id: "19.1", label: "Dövlət əhəmiyyətli təltif", points: 5 },
 	{
 		id: "19.2",
-		label: "Beynəlxalq sertifikat və ya yarışmada nəticə",
-		points: 4,
+		label: "Elmi dərəcə",
+		points: 3,
 	},
-	{ id: "19.3", label: "Metodik vəsait və ya dərslik müəllifi", points: 3 },
-	{ id: "19.4", label: "Layihə rəhbəri və ya mentorluğu", points: 3 },
-	{ id: "19.5", label: "Təlimçi kimi fəaliyyət (ildə 1+)", points: 2 },
-	{ id: "19.6", label: "Sosial təşəbbüs və ictimai fəaliyyət", points: 2 },
+	{ id: "19.3", label: "Olimpiada medalı", points: 5 },
+	{ id: "19.4", label: "Qrant müsabiqəsi qalibi", points: 5 },
+	{ id: "19.5", label: "Şagirdin DİM nəticəsi 100 bal", points: 5 },
 ];
 
 export const stimulusStandards = [

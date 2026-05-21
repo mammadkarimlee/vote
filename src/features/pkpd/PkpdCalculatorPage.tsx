@@ -32,8 +32,8 @@ export const PkpdCalculatorPage = () => (
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="text-sm text-muted-foreground">
-						Bonus ballar maksimum 10 baldır. Hesablamanı paylaşmaq üçün “Linki
-						paylaş” istifadə edin.
+						Əlavə ballar maddə 19 üzrə yekun balın üzərinə əlavə olunur.
+						Hesablamanı paylaşmaq üçün “Linki paylaş” istifadə edin.
 					</CardContent>
 				</Card>
 				<Card>

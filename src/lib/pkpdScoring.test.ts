@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	computePkpdPortfolioScore,
+	computePkpdTotalScore,
 	getPkpdWeights,
 	normalizePkpdScale,
 	pkpdBucket,
@@ -53,6 +54,26 @@ describe("computePkpdPortfolioScore", () => {
 				"standard",
 			),
 		).toBe(20);
+	});
+});
+
+describe("computePkpdTotalScore", () => {
+	it("includes exam, portfolio, and bonus in the final score", () => {
+		expect(
+			computePkpdTotalScore({
+				studentScore: 15,
+				managementScore: 10,
+				selfScore: 10,
+				biqScore: 15,
+				examScore: 30,
+				portfolioScore: 20,
+				bonusScore: 5,
+			}),
+		).toBe(105);
+	});
+
+	it("returns null when no score data exists", () => {
+		expect(computePkpdTotalScore({})).toBeNull();
 	});
 });
 

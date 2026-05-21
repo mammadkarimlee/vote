@@ -45,6 +45,7 @@ export type TeacherDoc = {
 	branchId?: string | null;
 	branchIds?: string[];
 	category?: TeacherCategory;
+	isBiqTeacher?: boolean;
 	uid?: string | null;
 	login?: string | null;
 	createdAt?: unknown;
@@ -223,6 +224,15 @@ export type PkpdTeacherBiqResultDoc = {
 	groupId: string;
 	subjectId: string;
 	score: number;
+	createdAt?: unknown;
+};
+
+export type PkpdTeacherBiqAverageDoc = {
+	cycleId: string;
+	branchId: string;
+	teacherId: string;
+	score: number;
+	note?: string | null;
 	createdAt?: unknown;
 };
 

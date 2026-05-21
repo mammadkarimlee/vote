@@ -192,6 +192,7 @@ create table if not exists public.teachers (
   branch_id text references public.branches (id) on delete set null,
   branch_ids text[],
   teacher_category public.teacher_category not null default 'standard',
+  is_biq_teacher boolean not null default true,
   user_id text references public.users (id) on delete set null,
   login text,
   created_at timestamptz not null default now()
@@ -203,7 +204,13 @@ alter table public.teachers
   add column if not exists last_name text,
   add column if not exists department_id text references public.departments (id) on delete set null,
   add column if not exists photo_url text,
-  add column if not exists teacher_category public.teacher_category not null default 'standard';
+  add column if not exists teacher_category public.teacher_category not null default 'standard',
+  add column if not exists is_biq_teacher boolean not null default true;
+
+update public.teachers
+   set is_biq_teacher = false
+ where teacher_category <> 'standard'
+   and is_biq_teacher is true;
 
 create index if not exists teachers_branch_idx on public.teachers (branch_id);
 create index if not exists teachers_department_idx on public.teachers (department_id);
@@ -577,6 +584,28 @@ create index if not exists pkpd_teacher_biq_branch_idx on public.pkpd_teacher_bi
 create index if not exists pkpd_teacher_biq_cycle_idx on public.pkpd_teacher_biq_results (cycle_id);
 create index if not exists pkpd_teacher_biq_teacher_idx on public.pkpd_teacher_biq_results (teacher_id);
 
+create table if not exists public.pkpd_teacher_biq_averages (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs (id) on delete cascade,
+  branch_id text not null references public.branches (id) on delete cascade,
+  cycle_id text not null references public.survey_cycles (id) on delete cascade,
+  teacher_id text not null references public.teachers (id) on delete cascade,
+  score numeric not null,
+  note text,
+  created_at timestamptz not null default now(),
+  check (score >= 0 and score <= 100),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+alter table public.pkpd_teacher_biq_averages
+  add column if not exists org_id text not null default 'default' references public.orgs (id) on delete cascade,
+  add column if not exists note text;
+
+create index if not exists pkpd_teacher_biq_averages_org_idx on public.pkpd_teacher_biq_averages (org_id);
+create index if not exists pkpd_teacher_biq_averages_branch_idx on public.pkpd_teacher_biq_averages (branch_id);
+create index if not exists pkpd_teacher_biq_averages_cycle_idx on public.pkpd_teacher_biq_averages (cycle_id);
+create index if not exists pkpd_teacher_biq_averages_teacher_idx on public.pkpd_teacher_biq_averages (teacher_id);
+
 create table if not exists public.pkpd_exam_results (
   id text primary key default gen_random_uuid()::text,
   org_id text not null references public.orgs (id) on delete cascade,
@@ -871,6 +900,11 @@ create trigger audit_biq_class_results
 drop trigger if exists audit_pkpd_teacher_biq_results on public.pkpd_teacher_biq_results;
 create trigger audit_pkpd_teacher_biq_results
   after insert or update or delete on public.pkpd_teacher_biq_results
+  for each row execute function public.log_audit();
+
+drop trigger if exists audit_pkpd_teacher_biq_averages on public.pkpd_teacher_biq_averages;
+create trigger audit_pkpd_teacher_biq_averages
+  after insert or update or delete on public.pkpd_teacher_biq_averages
   for each row execute function public.log_audit();
 
 drop trigger if exists audit_pkpd_exam_results on public.pkpd_exam_results;
@@ -1570,6 +1604,7 @@ alter table public.notifications enable row level security;
 alter table public.ai_insights enable row level security;
 alter table public.biq_class_results enable row level security;
 alter table public.pkpd_teacher_biq_results enable row level security;
+alter table public.pkpd_teacher_biq_averages enable row level security;
 alter table public.pkpd_exam_results enable row level security;
 alter table public.pkpd_portfolios enable row level security;
 alter table public.pkpd_self_reviews enable row level security;
@@ -1690,6 +1725,11 @@ drop policy if exists pkpd_teacher_biq_results_select on public.pkpd_teacher_biq
 drop policy if exists pkpd_teacher_biq_results_insert on public.pkpd_teacher_biq_results;
 drop policy if exists pkpd_teacher_biq_results_update on public.pkpd_teacher_biq_results;
 drop policy if exists pkpd_teacher_biq_results_delete on public.pkpd_teacher_biq_results;
+
+drop policy if exists pkpd_teacher_biq_averages_select on public.pkpd_teacher_biq_averages;
+drop policy if exists pkpd_teacher_biq_averages_insert on public.pkpd_teacher_biq_averages;
+drop policy if exists pkpd_teacher_biq_averages_update on public.pkpd_teacher_biq_averages;
+drop policy if exists pkpd_teacher_biq_averages_delete on public.pkpd_teacher_biq_averages;
 
 drop policy if exists pkpd_exam_results_select on public.pkpd_exam_results;
 drop policy if exists pkpd_exam_results_insert on public.pkpd_exam_results;
@@ -2040,6 +2080,7 @@ create policy teachers_update on public.teachers
   for update
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2051,6 +2092,7 @@ create policy teachers_update on public.teachers
   )
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2141,6 +2183,7 @@ create policy student_group_memberships_select on public.student_group_membershi
   for select
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2152,6 +2195,7 @@ create policy student_group_memberships_insert on public.student_group_membershi
   for insert
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2163,6 +2207,7 @@ create policy student_group_memberships_update on public.student_group_membershi
   for update
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2171,6 +2216,7 @@ create policy student_group_memberships_update on public.student_group_membershi
   )
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2721,10 +2767,56 @@ create policy pkpd_teacher_biq_results_delete on public.pkpd_teacher_biq_results
     )
   );
 
+create policy pkpd_teacher_biq_averages_select on public.pkpd_teacher_biq_averages
+  for select
+  using (
+    public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_averages_insert on public.pkpd_teacher_biq_averages
+  for insert
+  with check (
+    public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
+create policy pkpd_teacher_biq_averages_update on public.pkpd_teacher_biq_averages
+  for update
+  using (
+    public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  )
+  with check (
+    public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
+    or (
+      public.is_branch_staff()
+      and public.current_org_id() = org_id
+      and public.current_branch_id() = branch_id
+    )
+  );
+
 create policy pkpd_exam_results_select on public.pkpd_exam_results
   for select
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2736,6 +2828,7 @@ create policy pkpd_exam_results_insert on public.pkpd_exam_results
   for insert
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2747,6 +2840,7 @@ create policy pkpd_exam_results_update on public.pkpd_exam_results
   for update
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2755,6 +2849,7 @@ create policy pkpd_exam_results_update on public.pkpd_exam_results
   )
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2766,6 +2861,7 @@ create policy pkpd_exam_results_delete on public.pkpd_exam_results
   for delete
   using (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id
@@ -2859,6 +2955,7 @@ create policy pkpd_self_reviews_update on public.pkpd_self_reviews
   )
   with check (
     public.is_superadmin()
+    or (public.is_hr() and public.current_org_id() = org_id)
     or (
       public.is_branch_staff()
       and public.current_org_id() = org_id

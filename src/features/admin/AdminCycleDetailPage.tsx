@@ -18,6 +18,7 @@ import {
 } from "../../lib/pkpdSelfReview";
 import {
 	computePkpdPortfolioScore,
+	computePkpdTotalScore,
 	getPkpdWeights,
 } from "../../lib/pkpdScoring";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -30,6 +31,7 @@ import {
 	mapPkpdExamRow,
 	mapPkpdPortfolioRow,
 	mapPkpdSelfReviewRow,
+	mapPkpdTeacherBiqAverageRow,
 	mapPkpdTeacherBiqResultRow,
 	mapQuestionRow,
 	mapSubmissionRow,
@@ -48,6 +50,7 @@ import type {
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
 	PkpdSelfReviewDoc,
+	PkpdTeacherBiqAverageDoc,
 	PkpdTeacherBiqResultDoc,
 	QuestionDoc,
 	SubmissionDoc,
@@ -84,6 +87,8 @@ type TeacherRow = {
 	lastName: string;
 	departmentName: string;
 	branchName: string;
+	isBiqTeacher: boolean;
+	assessmentResultLabel: string;
 	studentAvg: number | null;
 	managementAvg: number | null;
 	selfAvg: number | null;
@@ -91,8 +96,10 @@ type TeacherRow = {
 	academicIndicator: number | null;
 	teacherCriteriaTotal: number | null;
 	hrEvaluationScore: number | null;
-	selfTotal: number | null;
 	biqAvg: number | null;
+	computedBiqAvg: number | null;
+	manualBiqAvg: number | null;
+	biqAverageSource: "manual" | "computed" | "none";
 	studentWeightedScore: number | null;
 	managementWeightedScore: number | null;
 	selfWeightedScore: number | null;
@@ -176,6 +183,19 @@ const formatScore = (value: number | null | undefined) => {
 	return value.toFixed(2);
 };
 
+const getIsBiqTeacher = (teacher: TeacherDoc) =>
+	teacher.isBiqTeacher ?? (teacher.category ?? "standard") === "standard";
+
+const clampExamScore = (score: number | null | undefined) =>
+	typeof score === "number" && !Number.isNaN(score)
+		? Math.min(Math.max(score, 0), 30)
+		: null;
+
+const clampBiqAverageScore = (score: number | null | undefined) =>
+	typeof score === "number" && !Number.isNaN(score)
+		? Math.min(Math.max(score, 0), 100)
+		: null;
+
 const splitFullName = (fullName: string) => {
 	const parts = fullName.trim().split(/\s+/).filter(Boolean);
 	if (parts.length === 0) return { firstName: "", lastName: "" };
@@ -184,6 +204,13 @@ const splitFullName = (fullName: string) => {
 		firstName: parts[0],
 		lastName: parts.slice(1).join(" "),
 	};
+};
+
+const getTeacherDisplayName = (teacher: TeacherDoc, fallbackId: string) => {
+	const nameFromParts = [teacher.firstName?.trim(), teacher.lastName?.trim()]
+		.filter(Boolean)
+		.join(" ");
+	return nameFromParts || teacher.name?.trim() || fallbackId;
 };
 
 const escapeHtml = (value: string) =>
@@ -343,6 +370,9 @@ export const AdminCycleDetailPage = () => {
 	const [teacherBiqResults, setTeacherBiqResults] = useState<
 		Array<DocEntry<PkpdTeacherBiqResultDoc>>
 	>([]);
+	const [teacherBiqAverages, setTeacherBiqAverages] = useState<
+		Array<DocEntry<PkpdTeacherBiqAverageDoc>>
+	>([]);
 	const [examResults, setExamResults] = useState<Array<DocEntry<PkpdExamDoc>>>([]);
 	const [portfolios, setPortfolios] = useState<
 		Array<DocEntry<PkpdPortfolioDoc>>
@@ -370,6 +400,10 @@ export const AdminCycleDetailPage = () => {
 	const [selfReviewHrScore, setSelfReviewHrScore] = useState("");
 	const [selfReviewNote, setSelfReviewNote] = useState("");
 	const [selfReviewStatus, setSelfReviewStatus] = useFeedbackState();
+	const [assessmentMode, setAssessmentMode] = useState<"biq" | "miq">("biq");
+	const [biqAverageDraft, setBiqAverageDraft] = useState("");
+	const [miqScoreDraft, setMiqScoreDraft] = useState("");
+	const [assessmentStatus, setAssessmentStatus] = useFeedbackState();
 	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
 	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
 	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
@@ -483,6 +517,7 @@ export const AdminCycleDetailPage = () => {
 					submissionRows,
 					biqRows,
 					teacherBiqRows,
+					teacherBiqAverageRows,
 					examRows,
 					portfolioRows,
 					selfReviewRows,
@@ -531,6 +566,19 @@ export const AdminCycleDetailPage = () => {
 							await (() => {
 								let query = supabase
 									.from("pkpd_teacher_biq_results")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("cycle_id", cycleId);
+								if (scopedBranchId) {
+									query = query.eq("branch_id", scopedBranchId);
+								}
+								return query.range(from, to);
+							})(),
+						),
+						fetchAllBatched<any>(async (from, to) =>
+							await (() => {
+								let query = supabase
+									.from("pkpd_teacher_biq_averages")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
@@ -616,6 +664,12 @@ export const AdminCycleDetailPage = () => {
 					teacherBiqRows.map((row) => ({
 						id: row.id,
 						data: mapPkpdTeacherBiqResultRow(row),
+					})),
+				);
+				setTeacherBiqAverages(
+					teacherBiqAverageRows.map((row) => ({
+						id: row.id,
+						data: mapPkpdTeacherBiqAverageRow(row),
 					})),
 				);
 				setExamResults(
@@ -897,6 +951,14 @@ export const AdminCycleDetailPage = () => {
 		[teacherBiqResults],
 	);
 
+	const teacherBiqAverageMap = useMemo(
+		() =>
+			Object.fromEntries(
+				teacherBiqAverages.map((item) => [item.data.teacherId, item.data]),
+			),
+		[teacherBiqAverages],
+	);
+
 	const selfReviewMap = useMemo(
 		() =>
 			Object.fromEntries(
@@ -975,6 +1037,8 @@ export const AdminCycleDetailPage = () => {
 			.map((teacher) => {
 				const category = teacher.data.category ?? "standard";
 				const weights = getPkpdWeights(category);
+				const isBiqTeacher = getIsBiqTeacher(teacher.data);
+				const assessmentResultLabel = isBiqTeacher ? "BİQ nəticəsi" : "BİQ tətbiq edilmir";
 				const flow = flowStats[teacher.id] ?? emptyFlowAggregate();
 				const classScores = studentClassScoresByTeacher[teacher.id] ?? [];
 				const studentStats = studentSubmissionStatsByTeacher[teacher.id] ?? {
@@ -999,15 +1063,6 @@ export const AdminCycleDetailPage = () => {
 							typeof value === "number" && !Number.isNaN(value),
 					),
 				);
-				const selfTotal = [selfDeclaredScore, teacherCriteriaTotal].reduce<number>(
-					(acc, value) => acc + (typeof value === "number" ? value : 0),
-					0,
-				);
-				const resolvedSelfTotal =
-					selfDeclaredScore === null && teacherCriteriaTotal === null
-						? null
-						: selfTotal;
-
 				const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
 				const biqValues = assignmentsForTeacher
 					.map((assignment) => {
@@ -1020,10 +1075,23 @@ export const AdminCycleDetailPage = () => {
 						return typeof classScore === "number" ? classScore : null;
 					})
 					.filter((value): value is number => typeof value === "number");
-				const biqAvg =
+				const computedBiqAvg =
 					biqValues.length > 0
 						? biqValues.reduce((acc, value) => acc + value, 0) / biqValues.length
 						: null;
+				const manualBiqAvg = clampBiqAverageScore(
+					teacherBiqAverageMap[teacher.id]?.score,
+				);
+				const biqAvg = isBiqTeacher
+					? (manualBiqAvg ?? computedBiqAvg)
+					: null;
+				const biqAverageSource: "manual" | "computed" | "none" = !isBiqTeacher
+					? "none"
+					: manualBiqAvg !== null
+						? "manual"
+						: computedBiqAvg !== null
+							? "computed"
+							: "none";
 				const studentWeightedScore =
 					studentAvg === null ? null : (studentAvg * weights.student) / 10;
 				const managementWeightedScore =
@@ -1034,38 +1102,31 @@ export const AdminCycleDetailPage = () => {
 					selfDeclaredScore === null
 						? null
 						: (selfDeclaredScore * weights.self) / 10;
+				const examInputScore = clampExamScore(examMap[teacher.id]?.score);
 				const biqWeightedScore =
-					weights.biq === 0 || biqAvg === null
-						? null
-						: (biqAvg * weights.biq) / 100;
-				const examScore =
-					weights.exam === 0 ? null : (examMap[teacher.id]?.score ?? null);
+					isBiqTeacher
+						? weights.biq === 0 || biqAvg === null
+							? null
+							: (biqAvg * weights.biq) / 100
+						: null;
+				const examScore = isBiqTeacher ? examInputScore : null;
 				const portfolioScore = computePkpdPortfolioScore(
 					portfolioMap[teacher.id] ?? null,
 					category,
 				);
 				const bonusScore = achievementTotals[teacher.id] ?? 0;
 
-				const finalScoreParts = [
-					studentWeightedScore,
-					managementWeightedScore,
-					selfWeightedScore,
-					biqWeightedScore,
+				const finalScore = computePkpdTotalScore({
+					studentScore: studentWeightedScore,
+					managementScore: managementWeightedScore,
+					selfScore: selfWeightedScore,
+					biqScore: biqWeightedScore,
 					examScore,
 					portfolioScore,
-					hrEvaluationScore,
-				].filter(
-					(value): value is number =>
-						typeof value === "number" && !Number.isNaN(value),
-				);
-				const hasFinalScoreData =
-					finalScoreParts.length > 0 || bonusScore > 0;
-				const finalScore =
-					hasFinalScoreData
-						? finalScoreParts.reduce((acc, value) => acc + value, 0) + bonusScore
-						: null;
+					bonusScore,
+				});
 
-				const resolvedName = teacher.data.name ?? teacher.id;
+				const resolvedName = getTeacherDisplayName(teacher.data, teacher.id);
 				const nameParts = splitFullName(resolvedName);
 				const firstName = teacher.data.firstName?.trim() || nameParts.firstName;
 				const lastName = teacher.data.lastName?.trim() || nameParts.lastName;
@@ -1083,6 +1144,8 @@ export const AdminCycleDetailPage = () => {
 					lastName,
 					departmentName,
 					branchName,
+					isBiqTeacher,
+					assessmentResultLabel,
 					studentAvg,
 					managementAvg,
 					selfAvg,
@@ -1090,8 +1153,10 @@ export const AdminCycleDetailPage = () => {
 					academicIndicator,
 					teacherCriteriaTotal,
 					hrEvaluationScore,
-					selfTotal: resolvedSelfTotal,
 					biqAvg,
+					computedBiqAvg,
+					manualBiqAvg,
+					biqAverageSource,
 					studentWeightedScore,
 					managementWeightedScore,
 					selfWeightedScore,
@@ -1130,6 +1195,7 @@ export const AdminCycleDetailPage = () => {
 		submissionCountByTeacher,
 		studentSubmissionStatsByTeacher,
 		studentClassScoresByTeacher,
+		teacherBiqAverageMap,
 		teacherBiqByKey,
 		teachers,
 	]);
@@ -1151,7 +1217,6 @@ export const AdminCycleDetailPage = () => {
 		() => selectedTeacherSelfResponse?.textAnswers.map((item) => item.questionId) ?? [],
 		[selectedTeacherSelfResponse],
 	);
-	const selectedTeacherAcademicIndicator = getAcademicIndicator(selectedTeacherSelfReview);
 	const selectedTeacherHasOpenAnswers = Boolean(
 		selectedTeacherSelfResponse &&
 			selectedTeacherSelfResponse.textAnswers.length > 0,
@@ -1171,6 +1236,10 @@ export const AdminCycleDetailPage = () => {
 			setSelfReviewHrScore("");
 			setSelfReviewNote("");
 			setSelfReviewStatus(null);
+			setAssessmentMode("biq");
+			setBiqAverageDraft("");
+			setMiqScoreDraft("");
+			setAssessmentStatus(null);
 			setSelfReviewEditUnlocked(false);
 			setSelfReviewUnlockOpen(false);
 			setSelfReviewUnlockPassword("");
@@ -1196,6 +1265,21 @@ export const AdminCycleDetailPage = () => {
 		);
 		setSelfReviewNote(selectedTeacherSelfReview?.note ?? "");
 		setSelfReviewStatus(null);
+		const teacher = teacherMap[selectedTeacherId];
+		setAssessmentMode(teacher && !getIsBiqTeacher(teacher) ? "miq" : "biq");
+		const biqAverageScore = teacherBiqAverageMap[selectedTeacherId]?.score;
+		setBiqAverageDraft(
+			typeof biqAverageScore === "number" && !Number.isNaN(biqAverageScore)
+				? String(biqAverageScore)
+				: "",
+		);
+		const miqScore = examMap[selectedTeacherId]?.score;
+		setMiqScoreDraft(
+			typeof miqScore === "number" && !Number.isNaN(miqScore)
+				? String(miqScore)
+				: "",
+		);
+		setAssessmentStatus(null);
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockOpen(false);
 		setSelfReviewUnlockPassword("");
@@ -1206,6 +1290,9 @@ export const AdminCycleDetailPage = () => {
 		selectedTeacherId,
 		selectedTeacherOpenQuestionIds,
 		selectedTeacherSelfReview,
+		teacherBiqAverageMap,
+		teacherMap,
+		examMap,
 	]);
 
 	const validTeacherScores = useMemo(
@@ -1355,10 +1442,6 @@ export const AdminCycleDetailPage = () => {
 
 		const toListHtml = (items: string[]) =>
 			items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-		const academicIndicatorText = formatScore(selectedTeacherAcademicIndicator);
-		const teacherCriteriaTotalText = formatScore(selectedTeacher.teacherCriteriaTotal);
-		const hrEvaluationText = formatScore(selectedTeacher.hrEvaluationScore);
-		const selfDeclaredScoreText = formatScore(selectedTeacher.selfDeclaredScore);
 		const studentWeightedScoreText = formatScore(
 			selectedTeacher.studentWeightedScore,
 		);
@@ -1366,13 +1449,19 @@ export const AdminCycleDetailPage = () => {
 			selectedTeacher.managementWeightedScore,
 		);
 		const selfWeightedScoreText = formatScore(selectedTeacher.selfWeightedScore);
+		const biqAverageText = formatScore(selectedTeacher.biqAvg);
+		const biqAverageSourceText =
+			selectedTeacher.biqAverageSource === "manual"
+				? "manual daxil edilib"
+				: selectedTeacher.biqAverageSource === "computed"
+					? "qrup/fənn üzrə hesablanıb"
+					: "məlumat yoxdur";
 		const biqWeightedScoreText = formatScore(selectedTeacher.biqWeightedScore);
 		const examScoreText = formatScore(selectedTeacher.examScore);
 		const portfolioScoreText = formatScore(selectedTeacher.portfolioScore);
-		const bonusScoreText =
-			selectedTeacher.bonusScore > 0
-				? selectedTeacher.bonusScore.toFixed(2)
-				: "—";
+		const bonusScoreText = selectedTeacher.bonusScore.toFixed(2);
+		const finalScoreText = formatScore(selectedTeacher.finalScore);
+		const assessmentResultLabel = escapeHtml(selectedTeacher.assessmentResultLabel);
 		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
 			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
 			: null;
@@ -1587,33 +1676,20 @@ export const AdminCycleDetailPage = () => {
 					<div class="section">
 						<h2>Yekun Göstəricilər</h2>
 						<div class="grid">
-							<div class="card"><div class="label">Şagird sorğusu (ümumi orta)</div><div class="value">${formatScore(selectedTeacher.studentAvg)}</div></div>
-							<div class="card"><div class="label">Rəhbərlik sorğusu</div><div class="value">${formatScore(selectedTeacher.managementAvg)}</div></div>
-							<div class="card"><div class="label">Özünüqiymətləndirmə (cəm)</div><div class="value">${formatScore(selectedTeacher.selfTotal)}</div></div>
-							<div class="card"><div class="label">BİQ nəticəsi</div><div class="value">${formatScore(selectedTeacher.biqAvg)}</div></div>
-							<div class="card"><div class="label">Şagird sorğusu (15 bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
 							<div class="card"><div class="label">Rəhbərlik sorğusu (10 bal üzrə)</div><div class="value">${managementWeightedScoreText}</div></div>
 							<div class="card"><div class="label">Özünüqiymətləndirmə (10 bal üzrə)</div><div class="value">${selfWeightedScoreText}</div></div>
-							<div class="card"><div class="label">BİQ (15 bal üzrə)</div><div class="value">${biqWeightedScoreText}</div></div>
-							<div class="card"><div class="label">İmtahan</div><div class="value">${examScoreText}</div></div>
+							<div class="card"><div class="label">BİQ ortalaması</div><div class="value">${biqAverageText}</div><div class="meta">${escapeHtml(biqAverageSourceText)}</div></div>
+							<div class="card"><div class="label">${assessmentResultLabel} (15 bal üzrə)</div><div class="value">${biqWeightedScoreText}</div></div>
+							<div class="card"><div class="label">Şagird sorğusu (15 bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
+							<div class="card"><div class="label">Attestasiya imtahanı (30 bal üzrə)</div><div class="value">${examScoreText}</div></div>
 							<div class="card"><div class="label">Portfolio</div><div class="value">${portfolioScoreText}</div></div>
-							<div class="card"><div class="label">Müəllimin 3 meyar üzrə orta balı</div><div class="value">${academicIndicatorText}</div></div>
-							<div class="card"><div class="label">Müəllimin 3 meyar üzrə cəmi</div><div class="value">${teacherCriteriaTotalText}</div></div>
-							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
-							<div class="card"><div class="label">HR qiymətləndirməsi</div><div class="value">${hrEvaluationText}</div></div>
-							<div class="card"><div class="label">Bonus</div><div class="value">${bonusScoreText}</div></div>
-							<div class="card"><div class="label">Yekun bal</div><div class="value">${formatScore(selectedTeacher.finalScore)}</div></div>
-							<div class="card"><div class="label">Şagird cavab sayı</div><div class="value">${selectedTeacher.studentCount}</div></div>
+							<div class="card"><div class="label">Əlavə bal</div><div class="value">${bonusScoreText}</div></div>
+							<div class="card"><div class="label">Cəm</div><div class="value">${finalScoreText}</div></div>
 						</div>
 					</div>
 
 					<div class="section">
 						<h2>3 Meyar Cəmi və Açıq Cavablar</h2>
-						<div class="grid">
-							<div class="card"><div class="label">Müəllimin 3 meyar üzrə cəmi</div><div class="value">${teacherCriteriaTotalText}</div></div>
-							<div class="card"><div class="label">HR qiymətləndirməsi</div><div class="value">${hrEvaluationText}</div></div>
-							<div class="card"><div class="label">Müəllimin öz verdiyi bal</div><div class="value">${selfDeclaredScoreText}</div></div>
-						</div>
 						<div class="meta-stack">
 							<p class="meta">Son qiymətləndirmə: ${academicReviewedAtText ?? "—"}</p>
 							<p class="meta">Son düzəliş səbəbi: ${academicEditReasonText ?? "—"}</p>
@@ -1725,6 +1801,10 @@ export const AdminCycleDetailPage = () => {
 			setSelfReviewQuestionScores({});
 			setSelfReviewHrScore("");
 			setSelfReviewStatus(null);
+			setAssessmentMode("biq");
+			setBiqAverageDraft("");
+			setMiqScoreDraft("");
+			setAssessmentStatus(null);
 			setSelfReviewEditUnlocked(false);
 			setSelfReviewUnlockOpen(false);
 			setSelfReviewUnlockPassword("");
@@ -1732,6 +1812,140 @@ export const AdminCycleDetailPage = () => {
 			setSelfReviewUnlockError(null);
 			setSelfReviewUnlockSubmitting(false);
 		}
+	};
+
+	const handleSaveAssessmentMode = async () => {
+		if (!cycleId || !selectedTeacherId) return;
+
+		const teacherBranchId = teacherMap[selectedTeacherId]?.branchId;
+		if (!teacherBranchId) {
+			setAssessmentStatus("Müəllimin filialı tapılmadı");
+			return;
+		}
+
+		const isBiqTeacher = assessmentMode === "biq";
+		const rawBiqAverage = biqAverageDraft.trim();
+		const parsedBiqAverage = rawBiqAverage
+			? Number(rawBiqAverage.replace(",", "."))
+			: null;
+		if (
+			isBiqTeacher &&
+			rawBiqAverage &&
+			(parsedBiqAverage === null ||
+				Number.isNaN(parsedBiqAverage) ||
+				parsedBiqAverage < 0 ||
+				parsedBiqAverage > 100)
+		) {
+			setAssessmentStatus("BİQ ortalaması 0-100 arası olmalıdır");
+			return;
+		}
+		const rawExamScore = miqScoreDraft.trim();
+		const parsedExamScore = rawExamScore ? Number(rawExamScore) : null;
+		if (
+			isBiqTeacher &&
+			rawExamScore &&
+			(parsedExamScore === null ||
+				Number.isNaN(parsedExamScore) ||
+				parsedExamScore < 0 ||
+				parsedExamScore > 30)
+		) {
+			setAssessmentStatus("Attestasiya imtahanı balı 0-30 arası olmalıdır");
+			return;
+		}
+
+		const { error: teacherError } = await supabase
+			.from("teachers")
+			.update({ is_biq_teacher: isBiqTeacher })
+			.eq("org_id", ORG_ID)
+			.eq("id", selectedTeacherId);
+		if (teacherError) {
+			setAssessmentStatus("BİQ statusu saxlanmadı");
+			return;
+		}
+
+		setTeachers((prev) =>
+			prev.map((teacher) =>
+				teacher.id === selectedTeacherId
+					? {
+							...teacher,
+							data: { ...teacher.data, isBiqTeacher },
+						}
+					: teacher,
+			),
+		);
+
+		if (isBiqTeacher && rawBiqAverage) {
+			const { error: biqAverageError } = await supabase
+				.from("pkpd_teacher_biq_averages")
+				.upsert(
+					{
+						org_id: ORG_ID,
+						branch_id: teacherBranchId,
+						cycle_id: cycleId,
+						teacher_id: selectedTeacherId,
+						score: parsedBiqAverage ?? 0,
+					},
+					{ onConflict: "org_id,cycle_id,teacher_id" },
+				);
+			if (biqAverageError) {
+				setAssessmentStatus("BİQ ortalaması saxlanmadı");
+				return;
+			}
+		}
+
+		if (isBiqTeacher && rawExamScore) {
+			const { error: examError } = await supabase
+				.from("pkpd_exam_results")
+				.upsert(
+					{
+						org_id: ORG_ID,
+						branch_id: teacherBranchId,
+						cycle_id: cycleId,
+						teacher_id: selectedTeacherId,
+						score: parsedExamScore ?? 0,
+					},
+					{ onConflict: "org_id,cycle_id,teacher_id" },
+				);
+			if (examError) {
+				setAssessmentStatus("Attestasiya imtahanı balı saxlanmadı");
+				return;
+			}
+		}
+
+		const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
+			await supabase
+				.from("pkpd_exam_results")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("cycle_id", cycleId)
+				.range(from, to),
+		);
+		setExamResults(
+			refreshedRows.map((row) => ({
+				id: row.id,
+				data: mapPkpdExamRow(row),
+			})),
+		);
+		const refreshedBiqAverageRows = await fetchAllBatched<any>(async (from, to) =>
+			await supabase
+				.from("pkpd_teacher_biq_averages")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("cycle_id", cycleId)
+				.range(from, to),
+		);
+		setTeacherBiqAverages(
+			refreshedBiqAverageRows.map((row) => ({
+				id: row.id,
+				data: mapPkpdTeacherBiqAverageRow(row),
+			})),
+		);
+
+		setAssessmentStatus(
+			isBiqTeacher
+				? "Müəllim BİQ müəllimi, BİQ ortalaması və attestasiya imtahanı ilə saxlanıldı"
+				: "Müəllim BİQ olmayan fənn müəllimi kimi saxlanıldı; əvvəlki imtahan qeydləri silinmədi və hesaba qatılmır",
+		);
 	};
 
 	const handleRequestSelfReviewEdit = () => {
@@ -1807,28 +2021,9 @@ export const AdminCycleDetailPage = () => {
 
 		if (!hasAnyScore) {
 			if (!noteValue && !hrScoreRaw) {
-				await supabase
-					.from("pkpd_self_reviews")
-					.delete()
-					.eq("org_id", ORG_ID)
-					.eq("cycle_id", cycleId)
-					.eq("teacher_id", selectedTeacherId);
-
-				const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
-					await supabase
-						.from("pkpd_self_reviews")
-						.select("*")
-						.eq("org_id", ORG_ID)
-						.eq("cycle_id", cycleId)
-						.range(from, to),
+				setSelfReviewStatus(
+					"Boş açıq sual/HR qiymətləndirməsi saxlanmadı; mövcud qeyd silinmədi",
 				);
-				setSelfReviews(
-					refreshedRows.map((row) => ({
-						id: row.id,
-						data: mapPkpdSelfReviewRow(row),
-					})),
-				);
-				setSelfReviewStatus("Açıq sual cəmi və HR qiymətləndirməsi silindi");
 				return;
 			}
 
@@ -2127,58 +2322,84 @@ export const AdminCycleDetailPage = () => {
 							<div className="panel-content px-6 py-6">
 								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
-										<div className="stat-label">Şagird sorğusu (ümumi orta)</div>
+										<div className="stat-label">Rəhbərlik sorğusu (10 bal üzrə)</div>
 										<div className="stat-value">
-											{formatScore(selectedTeacher.studentAvg)}
+											{formatScore(selectedTeacher.managementWeightedScore)}
 										</div>
 										<div className="stat-meta">
-											sinif/blok sayı: {selectedTeacher.studentClassCount} • cavab sayı:{" "}
-											{selectedTeacher.studentCount}
+											ümumi orta: {formatScore(selectedTeacher.managementAvg)} • cavab sayı:{" "}
+											{selectedTeacher.managementCount}
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Rəhbərlik sorğusu</div>
+										<div className="stat-label">Özünüqiymətləndirmə (10 bal üzrə)</div>
 										<div className="stat-value">
-											{formatScore(selectedTeacher.managementAvg)}
+											{formatScore(selectedTeacher.selfWeightedScore)}
 										</div>
 										<div className="stat-meta">
-											cavab sayı: {selectedTeacher.managementCount}
+											müəllimin verdiyi bal: {formatScore(selectedTeacher.selfDeclaredScore)}
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Özünüqiymətləndirmə (cəm)</div>
-										<div className="stat-value">
-											{formatScore(selectedTeacher.selfTotal)}
+										<div className="stat-label">
+											BİQ ortalaması
 										</div>
-										<div className="stat-meta">
-											cavab sayı: {selectedTeacher.selfCount} • öz balı + 3 meyar cəmi
-										</div>
-									</div>
-									<div className="stat-card">
-										<div className="stat-label">BİQ nəticəsi</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.biqAvg)}
 										</div>
-										<div className="stat-meta">qrup/fənn ortalaması</div>
+										<div className="stat-meta">
+											{selectedTeacher.biqAverageSource === "manual"
+												? "manual daxil edilib"
+												: selectedTeacher.biqAverageSource === "computed"
+													? "qrup/fənn üzrə hesablanıb"
+													: "məlumat yoxdur"}
+										</div>
 									</div>
-								</div>
-
-								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
-										<div className="stat-label">Yekun bal</div>
+										<div className="stat-label">
+											{selectedTeacher.assessmentResultLabel} (15 bal üzrə)
+										</div>
 										<div className="stat-value">
-											{formatScore(selectedTeacher.finalScore)}
+											{formatScore(selectedTeacher.biqWeightedScore)}
 										</div>
 										<div className="stat-meta">
-											öz balı + 3 meyar cəmi + HR qiymətləndirməsi
+											{selectedTeacher.isBiqTeacher
+												? `ümumi orta: ${formatScore(selectedTeacher.biqAvg)}`
+												: "bu müəllim üçün BİQ nəzərə alınmır"}
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Müəllimin öz verdiyi bal</div>
+										<div className="stat-label">Attestasiya imtahanı</div>
 										<div className="stat-value">
-											{formatScore(selectedTeacher.selfDeclaredScore)}
+											{formatScore(selectedTeacher.examScore)}
 										</div>
-										<div className="stat-meta">1-10</div>
+										<div className="stat-meta">0-30</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Portfolio</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.portfolioScore)}
+										</div>
+										<div className="stat-meta">
+											{selectedTeacher.isBiqTeacher ? "0-20" : "0-60"}
+										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Əlavə bal</div>
+										<div className="stat-value">
+											{selectedTeacher.bonusScore.toFixed(2)}
+										</div>
+										<div className="stat-meta">maddə 19 üzrə</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Şagird sorğusu (15 bal üzrə)</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.studentWeightedScore)}
+										</div>
+										<div className="stat-meta">
+											ümumi orta: {formatScore(selectedTeacher.studentAvg)} • cavab sayı:{" "}
+											{selectedTeacher.studentCount}
+										</div>
 									</div>
 									<div className="stat-card">
 										<div className="stat-label">Müəllimin 3 meyar üzrə cəmi</div>
@@ -2200,6 +2421,78 @@ export const AdminCycleDetailPage = () => {
 										</div>
 										<div className="stat-meta">1-10</div>
 									</div>
+									<div className="stat-card">
+										<div className="stat-label">Yekun bal</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.finalScore)}
+										</div>
+										<div className="stat-meta">yekun hesablanan bal</div>
+									</div>
+								</div>
+
+								<div className="card">
+									<div className="section-header">
+										<div>
+											<h3>BİQ statusu və attestasiya imtahanı</h3>
+											<p>
+												BİQ müəllimində sistem BİQ ortalamasını və attestasiya imtahanını,
+												digər müəllimdə isə Əlavə 2 üzrə portfolio modelini istifadə edir.
+											</p>
+										</div>
+									</div>
+									<div className="form-row">
+										<label className="field">
+											<span className="label">Status</span>
+											<select
+												className="input"
+												value={assessmentMode}
+												onChange={(event) =>
+													setAssessmentMode(event.target.value as "biq" | "miq")
+												}
+											>
+												<option value="biq">BİQ müəllimi</option>
+												<option value="miq">BİQ müəllimi deyil</option>
+											</select>
+										</label>
+										{assessmentMode === "biq" && (
+											<label className="field">
+												<span className="label">BİQ ortalaması</span>
+												<input
+													className="input"
+													type="number"
+													min="0"
+													max="100"
+													step="0.01"
+													placeholder="0-100"
+													value={biqAverageDraft}
+													onChange={(event) => setBiqAverageDraft(event.target.value)}
+												/>
+											</label>
+										)}
+										{assessmentMode === "biq" && (
+											<label className="field">
+												<span className="label">Attestasiya imtahanı balı</span>
+												<input
+													className="input"
+													type="number"
+													min="0"
+													max="30"
+													step="0.01"
+													placeholder="0-30"
+													value={miqScoreDraft}
+													onChange={(event) => setMiqScoreDraft(event.target.value)}
+												/>
+											</label>
+										)}
+										<button
+											className="btn primary"
+											type="button"
+											onClick={() => void handleSaveAssessmentMode()}
+										>
+											Saxla
+										</button>
+									</div>
+									{assessmentStatus && <div className="notice">{assessmentStatus}</div>}
 								</div>
 
 								<div className="card">
