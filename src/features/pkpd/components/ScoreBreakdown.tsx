@@ -2,7 +2,7 @@ import { cn } from "../../../lib/utils";
 
 type BreakdownItem = {
 	label: string;
-	value: number;
+	value: number | null;
 	max: number;
 };
 
@@ -15,7 +15,7 @@ export const ScoreBreakdown = ({ items, className }: ScoreBreakdownProps) => (
 	<div className={cn("flex flex-col gap-3", className)}>
 		{items.map((item) => {
 			const pct =
-				item.max > 0
+				item.max > 0 && item.value !== null
 					? Math.min(100, Math.round((item.value / item.max) * 100))
 					: 0;
 			return (
@@ -26,7 +26,7 @@ export const ScoreBreakdown = ({ items, className }: ScoreBreakdownProps) => (
 					<div className="flex items-center justify-between text-sm">
 						<span className="font-semibold text-foreground">{item.label}</span>
 						<span className="text-muted-foreground">
-							{item.value.toFixed(1)} / {item.max}
+							{item.value === null ? "-" : item.value.toFixed(1)} / {item.max}
 						</span>
 					</div>
 					<div className="mt-2 h-2 w-full rounded-full bg-secondary">

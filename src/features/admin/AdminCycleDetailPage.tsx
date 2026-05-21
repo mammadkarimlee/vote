@@ -18,8 +18,11 @@ import {
 } from "../../lib/pkpdSelfReview";
 import {
 	computePkpdPortfolioScore,
-	computePkpdTotalScore,
+	computePkpdScoreSummary,
+	getPkpdPortfolioLimits,
 	getPkpdWeights,
+	pkpdBucket,
+	pkpdDecision,
 } from "../../lib/pkpdScoring";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -56,6 +59,7 @@ import type {
 	SubmissionDoc,
 	SurveyCycleDoc,
 	TaskDoc,
+	TeacherCategory,
 	TeacherDoc,
 	TeachingAssignmentDoc,
 	UserDoc,
@@ -87,6 +91,7 @@ type TeacherRow = {
 	lastName: string;
 	departmentName: string;
 	branchName: string;
+	category: TeacherCategory;
 	isBiqTeacher: boolean;
 	assessmentResultLabel: string;
 	studentAvg: number | null;
@@ -107,6 +112,8 @@ type TeacherRow = {
 	examScore: number | null;
 	portfolioScore: number | null;
 	bonusScore: number;
+	baseTotalScore: number | null;
+	finalScoreWithExtra: number | null;
 	finalScore: number | null;
 	surveySubmissionCount: number;
 	studentCount: number;
@@ -213,6 +220,9 @@ const getTeacherDisplayName = (teacher: TeacherDoc, fallbackId: string) => {
 	return nameFromParts || teacher.name?.trim() || fallbackId;
 };
 
+const getCycleBranchIds = (cycle?: SurveyCycleDoc | null) =>
+	(cycle?.branchIds ?? []).filter(Boolean);
+
 const escapeHtml = (value: string) =>
 	value
 		.replaceAll("&", "&amp;")
@@ -245,7 +255,10 @@ const buildTeacherFeedback = (teacher: TeacherRow): TeacherFeedback => {
 			teacher.managementAvg,
 			teacher.selfAvg,
 			teacher.biqAvg,
-		].filter((value): value is number => typeof value === "number" && !Number.isNaN(value)),
+		].filter(
+			(value): value is number =>
+				typeof value === "number" && !Number.isNaN(value),
+		),
 	);
 	const levelLabel = scoreLabel(performanceScore);
 	const finalScoreText = formatScore(teacher.finalScore);
@@ -305,7 +318,7 @@ const buildTeacherFeedback = (teacher: TeacherRow): TeacherFeedback => {
 
 	return {
 		levelLabel,
-		summary: `${teacher.name} üçün yekun cəm balı ${finalScoreText}, ümumi performans səviyyəsi ${levelLabel}.`,
+		summary: `${teacher.name} üçün PKPD yekun balı ${finalScoreText}, ümumi performans səviyyəsi ${levelLabel}.`,
 		strengths:
 			strengths.length > 0
 				? strengths
@@ -316,6 +329,53 @@ const buildTeacherFeedback = (teacher: TeacherRow): TeacherFeedback => {
 				: ["Aşağı performanslı komponent görünmür, cari nəticə stabil saxlanılır."],
 		actionPlan,
 	};
+};
+
+type PdfScoreRow = {
+	key: string;
+	label: string;
+	value: number | null | undefined;
+	max: number;
+};
+
+const isMissingScore = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value);
+
+const sumEnteredScores = (scores: Array<number | null | undefined>) =>
+	scores
+		.filter((value): value is number => !isMissingScore(value))
+		.reduce((sum, value) => sum + value, 0);
+
+const buildFinalRecommendations = (
+	baseTotalScore: number | null,
+	rows: PdfScoreRow[],
+) => {
+	const weakRows = rows.filter(
+		(row) =>
+			row.key !== "total" &&
+			!isMissingScore(row.value) &&
+			row.max > 0 &&
+			(row.value ?? 0) / row.max < 0.6,
+	);
+
+	if (weakRows.length === 0) {
+		return [
+			"Zəif komponent qeydə alınmadı. Növbəti dövrdə mövcud nəticələrin stabil saxlanılması və yaxşı təcrübələrin paylaşılması tövsiyə olunur.",
+		];
+	}
+
+	const recommendations = weakRows.map(
+		(row) =>
+			`${row.label} üzrə nəticə ${formatScore(row.value ?? null)} / ${row.max} olduğuna görə bu komponent üzrə fərdi inkişaf tədbiri planlaşdırılsın.`,
+	);
+
+	if (baseTotalScore !== null && baseTotalScore < 60) {
+		recommendations.push(
+			"PKPD yekun balı 60-dan aşağı olduğu üçün növbəti qiymətləndirmə dövrünə qədər yazılı inkişaf planı və aralıq monitorinq tətbiq edilsin.",
+		);
+	}
+
+	return recommendations;
 };
 
 const fetchAllBatched = async <T,>(
@@ -344,6 +404,21 @@ const fetchAllBatched = async <T,>(
 	}
 
 	return rows;
+};
+
+const fetchAllBatchedOrEmpty = async <T,>(
+	label: string,
+	fetchPage: (
+		from: number,
+		to: number,
+	) => Promise<{ data: T[] | null; error: { message?: string } | null }>,
+) => {
+	try {
+		return await fetchAllBatched<T>(fetchPage);
+	} catch (error) {
+		console.warn(`Admin cycle detail load skipped: ${label}`, error);
+		return [];
+	}
 };
 
 export const AdminCycleDetailPage = () => {
@@ -423,45 +498,49 @@ export const AdminCycleDetailPage = () => {
 		const loadLookups = async () => {
 			if (!cycleId) return;
 
-			const teacherQuery = supabase
+			const cycleRes = await supabase
+				.from("survey_cycles")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("id", cycleId)
+				.maybeSingle();
+			const mappedCycle = cycleRes.data ? mapSurveyCycleRow(cycleRes.data) : null;
+			const cycleBranchIds = scopedBranchId
+				? [scopedBranchId]
+				: getCycleBranchIds(mappedCycle);
+
+			let teacherQuery = supabase
 				.from("teachers")
 				.select("*")
 				.eq("org_id", ORG_ID)
 				.is("deleted_at", null);
-			const raterQuery = supabase
+			let raterQuery = supabase
 				.from("users")
 				.select("*")
 				.eq("org_id", ORG_ID)
 				.is("deleted_at", null)
 				.in("role", ["student", "teacher", "manager"]);
-			const branchQuery = supabase.from("branches").select("*").eq("org_id", ORG_ID);
-			const departmentQuery = supabase
+			let branchQuery = supabase.from("branches").select("*").eq("org_id", ORG_ID);
+			let departmentQuery = supabase
 				.from("departments")
 				.select("*")
 				.eq("org_id", ORG_ID)
 				.is("deleted_at", null);
 
-			if (scopedBranchId) {
-				teacherQuery.eq("branch_id", scopedBranchId);
-				raterQuery.eq("branch_id", scopedBranchId);
-				branchQuery.eq("id", scopedBranchId);
-				departmentQuery.eq("branch_id", scopedBranchId);
+			if (cycleBranchIds.length > 0) {
+				teacherQuery = teacherQuery.in("branch_id", cycleBranchIds);
+				raterQuery = raterQuery.in("branch_id", cycleBranchIds);
+				branchQuery = branchQuery.in("id", cycleBranchIds);
+				departmentQuery = departmentQuery.in("branch_id", cycleBranchIds);
 			}
 
 			const [
-				cycleRes,
 				teacherRes,
 				questionRes,
 				raterRes,
 				branchRes,
 				departmentRes,
 			] = await Promise.all([
-				supabase
-					.from("survey_cycles")
-					.select("*")
-					.eq("org_id", ORG_ID)
-					.eq("id", cycleId)
-					.maybeSingle(),
 				teacherQuery,
 					supabase.from("questions").select("*").eq("org_id", ORG_ID),
 				raterQuery,
@@ -469,7 +548,7 @@ export const AdminCycleDetailPage = () => {
 				departmentQuery,
 			]);
 
-			setCycle(cycleRes.data ? mapSurveyCycleRow(cycleRes.data) : null);
+			setCycle(mappedCycle);
 			setTeachers(
 				(teacherRes.data ?? []).map((row) => ({
 					id: row.id,
@@ -509,7 +588,10 @@ export const AdminCycleDetailPage = () => {
 
 	useEffect(() => {
 		const loadCycleData = async () => {
-			if (!cycleId) return;
+			if (!cycleId || !cycle) return;
+			const cycleBranchIds = scopedBranchId
+				? [scopedBranchId]
+				: getCycleBranchIds(cycle);
 
 			try {
 				const [
@@ -523,119 +605,119 @@ export const AdminCycleDetailPage = () => {
 					selfReviewRows,
 					achievementRows,
 				] = await Promise.all([
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("tasks", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("tasks")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("submissions", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("submissions")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("biq_class_results", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("biq_class_results")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_teacher_biq_results", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_teacher_biq_results")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_teacher_biq_averages", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_teacher_biq_averages")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_exam_results", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_exam_results")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_portfolios", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_portfolios")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_self_reviews", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_self_reviews")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
 						),
-						fetchAllBatched<any>(async (from, to) =>
+						fetchAllBatchedOrEmpty<any>("pkpd_achievements", async (from, to) =>
 							await (() => {
 								let query = supabase
 									.from("pkpd_achievements")
 									.select("*")
 									.eq("org_id", ORG_ID)
 									.eq("cycle_id", cycleId);
-								if (scopedBranchId) {
-									query = query.eq("branch_id", scopedBranchId);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
 								}
 								return query.range(from, to);
 							})(),
@@ -698,19 +780,21 @@ export const AdminCycleDetailPage = () => {
 				);
 
 				if (cycle?.year) {
-					const assignmentRows = await fetchAllBatched<any>(async (from, to) =>
-						await (() => {
-							let query = supabase
-								.from("teaching_assignments")
-								.select("*")
-								.eq("org_id", ORG_ID)
-								.eq("year", cycle.year)
-								.is("deleted_at", null);
-							if (scopedBranchId) {
-								query = query.eq("branch_id", scopedBranchId);
-							}
-							return query.range(from, to);
-						})(),
+					const assignmentRows = await fetchAllBatchedOrEmpty<any>(
+						"teaching_assignments",
+						async (from, to) =>
+							await (() => {
+								let query = supabase
+									.from("teaching_assignments")
+									.select("*")
+									.eq("org_id", ORG_ID)
+									.eq("year", cycle.year)
+									.is("deleted_at", null);
+								if (cycleBranchIds.length > 0) {
+									query = query.in("branch_id", cycleBranchIds);
+								}
+								return query.range(from, to);
+							})(),
 					);
 
 					setAssignments(
@@ -735,13 +819,15 @@ export const AdminCycleDetailPage = () => {
 				const chunks = chunkValuesForInFilter(submissionIds);
 				for (const chunk of chunks) {
 					if (chunk.length === 0) continue;
-					const answerRows = await fetchAllBatched<any>(async (from, to) =>
-						await supabase
-							.from("answers")
-							.select("*")
-							.eq("org_id", ORG_ID)
-							.in("submission_id", chunk)
-							.range(from, to),
+					const answerRows = await fetchAllBatchedOrEmpty<any>(
+						"answers",
+						async (from, to) =>
+							await supabase
+								.from("answers")
+								.select("*")
+								.eq("org_id", ORG_ID)
+								.in("submission_id", chunk)
+								.range(from, to),
 					);
 
 					answerRows.forEach((row) => {
@@ -750,22 +836,13 @@ export const AdminCycleDetailPage = () => {
 					});
 				}
 				setAnswers(answerDocs);
-			} catch {
-				setTasks([]);
-				setSubmissions([]);
-				setBiqResults([]);
-				setTeacherBiqResults([]);
-				setExamResults([]);
-				setPortfolios([]);
-				setSelfReviews([]);
-				setAchievements([]);
-				setAssignments([]);
-				setAnswers([]);
+			} catch (error) {
+				console.warn("Admin cycle detail load failed", error);
 			}
 		};
 
 		void loadCycleData();
-	}, [cycleId, cycle?.year, scopedBranchId]);
+	}, [cycle, cycleId, scopedBranchId]);
 
 	const teacherMap = useMemo(
 		() => Object.fromEntries(teachers.map((item) => [item.id, item.data])),
@@ -1036,9 +1113,11 @@ export const AdminCycleDetailPage = () => {
 		return teachers
 			.map((teacher) => {
 				const category = teacher.data.category ?? "standard";
-				const weights = getPkpdWeights(category);
 				const isBiqTeacher = getIsBiqTeacher(teacher.data);
-				const assessmentResultLabel = isBiqTeacher ? "BİQ nəticəsi" : "BİQ tətbiq edilmir";
+				const weights = getPkpdWeights(category, isBiqTeacher);
+				const assessmentResultLabel = isBiqTeacher
+					? "Balabilgənin fənni mənimsəməsi"
+					: "BİQ/KİQ tətbiq edilmir";
 				const flow = flowStats[teacher.id] ?? emptyFlowAggregate();
 				const classScores = studentClassScoresByTeacher[teacher.id] ?? [];
 				const studentStats = studentSubmissionStatsByTeacher[teacher.id] ?? {
@@ -1113,10 +1192,11 @@ export const AdminCycleDetailPage = () => {
 				const portfolioScore = computePkpdPortfolioScore(
 					portfolioMap[teacher.id] ?? null,
 					category,
+					isBiqTeacher,
 				);
 				const bonusScore = achievementTotals[teacher.id] ?? 0;
 
-				const finalScore = computePkpdTotalScore({
+				const { baseTotalScore, finalScoreWithExtra } = computePkpdScoreSummary({
 					studentScore: studentWeightedScore,
 					managementScore: managementWeightedScore,
 					selfScore: selfWeightedScore,
@@ -1125,6 +1205,7 @@ export const AdminCycleDetailPage = () => {
 					portfolioScore,
 					bonusScore,
 				});
+				const finalScore = baseTotalScore;
 
 				const resolvedName = getTeacherDisplayName(teacher.data, teacher.id);
 				const nameParts = splitFullName(resolvedName);
@@ -1144,6 +1225,7 @@ export const AdminCycleDetailPage = () => {
 					lastName,
 					departmentName,
 					branchName,
+					category,
 					isBiqTeacher,
 					assessmentResultLabel,
 					studentAvg,
@@ -1164,6 +1246,8 @@ export const AdminCycleDetailPage = () => {
 					examScore,
 					portfolioScore,
 					bonusScore,
+					baseTotalScore,
+					finalScoreWithExtra,
 					finalScore,
 					surveySubmissionCount: submissionCountByTeacher[teacher.id] ?? 0,
 					studentCount,
@@ -1212,6 +1296,12 @@ export const AdminCycleDetailPage = () => {
 		: null;
 	const selectedTeacherSelfReview = selectedTeacherId
 		? (selfReviewMap[selectedTeacherId] ?? null)
+		: null;
+	const selectedTeacherPortfolio = selectedTeacherId
+		? (portfolioMap[selectedTeacherId] ?? null)
+		: null;
+	const selectedTeacherPortfolioLimits = selectedTeacher
+		? getPkpdPortfolioLimits(selectedTeacher.category, selectedTeacher.isBiqTeacher)
 		: null;
 	const selectedTeacherOpenQuestionIds = useMemo(
 		() => selectedTeacherSelfResponse?.textAnswers.map((item) => item.questionId) ?? [],
@@ -1305,6 +1395,7 @@ export const AdminCycleDetailPage = () => {
 		return teacherRows.filter((row) => {
 			const hasAnyData =
 				row.finalScore !== null ||
+				row.surveySubmissionCount > 0 ||
 				row.studentCount > 0 ||
 				row.managementCount > 0 ||
 				row.selfCount > 0 ||
@@ -1385,6 +1476,14 @@ export const AdminCycleDetailPage = () => {
 			});
 	}, [answers, questions, taskMap]);
 
+	const cycleBranchNames = useMemo(() => {
+		const branchIds = getCycleBranchIds(cycle);
+		if (branchIds.length === 0) return "Bütün kampuslar";
+		return branchIds
+			.map((branchId) => branchMap[branchId]?.name ?? branchId)
+			.join(", ");
+	}, [branchMap, cycle]);
+
 	useEffect(() => {
 		const totalPages = Math.max(
 			1,
@@ -1426,17 +1525,29 @@ export const AdminCycleDetailPage = () => {
 			item.firstName,
 			item.lastName,
 			item.departmentName,
-			item.finalScore === null ? "" : item.finalScore.toFixed(2),
+			item.baseTotalScore === null ? "" : item.baseTotalScore.toFixed(2),
+			item.bonusScore.toFixed(2),
+			item.finalScoreWithExtra === null
+				? ""
+				: item.finalScoreWithExtra.toFixed(2),
 		]);
 
 		downloadCsv(
 			`cycle-${year}-teacher-final-scores.csv`,
-			["campus", "ad", "soyad", "kafedra", "yekun_bal"],
+			[
+				"campus",
+				"ad",
+				"soyad",
+				"kafedra",
+				"esas_pkpd_bali",
+				"elave_bal",
+				"stimullasdirici_yekun",
+			],
 			rows,
 		);
 	};
 
-	const handleExportTeacherPdf = () => {
+	const handleExportTeacherPdfLegacy = () => {
 		if (!selectedTeacher) return;
 		const feedback = buildTeacherFeedback(selectedTeacher);
 
@@ -1445,6 +1556,7 @@ export const AdminCycleDetailPage = () => {
 		const studentWeightedScoreText = formatScore(
 			selectedTeacher.studentWeightedScore,
 		);
+		const studentScoreMax = selectedTeacher.isBiqTeacher ? 15 : 20;
 		const managementWeightedScoreText = formatScore(
 			selectedTeacher.managementWeightedScore,
 		);
@@ -1460,7 +1572,9 @@ export const AdminCycleDetailPage = () => {
 		const examScoreText = formatScore(selectedTeacher.examScore);
 		const portfolioScoreText = formatScore(selectedTeacher.portfolioScore);
 		const bonusScoreText = selectedTeacher.bonusScore.toFixed(2);
-		const finalScoreText = formatScore(selectedTeacher.finalScore);
+		const baseTotalScoreText = formatScore(selectedTeacher.baseTotalScore);
+		const finalScoreText = formatScore(selectedTeacher.finalScoreWithExtra);
+		const decisionText = pkpdDecision(selectedTeacher.baseTotalScore);
 		const assessmentResultLabel = escapeHtml(selectedTeacher.assessmentResultLabel);
 		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
 			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
@@ -1680,16 +1794,17 @@ export const AdminCycleDetailPage = () => {
 							<div class="card"><div class="label">Özünüqiymətləndirmə (10 bal üzrə)</div><div class="value">${selfWeightedScoreText}</div></div>
 							<div class="card"><div class="label">BİQ ortalaması</div><div class="value">${biqAverageText}</div><div class="meta">${escapeHtml(biqAverageSourceText)}</div></div>
 							<div class="card"><div class="label">${assessmentResultLabel} (15 bal üzrə)</div><div class="value">${biqWeightedScoreText}</div></div>
-							<div class="card"><div class="label">Şagird sorğusu (15 bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
+							<div class="card"><div class="label">Şagird sorğusu (${studentScoreMax} bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
 							<div class="card"><div class="label">Attestasiya imtahanı (30 bal üzrə)</div><div class="value">${examScoreText}</div></div>
 							<div class="card"><div class="label">Portfolio</div><div class="value">${portfolioScoreText}</div></div>
+							<div class="card"><div class="label">PKPD yekun balı</div><div class="value">${baseTotalScoreText}</div></div>
 							<div class="card"><div class="label">Əlavə bal</div><div class="value">${bonusScoreText}</div></div>
-							<div class="card"><div class="label">Cəm</div><div class="value">${finalScoreText}</div></div>
+							<div class="card"><div class="label">Stimullaşdırıcı yekun</div><div class="value">${finalScoreText}</div><div class="meta">${escapeHtml(decisionText)}</div></div>
 						</div>
 					</div>
 
 					<div class="section">
-						<h2>3 Meyar Cəmi və Açıq Cavablar</h2>
+							<h2>Daxil edilmiş balların cari cəmi və açıq cavablar</h2>
 						<div class="meta-stack">
 							<p class="meta">Son qiymətləndirmə: ${academicReviewedAtText ?? "—"}</p>
 							<p class="meta">Son düzəliş səbəbi: ${academicEditReasonText ?? "—"}</p>
@@ -1776,6 +1891,472 @@ export const AdminCycleDetailPage = () => {
 						<div class="signature-date">Tarix: ____ / ____ / ______</div>
 						<div class="stamp-box">Möhür üçün yer</div>
 					</div>
+				</body>
+			</html>
+		`;
+
+		const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+		const popup = window.open(url, "_blank");
+		if (!popup) {
+			URL.revokeObjectURL(url);
+			return;
+		}
+
+		popup.addEventListener("load", () => {
+			popup.focus();
+			popup.print();
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+		});
+	};
+
+	void handleExportTeacherPdfLegacy;
+
+	const handleExportTeacherPdf = () => {
+		if (!selectedTeacher) return;
+
+		const year = cycle?.year ?? new Date().getFullYear();
+		const isWithBiq = selectedTeacher.isBiqTeacher;
+		const modelLabel = isWithBiq
+			? "BİQ/KİQ nəticəsi olan müəllim"
+			: "BİQ/KİQ nəticəsi olmayan müəllim";
+		const reportTitle = `PKPD Hesabatı — ${year}`;
+		const generatedAt = new Date().toLocaleString("az-AZ");
+		const portfolioMax = selectedTeacherPortfolioLimits
+			? selectedTeacherPortfolioLimits.education +
+				selectedTeacherPortfolioLimits.attendance +
+				selectedTeacherPortfolioLimits.training +
+				selectedTeacherPortfolioLimits.olympiad +
+				selectedTeacherPortfolioLimits.events
+			: isWithBiq
+				? 20
+				: 60;
+
+		const breakdownRows: PdfScoreRow[] = isWithBiq
+			? [
+					{
+						key: "subjectMasteryScore",
+						label: "Balabilgənin fənni mənimsəməsi",
+						value: selectedTeacher.biqWeightedScore,
+						max: 15,
+					},
+					{
+						key: "studentSurveyScore",
+						label: "Balabilgə sorğusu",
+						value: selectedTeacher.studentWeightedScore,
+						max: 15,
+					},
+					{
+						key: "selfEvaluationScore",
+						label: "Özünü qiymətləndirmə",
+						value: selectedTeacher.selfWeightedScore,
+						max: 10,
+					},
+					{
+						key: "leadershipEvaluationScore",
+						label: "Rəhbərlik qiymətləndirməsi",
+						value: selectedTeacher.managementWeightedScore,
+						max: 10,
+					},
+					{
+						key: "examScore",
+						label: "Attestasiya imtahanı",
+						value: selectedTeacher.examScore,
+						max: 30,
+					},
+					{
+						key: "portfolioScore",
+						label: "Portfolio",
+						value: selectedTeacher.portfolioScore,
+						max: 20,
+					},
+				]
+			: [
+					{
+						key: "studentSurveyScore",
+						label: "Balabilgə sorğusu",
+						value: selectedTeacher.studentWeightedScore,
+						max: 20,
+					},
+					{
+						key: "selfEvaluationScore",
+						label: "Özünü qiymətləndirmə",
+						value: selectedTeacher.selfWeightedScore,
+						max: 10,
+					},
+					{
+						key: "leadershipEvaluationScore",
+						label: "Rəhbərlik qiymətləndirməsi",
+						value: selectedTeacher.managementWeightedScore,
+						max: 10,
+					},
+					{
+						key: "portfolioScore",
+						label: "Portfolio",
+						value: selectedTeacher.portfolioScore,
+						max: 60,
+					},
+				];
+
+		const portfolioRows: PdfScoreRow[] = selectedTeacherPortfolioLimits
+			? [
+					{
+						key: "educationQualificationScore",
+						label: "Təhsil / kvalifikasiya",
+						value: selectedTeacherPortfolio?.educationScore,
+						max: selectedTeacherPortfolioLimits.education,
+					},
+					{
+						key: "attendanceScore",
+						label: "Davamiyyət",
+						value: selectedTeacherPortfolio?.attendanceScore,
+						max: selectedTeacherPortfolioLimits.attendance,
+					},
+					{
+						key: "certificatesPublicationsScore",
+						label: "Sertifikat / məqalə / təlim",
+						value: selectedTeacherPortfolio?.trainingScore,
+						max: selectedTeacherPortfolioLimits.training,
+					},
+					{
+						key: isWithBiq
+							? "olympiadCompetitionScore"
+							: "competitionFestivalScore",
+						label: isWithBiq
+							? "Olimpiada / müsabiqə"
+							: "Müsabiqə / festival / yarış",
+						value: selectedTeacherPortfolio?.olympiadScore,
+						max: selectedTeacherPortfolioLimits.olympiad,
+					},
+					{
+						key: "projectsAwardsScore",
+						label: "Layihə / tədbir / təltif",
+						value: selectedTeacherPortfolio?.eventsScore,
+						max: selectedTeacherPortfolioLimits.events,
+					},
+				]
+			: [];
+
+		const missingRows = breakdownRows.filter((row) =>
+			isMissingScore(row.value),
+		);
+		const missingPortfolioRows = portfolioRows.filter((row) =>
+			isMissingScore(row.value),
+		);
+		const reportStatus =
+			missingRows.length > 0 || missingPortfolioRows.length > 0
+				? "IN_PROGRESS"
+				: "FINAL";
+		const isFinalReport = reportStatus === "FINAL";
+		const currentEnteredScore = sumEnteredScores(
+			breakdownRows.map((row) => row.value),
+		);
+		const baseTotalScore = isFinalReport
+			? selectedTeacher.baseTotalScore
+			: null;
+		const finalScoreWithExtra = isFinalReport
+			? selectedTeacher.finalScoreWithExtra
+			: null;
+		const categoryText =
+			isFinalReport && baseTotalScore !== null ? pkpdBucket(baseTotalScore) : null;
+		const decisionText =
+			isFinalReport && baseTotalScore !== null
+				? pkpdDecision(baseTotalScore)
+				: "Qərar verilməyib";
+		const missingItems = [...missingRows, ...missingPortfolioRows];
+		const recommendations = isFinalReport
+			? buildFinalRecommendations(baseTotalScore, breakdownRows)
+			: [
+					"Rəy və tövsiyələr yekun qiymətləndirmə tamamlandıqdan sonra formalaşdırılacaq.",
+				];
+
+		const scoreText = (value: number | null | undefined) =>
+			isMissingScore(value) ? "-" : formatScore(value ?? null);
+		const statusText = isFinalReport
+			? "FINAL - Yekun hesabat"
+			: "IN_PROGRESS - Hesablama tamamlanmayıb";
+		const statusClass = isFinalReport ? "final" : "progress";
+		const breakdownTotalValue = isFinalReport
+			? baseTotalScore
+			: currentEnteredScore;
+		const summaryHtml = isFinalReport
+			? `
+				<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreText(baseTotalScore)}</strong></div>
+				<div class="summary-item"><span>Əlavə bal</span><strong>${selectedTeacher.bonusScore.toFixed(2)}</strong></div>
+				<div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div>
+				<div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "-")}</strong></div>
+				<div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>
+			`
+			: `
+				<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${formatScore(currentEnteredScore)}</strong></div>
+				<div class="summary-item"><span>Əlavə bal</span><strong>${selectedTeacher.bonusScore.toFixed(2)}</strong></div>
+				<div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div>
+				<div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div>
+			`;
+		const breakdownHtml = [
+			...breakdownRows.map(
+				(row) => `
+					<tr>
+						<td>${escapeHtml(row.label)}</td>
+						<td>${scoreText(row.value)}</td>
+						<td>${row.max}</td>
+					</tr>
+				`,
+			),
+			`
+				<tr class="total-row">
+					<td>Total</td>
+					<td>${scoreText(breakdownTotalValue)}</td>
+					<td>100</td>
+				</tr>
+			`,
+		].join("");
+		const missingHtml =
+			!isFinalReport && missingItems.length > 0
+				? `
+					<section>
+						<h2>Çatışmayan sahələr</h2>
+						<ul class="missing-list">
+							${missingItems
+								.map((item) => `<li>${escapeHtml(item.label)}</li>`)
+								.join("")}
+						</ul>
+					</section>
+				`
+				: "";
+		const portfolioHtml = [
+			...portfolioRows.map(
+				(row) => `
+					<tr>
+						<td>${escapeHtml(row.label)}</td>
+						<td>${scoreText(row.value)}</td>
+						<td>${row.max}</td>
+					</tr>
+				`,
+			),
+			`
+				<tr class="total-row">
+					<td>Portfolio cəmi</td>
+					<td>${scoreText(selectedTeacher.portfolioScore)}</td>
+					<td>${portfolioMax}</td>
+				</tr>
+			`,
+		].join("");
+		const recommendationsHtml = recommendations
+			.map((item) => `<li>${escapeHtml(item)}</li>`)
+			.join("");
+		const signaturesHtml = isFinalReport
+			? `
+				<section class="signatures">
+					<h2>İmzalar</h2>
+					<div class="signature-grid">
+						<div><strong>Müəllim</strong><span></span></div>
+						<div><strong>Attestasiya komissiyasının sədri</strong><span></span></div>
+					</div>
+					<p class="date-line">Tarix: ____ / ____ / ______</p>
+				</section>
+			`
+			: "";
+
+		const html = `
+			<!doctype html>
+			<html lang="az">
+				<head>
+					<meta charset="utf-8" />
+					<title>${escapeHtml(selectedTeacher.name)} - PKPD Hesabatı</title>
+					<style>
+						@page { size: A4; margin: 14mm; }
+						body {
+							font-family: Arial, Helvetica, sans-serif;
+							color: #111827;
+							margin: 0;
+							font-size: 12px;
+							line-height: 1.45;
+						}
+						header {
+							border-bottom: 2px solid #111827;
+							padding-bottom: 10px;
+							margin-bottom: 14px;
+						}
+						.org {
+							font-size: 13px;
+							font-weight: 700;
+							text-transform: uppercase;
+						}
+						h1 {
+							font-size: 20px;
+							margin: 4px 0;
+						}
+						.subtitle {
+							font-size: 14px;
+							font-weight: 700;
+						}
+						h2 {
+							font-size: 14px;
+							margin: 16px 0 8px;
+							border-bottom: 1px solid #d1d5db;
+							padding-bottom: 4px;
+						}
+						.info-grid, .summary-grid {
+							display: grid;
+							grid-template-columns: 1fr 1fr;
+							gap: 6px 18px;
+						}
+						.info-item, .summary-item {
+							border: 1px solid #d1d5db;
+							padding: 7px 8px;
+							min-height: 28px;
+						}
+						.info-item span, .summary-item span {
+							display: block;
+							color: #4b5563;
+							font-size: 11px;
+						}
+						.info-item strong, .summary-item strong {
+							font-size: 13px;
+						}
+						.status {
+							display: inline-block;
+							padding: 3px 8px;
+							border-radius: 999px;
+							font-weight: 700;
+							font-size: 11px;
+						}
+						.status.final {
+							background: #dcfce7;
+							color: #166534;
+						}
+						.status.progress {
+							background: #fef3c7;
+							color: #92400e;
+						}
+						table {
+							width: 100%;
+							border-collapse: collapse;
+							margin-top: 6px;
+						}
+						th, td {
+							border: 1px solid #d1d5db;
+							padding: 7px 8px;
+							text-align: left;
+							vertical-align: top;
+						}
+						th {
+							background: #f3f4f6;
+							font-weight: 700;
+						}
+						.total-row td {
+							font-weight: 700;
+							background: #f9fafb;
+						}
+						.missing-list, .recommendations {
+							margin: 6px 0 0;
+							padding-left: 18px;
+						}
+						.student-summary {
+							display: grid;
+							grid-template-columns: repeat(3, 1fr);
+							gap: 8px;
+						}
+						.student-summary div {
+							border: 1px solid #d1d5db;
+							padding: 7px 8px;
+						}
+						.student-summary span {
+							display: block;
+							color: #4b5563;
+							font-size: 11px;
+						}
+						.signatures {
+							margin-top: 22px;
+							break-inside: avoid;
+						}
+						.signature-grid {
+							display: grid;
+							grid-template-columns: 1fr 1fr;
+							gap: 18px;
+							margin-top: 14px;
+						}
+						.signature-grid div {
+							min-height: 70px;
+						}
+						.signature-grid span {
+							display: block;
+							border-bottom: 1px solid #111827;
+							margin-top: 32px;
+						}
+						.date-line {
+							margin-top: 12px;
+						}
+						.generated {
+							margin-top: 18px;
+							color: #6b7280;
+							font-size: 10px;
+						}
+					</style>
+				</head>
+				<body>
+					<header>
+						<div class="org">Hədəf STEAM Liseyi MMC</div>
+						<h1>Pedaqoji Kadrların Performans Dəyərləndirilməsi</h1>
+						<div class="subtitle">${reportTitle}</div>
+					</header>
+
+					<section>
+						<h2>Müəllim məlumatları</h2>
+						<div class="info-grid">
+							<div class="info-item"><span>Müəllim</span><strong>${escapeHtml(selectedTeacher.name)}</strong></div>
+							<div class="info-item"><span>Kampus</span><strong>${escapeHtml(selectedTeacher.branchName)}</strong></div>
+							<div class="info-item"><span>Kafedra</span><strong>${escapeHtml(selectedTeacher.departmentName)}</strong></div>
+							<div class="info-item"><span>Qiymətləndirmə modeli</span><strong>${escapeHtml(modelLabel)}</strong></div>
+							<div class="info-item"><span>Hesabat statusu</span><strong><span class="status ${statusClass}">${statusText}</span></strong></div>
+						</div>
+					</section>
+
+					<section>
+						<h2>Xülasə</h2>
+						<div class="summary-grid">${summaryHtml}</div>
+					</section>
+
+					<section>
+						<h2>Bal bölgüsü</h2>
+						<table>
+							<thead>
+								<tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr>
+							</thead>
+							<tbody>${breakdownHtml}</tbody>
+						</table>
+					</section>
+
+					${missingHtml}
+
+					<section>
+						<h2>Portfolio xülasəsi</h2>
+						<table>
+							<thead>
+								<tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr>
+							</thead>
+							<tbody>${portfolioHtml}</tbody>
+						</table>
+					</section>
+
+					<section>
+						<h2>Balabilgə sorğusu xülasəsi</h2>
+						<div class="student-summary">
+							<div><span>10 üzərindən orta bal</span><strong>${scoreText(selectedTeacher.studentAvg)}</strong></div>
+							<div><span>Cavab sayı</span><strong>${selectedTeacher.studentCount}</strong></div>
+							<div><span>Çevrilmiş bal</span><strong>${scoreText(selectedTeacher.studentWeightedScore)} / ${isWithBiq ? 15 : 20}</strong></div>
+						</div>
+					</section>
+
+					<section>
+						<h2>Rəy və tövsiyələr</h2>
+						<ul class="recommendations">${recommendationsHtml}</ul>
+					</section>
+
+					${signaturesHtml}
+
+					<div class="generated">Hazırlanma vaxtı: ${generatedAt}</div>
 				</body>
 			</html>
 		`;
@@ -2052,13 +2633,15 @@ export const AdminCycleDetailPage = () => {
 			setSelfReviewStatus("Bal hesablanmadı");
 			return;
 		}
-		if (hrScoreRaw === "") {
-			setSelfReviewStatus("HR qiymətləndirməsi üçün 1-10 aralığında bal daxil edin");
-			return;
-		}
-		const hrScoreValue = Number(hrScoreRaw);
-		if (Number.isNaN(hrScoreValue) || hrScoreValue < 1 || hrScoreValue > 10) {
-			setSelfReviewStatus("HR qiymətləndirməsi 1-10 aralığında olmalıdır");
+		const hrScoreValue = hrScoreRaw === "" ? null : Number(hrScoreRaw);
+		if (
+			hrScoreRaw !== "" &&
+			(typeof hrScoreValue !== "number" ||
+				Number.isNaN(hrScoreValue) ||
+				hrScoreValue < 1 ||
+				hrScoreValue > 10)
+		) {
+			setSelfReviewStatus("HR qeydi 1-10 aralığında olmalıdır");
 			return;
 		}
 
@@ -2124,7 +2707,7 @@ export const AdminCycleDetailPage = () => {
 			})),
 		);
 		setSelfReviewStatus(
-			`3 meyar üzrə cəm (${teacherCriteriaTotal.toFixed(1)}) və HR qiymətləndirməsi saxlanıldı`,
+			`Daxil edilmiş balların cari cəmi (${teacherCriteriaTotal.toFixed(1)}) saxlanıldı; HR qeydi rəsmi cəmə daxil edilmir`,
 		);
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
@@ -2160,15 +2743,16 @@ export const AdminCycleDetailPage = () => {
 					</div>
 					{cycle && (
 						<div className="meta">
-							Sorğu dövrü: {cycle.year} • Vəziyyət: {cycle.status}
+							Sorğu dövrü: {cycle.year} • Vəziyyət: {cycle.status} • Kampus:{" "}
+							{cycleBranchNames}
 						</div>
 					)}
 				</div>
 				<div className="grid three">
 					<div className="stat-card">
 							<div className="stat-label">
-								Yekun orta cəm balı
-								<InfoTip text="Yekun bal: müəllimin özünə verdiyi bal + 3 meyar üzrə cəm + HR qiymətləndirməsi. Burada həmin yekun cəmin müəllimlər üzrə ortası göstərilir." />
+								PKPD yekun orta balı
+								<InfoTip text="Yekun bal PKPD sənədinə görə hesablanır: BİQ olan müəllimlərdə şagird sorğusu, rəhbərlik, özünüqiymətləndirmə, BİQ, attestasiya imtahanı və portfolio; BİQ olmayan müəllimlərdə şagird sorğusu, rəhbərlik, özünüqiymətləndirmə və portfolio. HR qeydi rəsmi cəmə daxil edilmir." />
 							</div>
 							<div className="stat-value">{formatScore(overallSummary.avg)}</div>
 							<div className="stat-meta">
@@ -2245,7 +2829,7 @@ export const AdminCycleDetailPage = () => {
 						<div>Müəllim</div>
 						<div>Kampus</div>
 						<div>Kafedra</div>
-						<div>Yekun bal</div>
+						<div>PKPD yekun balı</div>
 						<div>n</div>
 					</div>
 					{paginatedTeacherRows.map((item) => (
@@ -2322,6 +2906,17 @@ export const AdminCycleDetailPage = () => {
 							<div className="panel-content px-6 py-6">
 								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
+										<div className="stat-label">PKPD modeli</div>
+										<div className="stat-value">
+											{selectedTeacher.isBiqTeacher ? "WITH_BIQ" : "WITHOUT_BIQ"}
+										</div>
+										<div className="stat-meta">
+											{selectedTeacher.isBiqTeacher
+												? "BİQ/KİQ nəticəsi olan müəllim"
+												: "BİQ/KİQ nəticəsi olmayan müəllim"}
+										</div>
+									</div>
+									<div className="stat-card">
 										<div className="stat-label">Rəhbərlik sorğusu (10 bal üzrə)</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.managementWeightedScore)}
@@ -2392,7 +2987,9 @@ export const AdminCycleDetailPage = () => {
 										<div className="stat-meta">maddə 19 üzrə</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Şagird sorğusu (15 bal üzrə)</div>
+										<div className="stat-label">
+											Şagird sorğusu ({selectedTeacher.isBiqTeacher ? 15 : 20} bal üzrə)
+										</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.studentWeightedScore)}
 										</div>
@@ -2402,7 +2999,7 @@ export const AdminCycleDetailPage = () => {
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Müəllimin 3 meyar üzrə cəmi</div>
+										<div className="stat-label">Daxil edilmiş balların cari cəmi</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.teacherCriteriaTotal)}
 										</div>
@@ -2415,20 +3012,50 @@ export const AdminCycleDetailPage = () => {
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">HR qiymətləndirməsi</div>
-										<div className="stat-value">
-											{formatScore(selectedTeacher.hrEvaluationScore)}
-										</div>
-										<div className="stat-meta">1-10</div>
+											<div className="stat-label">HR qeydi (hesaba daxil deyil)</div>
+											<div className="stat-value">
+												{formatScore(selectedTeacher.hrEvaluationScore)}
+											</div>
+											<div className="stat-meta">daxili qeyd, rəsmi cəmə daxil deyil</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Yekun bal</div>
+										<div className="stat-label">PKPD yekun balı</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.finalScore)}
 										</div>
-										<div className="stat-meta">yekun hesablanan bal</div>
+										<div className="stat-meta">
+											{pkpdDecision(selectedTeacher.baseTotalScore)}
+										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Stimullaşdırıcı yekun</div>
+										<div className="stat-value">
+											{formatScore(selectedTeacher.finalScoreWithExtra)}
+										</div>
+										<div className="stat-meta">əsas bal + əlavə bal</div>
 									</div>
 								</div>
+
+								{selectedTeacherPortfolioLimits && (
+									<div className="card">
+										<div className="section-header">
+											<div>
+												<h3>Portfolio alt meyarları</h3>
+												<p>HR tərəfindən daxil edilən alt ballar və avtomatik cəm.</p>
+											</div>
+											<div className="tag">
+												Cəmi: {formatScore(selectedTeacher.portfolioScore)}
+											</div>
+										</div>
+										<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+											<div className="stat-card"><div className="stat-label">Təhsil/kvalifikasiya</div><div className="stat-value">{formatScore(selectedTeacherPortfolio?.educationScore ?? null)}</div><div className="stat-meta">max {selectedTeacherPortfolioLimits.education}</div></div>
+											<div className="stat-card"><div className="stat-label">Davamiyyət</div><div className="stat-value">{formatScore(selectedTeacherPortfolio?.attendanceScore ?? null)}</div><div className="stat-meta">max {selectedTeacherPortfolioLimits.attendance}</div></div>
+											<div className="stat-card"><div className="stat-label">Sertifikat/təlim/məqalə</div><div className="stat-value">{formatScore(selectedTeacherPortfolio?.trainingScore ?? null)}</div><div className="stat-meta">max {selectedTeacherPortfolioLimits.training}</div></div>
+											<div className="stat-card"><div className="stat-label">{selectedTeacher.isBiqTeacher ? "Olimpiada/müsabiqə" : "Müsabiqə/festival/yarış"}</div><div className="stat-value">{formatScore(selectedTeacherPortfolio?.olympiadScore ?? null)}</div><div className="stat-meta">max {selectedTeacherPortfolioLimits.olympiad}</div></div>
+											<div className="stat-card"><div className="stat-label">Layihə/tədbir/təltif</div><div className="stat-value">{formatScore(selectedTeacherPortfolio?.eventsScore ?? null)}</div><div className="stat-meta">max {selectedTeacherPortfolioLimits.events}</div></div>
+										</div>
+									</div>
+								)}
 
 								<div className="card">
 									<div className="section-header">
@@ -2501,7 +3128,7 @@ export const AdminCycleDetailPage = () => {
 											<h3>Açıq özünüqiymətləndirmə cavabları</h3>
 											<p>
 												Superadmin burada müəllimin açıq cavablarını oxuyub ayrıca
-												bal verə bilər. Bu göstərici PKPD hesabında istifadə olunur.
+												qeyd saxlaya bilər. HR qeydi rəsmi PKPD cəminə daxil edilmir.
 											</p>
 										</div>
 										{selectedTeacherHasSavedOpenReview && (
@@ -2535,7 +3162,7 @@ export const AdminCycleDetailPage = () => {
 										<div className="stat-meta">0-10</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Müəllimin 3 meyar üzrə cəmi</div>
+										<div className="stat-label">Daxil edilmiş balların cari cəmi</div>
 										<div className="stat-value">
 											{sumQuestionScores(
 												selectedTeacherOpenQuestionIds.map((questionId) => {
@@ -2594,10 +3221,10 @@ export const AdminCycleDetailPage = () => {
 									</div>
 									<div className="question">
 										<div className="question-title">
-											HRın qiymətləndirməsi <span className="required">*</span>
+											HR qeydi (hesaba daxil deyil)
 										</div>
 										<div className="hint">
-											Müəllimin yazılı cavablarına əsasən 1-10 aralığında yekun bal verin.
+											Bu sahə yalnız daxili qeyd üçündür və sənəddəki PKPD cəminə əlavə olunmur.
 										</div>
 										<div className="form-row">
 											<div className="field w-full max-w-40">

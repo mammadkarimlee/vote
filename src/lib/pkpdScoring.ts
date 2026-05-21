@@ -9,6 +9,11 @@ const sumScores = (values: Array<number | null | undefined>) => {
 		: null;
 };
 
+const clampEnteredScore = (value: number | null | undefined, max: number) => {
+	if (value === null || value === undefined || Number.isNaN(value)) return null;
+	return Math.min(Math.max(value, 0), max);
+};
+
 export const normalizePkpdScale = (
 	value: number,
 	min?: number | null,
@@ -21,7 +26,67 @@ export const normalizePkpdScale = (
 	return ((value - safeMin) / (safeMax - safeMin)) * 100;
 };
 
-export const getPkpdWeights = (category?: TeacherCategory) =>
+const withoutBiqWeights = {
+	student: 20,
+	management: 10,
+	self: 10,
+	biq: 0,
+	exam: 0,
+	portfolio: 60,
+};
+
+const withBiqWeights = {
+	student: 15,
+	management: 10,
+	self: 10,
+	biq: 15,
+	exam: 30,
+	portfolio: 20,
+};
+
+export const getPkpdWeights = (
+	category?: TeacherCategory,
+	isBiqTeacher?: boolean,
+) =>
+	isBiqTeacher === false
+		? withoutBiqWeights
+		: isBiqTeacher === true || category === "standard" || !category
+			? withBiqWeights
+			: withoutBiqWeights;
+
+export const getPkpdPortfolioLimits = (
+	category?: TeacherCategory,
+	isBiqTeacher?: boolean,
+) => {
+	if (isBiqTeacher === false || category === "drama_gym" || category === "chess") {
+		return {
+			education: 3,
+			attendance: 3,
+			training: 9,
+			olympiad: 20,
+			events: 25,
+		};
+	}
+
+	return { education: 3, attendance: 3, training: 4, olympiad: 4, events: 6 };
+};
+
+export const getPkpdEvaluationType = (
+	category?: TeacherCategory,
+	isBiqTeacher?: boolean,
+) =>
+	getPkpdWeights(category, isBiqTeacher).biq > 0
+		? "WITH_BIQ"
+		: "WITHOUT_BIQ";
+
+export const getPkpdPortfolioMax = (
+	category?: TeacherCategory,
+	isBiqTeacher?: boolean,
+) =>
+	getPkpdEvaluationType(category, isBiqTeacher) === "WITH_BIQ" ? 20 : 60;
+
+/* Legacy category-based helper remains for existing calculator defaults. */
+export const getLegacyPkpdWeights = (category?: TeacherCategory) =>
 	category === "standard" || !category
 		? {
 				student: 15,
@@ -40,34 +105,21 @@ export const getPkpdWeights = (category?: TeacherCategory) =>
 				portfolio: 60,
 			};
 
-export const getPkpdPortfolioLimits = (category?: TeacherCategory) => {
-	if (category === "drama_gym" || category === "chess") {
-		return {
-			education: 3,
-			attendance: 3,
-			training: 9,
-			olympiad: 20,
-			events: 25,
-		};
-	}
-
-	return { education: 3, attendance: 3, training: 4, olympiad: 4, events: 6 };
-};
-
 export const computePkpdPortfolioScore = (
 	portfolio?: PkpdPortfolioDoc | null,
 	category?: TeacherCategory,
+	isBiqTeacher?: boolean,
 ) => {
 	if (!portfolio) return null;
 
-	const limits = getPkpdPortfolioLimits(category);
-	return (
-		Math.min(portfolio.educationScore ?? 0, limits.education) +
-		Math.min(portfolio.attendanceScore ?? 0, limits.attendance) +
-		Math.min(portfolio.trainingScore ?? 0, limits.training) +
-		Math.min(portfolio.olympiadScore ?? 0, limits.olympiad) +
-		Math.min(portfolio.eventsScore ?? 0, limits.events)
-	);
+	const limits = getPkpdPortfolioLimits(category, isBiqTeacher);
+	return sumScores([
+		clampEnteredScore(portfolio.educationScore, limits.education),
+		clampEnteredScore(portfolio.attendanceScore, limits.attendance),
+		clampEnteredScore(portfolio.trainingScore, limits.training),
+		clampEnteredScore(portfolio.olympiadScore, limits.olympiad),
+		clampEnteredScore(portfolio.eventsScore, limits.events),
+	]);
 };
 
 type PkpdScoreParts = {
@@ -79,6 +131,9 @@ type PkpdScoreParts = {
 	portfolioScore?: number | null;
 	bonusScore?: number | null;
 };
+
+const getExtraScore = (score?: number | null) =>
+	typeof score === "number" && !Number.isNaN(score) ? score : null;
 
 export const computePkpdBaseScore = (parts: PkpdScoreParts) =>
 	sumScores([
@@ -92,13 +147,28 @@ export const computePkpdBaseScore = (parts: PkpdScoreParts) =>
 
 export const computePkpdTotalScore = (parts: PkpdScoreParts) => {
 	const baseScore = computePkpdBaseScore(parts);
-	const bonusScore =
-		typeof parts.bonusScore === "number" && !Number.isNaN(parts.bonusScore)
-			? parts.bonusScore
-			: null;
+	const bonusScore = getExtraScore(parts.bonusScore);
 
 	if (baseScore === null && bonusScore === null) return null;
 	return (baseScore ?? 0) + (bonusScore ?? 0);
+};
+
+export const computePkpdScoreSummary = (parts: PkpdScoreParts) => {
+	const baseTotalScore = computePkpdBaseScore(parts);
+	const extraScore = getExtraScore(parts.bonusScore) ?? 0;
+	const finalScoreWithExtra =
+		baseTotalScore === null && extraScore === 0
+			? null
+			: (baseTotalScore ?? 0) + extraScore;
+
+	return { baseTotalScore, extraScore, finalScoreWithExtra };
+};
+
+export const pkpdDecision = (baseTotalScore: number | null) => {
+	if (baseTotalScore === null) return "-";
+	return baseTotalScore >= 30
+		? "Tutduğu vəzifəyə uyğundur"
+		: "Tutduğu vəzifəyə uyğun deyil";
 };
 
 export const pkpdBucket = (score: number | null) => {
