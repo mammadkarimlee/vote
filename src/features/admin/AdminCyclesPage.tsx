@@ -2235,13 +2235,13 @@ export const AdminCyclesPage = () => {
 
 		const warnings: string[] = [];
 		if (protectedTaskIds.size > 0) {
-			warnings.push(`${protectedTaskIds.size} cavablanmÄ±ÅŸ task qorundu`);
+			warnings.push(`${protectedTaskIds.size} cavablanmış task qorundu`);
 		}
 		if (skippedManagementAssignments > 0) {
-			warnings.push(`${skippedManagementAssignments} tÉ™yinat buraxÄ±ldÄ±`);
+			warnings.push(`${skippedManagementAssignments} təyinat buraxıldı`);
 		}
 		if (skippedManagementSelf > 0) {
-			warnings.push(`${skippedManagementSelf} Ã¶zÃ¼nÉ™ dÃ¼ÅŸÉ™n task buraxÄ±ldÄ±`);
+			warnings.push(`${skippedManagementSelf} özünə düşən task buraxıldı`);
 		}
 		setStatus(
 			`Rəhbərlik taskları yeniləndi: ${deletableTaskIds.length} silindi, ${tasksToCreate.length} yaradıldı${

@@ -222,5 +222,5 @@ export const pkpdBucket = (score: number | null) => {
 	if (score >= 60) return "Tələblərə əsasən cavab verən";
 	if (score >= 50) return "İnkişaf etdirilməsi zəruri olan";
 	if (score >= 30) return "İnkişafı aşağı olan";
-	return "İnkişafı çox aşağı olan";
+	return "İnkişafı çox aşağı olan / tutduğu vəzifəyə uyğun deyil";
 };

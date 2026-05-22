@@ -380,11 +380,6 @@ type PdfScoreRow = {
 const isMissingScore = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value);
 
-const sumEnteredScores = (scores: Array<number | null | undefined>) =>
-	scores
-		.filter((value): value is number => !isMissingScore(value))
-		.reduce((sum, value) => sum + value, 0);
-
 const buildFinalRecommendations = (
 	baseTotalScore: number | null,
 	rows: PdfScoreRow[],
@@ -1961,467 +1956,67 @@ export const AdminCycleDetailPage = () => {
 		if (!selectedTeacher) return;
 
 		const year = cycle?.year ?? new Date().getFullYear();
-		const isWithBiq = selectedTeacher.isBiqTeacher;
-		const modelLabel = isWithBiq
-			? "BİQ/KİQ nəticəsi olan müəllim"
-			: "BİQ/KİQ nəticəsi olmayan müəllim";
-		const reportTitle = `PKPD Hesabatı — ${year}`;
-		const generatedAt = new Date().toLocaleString("az-AZ");
-		const portfolioMax = selectedTeacherPortfolioLimits
-			? selectedTeacherPortfolioLimits.education +
-				selectedTeacherPortfolioLimits.attendance +
-				selectedTeacherPortfolioLimits.training +
-				selectedTeacherPortfolioLimits.olympiad +
-				selectedTeacherPortfolioLimits.events
-			: isWithBiq
-				? 20
-				: 60;
+		const isWithBiq = selectedTeacher.evaluationType === "WITH_BIQ";
+		const modelLabel = isWithBiq ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim";
+		const now = new Date();
+		const generatedDate = now.toLocaleDateString("az-AZ", { day: "2-digit", month: "2-digit", year: "numeric" });
+		const generatedTime = now.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit", hour12: false });
+		const scoreText = (value: number | null | undefined) => isMissingScore(value) ? "Daxil edilməyib" : formatScore(value ?? null);
+		const scoreWithMax = (value: number | null | undefined, max: number) => `${scoreText(value)} / ${max}`;
 
 		const breakdownRows: PdfScoreRow[] = isWithBiq
 			? [
-					{
-						key: "subjectMasteryScore",
-						label: "Balabilgənin fənni mənimsəməsi",
-						value: selectedTeacher.biqWeightedScore,
-						max: 15,
-					},
-					{
-						key: "studentSurveyScore",
-						label: "Balabilgə sorğusu",
-						value: selectedTeacher.studentWeightedScore,
-						max: 15,
-					},
-					{
-						key: "selfEvaluationScore",
-						label: "Özünü qiymətləndirmə",
-						value: selectedTeacher.selfWeightedScore,
-						max: 10,
-					},
-					{
-						key: "leadershipEvaluationScore",
-						label: "Rəhbərlik qiymətləndirməsi",
-						value: selectedTeacher.managementWeightedScore,
-						max: 10,
-					},
-					{
-						key: "examScore",
-						label: "Attestasiya imtahanı",
-						value: selectedTeacher.examScore,
-						max: 30,
-					},
-					{
-						key: "portfolioScore",
-						label: "Portfolio",
-						value: selectedTeacher.portfolioScore,
-						max: 20,
-					},
+					{ key: "subjectMasteryScore", label: "Balabilgənin fənni mənimsəməsi", value: selectedTeacher.biqWeightedScore, max: 15 },
+					{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: selectedTeacher.studentWeightedScore, max: 15 },
+					{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: selectedTeacher.selfWeightedScore, max: 10 },
+					{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: selectedTeacher.managementWeightedScore, max: 10 },
+					{ key: "examScore", label: "Attestasiya imtahanı", value: selectedTeacher.examScore, max: 30 },
+					{ key: "portfolioScore", label: "Portfolio", value: selectedTeacher.portfolioScore, max: 20 },
 				]
 			: [
-					{
-						key: "studentSurveyScore",
-						label: "Balabilgə sorğusu",
-						value: selectedTeacher.studentWeightedScore,
-						max: 20,
-					},
-					{
-						key: "selfEvaluationScore",
-						label: "Özünü qiymətləndirmə",
-						value: selectedTeacher.selfWeightedScore,
-						max: 10,
-					},
-					{
-						key: "leadershipEvaluationScore",
-						label: "Rəhbərlik qiymətləndirməsi",
-						value: selectedTeacher.managementWeightedScore,
-						max: 10,
-					},
-					{
-						key: "portfolioScore",
-						label: "Portfolio",
-						value: selectedTeacher.portfolioScore,
-						max: 60,
-					},
+					{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: selectedTeacher.studentWeightedScore, max: 20 },
+					{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: selectedTeacher.selfWeightedScore, max: 10 },
+					{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: selectedTeacher.managementWeightedScore, max: 10 },
+					{ key: "portfolioScore", label: "Portfolio", value: selectedTeacher.portfolioScore, max: 60 },
 				];
+		const portfolioMax = isWithBiq ? 20 : 60;
+		const portfolioRows: PdfScoreRow[] = selectedTeacherPortfolioLimits ? [
+			{ key: "educationQualificationScore", label: "Təhsil / kvalifikasiya", value: selectedTeacherPortfolio?.educationScore, max: selectedTeacherPortfolioLimits.education },
+			{ key: "attendanceScore", label: "Davamiyyət", value: selectedTeacherPortfolio?.attendanceScore, max: selectedTeacherPortfolioLimits.attendance },
+			{ key: "certificatesPublicationsScore", label: "Sertifikat / məqalə / təlim", value: selectedTeacherPortfolio?.trainingScore, max: selectedTeacherPortfolioLimits.training },
+			{ key: isWithBiq ? "olympiadCompetitionScore" : "competitionFestivalScore", label: isWithBiq ? "Olimpiada / müsabiqə" : "Müsabiqə / festival / yarış", value: selectedTeacherPortfolio?.olympiadScore, max: selectedTeacherPortfolioLimits.olympiad },
+			{ key: "projectsAwardsScore", label: "Layihə / tədbir / təltif", value: selectedTeacherPortfolio?.eventsScore, max: selectedTeacherPortfolioLimits.events },
+		] : [];
 
-		const portfolioRows: PdfScoreRow[] = selectedTeacherPortfolioLimits
-			? [
-					{
-						key: "educationQualificationScore",
-						label: "Təhsil / kvalifikasiya",
-						value: selectedTeacherPortfolio?.educationScore,
-						max: selectedTeacherPortfolioLimits.education,
-					},
-					{
-						key: "attendanceScore",
-						label: "Davamiyyət",
-						value: selectedTeacherPortfolio?.attendanceScore,
-						max: selectedTeacherPortfolioLimits.attendance,
-					},
-					{
-						key: "certificatesPublicationsScore",
-						label: "Sertifikat / məqalə / təlim",
-						value: selectedTeacherPortfolio?.trainingScore,
-						max: selectedTeacherPortfolioLimits.training,
-					},
-					{
-						key: isWithBiq
-							? "olympiadCompetitionScore"
-							: "competitionFestivalScore",
-						label: isWithBiq
-							? "Olimpiada / müsabiqə"
-							: "Müsabiqə / festival / yarış",
-						value: selectedTeacherPortfolio?.olympiadScore,
-						max: selectedTeacherPortfolioLimits.olympiad,
-					},
-					{
-						key: "projectsAwardsScore",
-						label: "Layihə / tədbir / təltif",
-						value: selectedTeacherPortfolio?.eventsScore,
-						max: selectedTeacherPortfolioLimits.events,
-					},
-				]
-			: [];
-
-		const missingRows = breakdownRows.filter((row) =>
-			isMissingScore(row.value),
-		);
-		const missingPortfolioRows = portfolioRows.filter((row) =>
-			isMissingScore(row.value),
-		);
-		const reportStatus =
-			missingRows.length > 0 || missingPortfolioRows.length > 0
-				? "IN_PROGRESS"
-				: "FINAL";
-		const isFinalReport = reportStatus === "FINAL";
-		const currentEnteredScore = sumEnteredScores(
-			breakdownRows.map((row) => row.value),
-		);
-		const baseTotalScore = isFinalReport
-			? selectedTeacher.baseTotalScore
-			: null;
-		const finalScoreWithExtra = isFinalReport
-			? selectedTeacher.finalScoreWithExtra
-			: null;
-		const categoryText =
-			isFinalReport && baseTotalScore !== null ? pkpdBucket(baseTotalScore) : null;
-		const decisionText =
-			isFinalReport && baseTotalScore !== null
-				? pkpdDecision(baseTotalScore)
-				: "Qərar verilməyib";
-		const missingItems = [...missingRows, ...missingPortfolioRows];
-		const recommendations = isFinalReport
-			? buildFinalRecommendations(baseTotalScore, breakdownRows)
-			: [
-					"Rəy və tövsiyələr yekun qiymətləndirmə tamamlandıqdan sonra formalaşdırılacaq.",
-				];
-
-		const scoreText = (value: number | null | undefined) =>
-			isMissingScore(value) ? "-" : formatScore(value ?? null);
-		const statusText = isFinalReport
-			? "FINAL - Yekun hesabat"
-			: "IN_PROGRESS - Hesablama tamamlanmayıb";
-		const statusClass = isFinalReport ? "final" : "progress";
-		const breakdownTotalValue = isFinalReport
-			? baseTotalScore
-			: currentEnteredScore;
+		const missingRows = breakdownRows.filter((row) => isMissingScore(row.value));
+		const isFinalReport = selectedTeacher.isComplete && missingRows.length === 0;
+		const reportTitle = isFinalReport ? `PKPD Yekun Nəticə Hesabatı — ${year}` : `PKPD Cari Qiymətləndirmə Hesabatı — ${year}`;
+		const statusText = isFinalReport ? "Yekun qiymətləndirmə tamamlanıb" : "Hesablama tamamlanmayıb";
+		const baseTotalScore = isFinalReport ? selectedTeacher.baseTotalScore : null;
+		const finalScoreWithExtra = isFinalReport ? selectedTeacher.finalScoreWithExtra : null;
+		const categoryText = isFinalReport && baseTotalScore !== null ? pkpdBucket(baseTotalScore) : null;
+		const decisionText = isFinalReport && baseTotalScore !== null ? pkpdDecision(baseTotalScore) : "Qərar verilməyib";
+		const uniqueMissingLabels = Array.from(new Set(missingRows.map((row) => row.key === "portfolioScore" ? "Portfolio alt meyarları" : row.label)));
+		const hasAnyPortfolioScore = portfolioRows.some((row) => !isMissingScore(row.value));
 		const summaryHtml = isFinalReport
-			? `
-				<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreText(baseTotalScore)}</strong></div>
-				<div class="summary-item"><span>Əlavə bal</span><strong>${selectedTeacher.bonusScore.toFixed(2)}</strong></div>
-				<div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div>
-				<div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "-")}</strong></div>
-				<div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>
-			`
-			: `
-				<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${formatScore(currentEnteredScore)}</strong></div>
-				<div class="summary-item"><span>Əlavə bal</span><strong>${selectedTeacher.bonusScore.toFixed(2)}</strong></div>
-				<div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div>
-				<div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div>
-			`;
-		const breakdownHtml = [
-			...breakdownRows.map(
-				(row) => `
-					<tr>
-						<td>${escapeHtml(row.label)}</td>
-						<td>${scoreText(row.value)}</td>
-						<td>${row.max}</td>
-					</tr>
-				`,
-			),
-			`
-				<tr class="total-row">
-					<td>Total</td>
-					<td>${scoreText(breakdownTotalValue)}</td>
-					<td>100</td>
-				</tr>
-			`,
-		].join("");
-		const missingHtml =
-			!isFinalReport && missingItems.length > 0
-				? `
-					<section>
-						<h2>Çatışmayan sahələr</h2>
-						<ul class="missing-list">
-							${missingItems
-								.map((item) => `<li>${escapeHtml(item.label)}</li>`)
-								.join("")}
-						</ul>
-					</section>
-				`
-				: "";
-		const portfolioHtml = [
-			...portfolioRows.map(
-				(row) => `
-					<tr>
-						<td>${escapeHtml(row.label)}</td>
-						<td>${scoreText(row.value)}</td>
-						<td>${row.max}</td>
-					</tr>
-				`,
-			),
-			`
-				<tr class="total-row">
-					<td>Portfolio cəmi</td>
-					<td>${scoreText(selectedTeacher.portfolioScore)}</td>
-					<td>${portfolioMax}</td>
-				</tr>
-			`,
-		].join("");
-		const recommendationsHtml = recommendations
-			.map((item) => `<li>${escapeHtml(item)}</li>`)
-			.join("");
-		const signaturesHtml = isFinalReport
-			? `
-				<section class="signatures">
-					<h2>İmzalar</h2>
-					<div class="signature-grid">
-						<div><strong>Müəllim</strong><span></span></div>
-						<div><strong>Attestasiya komissiyasının sədri</strong><span></span></div>
-					</div>
-					<p class="date-line">Tarix: ____ / ____ / ______</p>
-				</section>
-			`
-			: "";
-
-		const html = `
-			<!doctype html>
-			<html lang="az">
-				<head>
-					<meta charset="utf-8" />
-					<title>${escapeHtml(selectedTeacher.name)} - PKPD Hesabatı</title>
-					<style>
-						@page { size: A4; margin: 14mm; }
-						body {
-							font-family: Arial, Helvetica, sans-serif;
-							color: #111827;
-							margin: 0;
-							font-size: 12px;
-							line-height: 1.45;
-						}
-						header {
-							border-bottom: 2px solid #111827;
-							padding-bottom: 10px;
-							margin-bottom: 14px;
-						}
-						.org {
-							font-size: 13px;
-							font-weight: 700;
-							text-transform: uppercase;
-						}
-						h1 {
-							font-size: 20px;
-							margin: 4px 0;
-						}
-						.subtitle {
-							font-size: 14px;
-							font-weight: 700;
-						}
-						h2 {
-							font-size: 14px;
-							margin: 16px 0 8px;
-							border-bottom: 1px solid #d1d5db;
-							padding-bottom: 4px;
-						}
-						.info-grid, .summary-grid {
-							display: grid;
-							grid-template-columns: 1fr 1fr;
-							gap: 6px 18px;
-						}
-						.info-item, .summary-item {
-							border: 1px solid #d1d5db;
-							padding: 7px 8px;
-							min-height: 28px;
-						}
-						.info-item span, .summary-item span {
-							display: block;
-							color: #4b5563;
-							font-size: 11px;
-						}
-						.info-item strong, .summary-item strong {
-							font-size: 13px;
-						}
-						.status {
-							display: inline-block;
-							padding: 3px 8px;
-							border-radius: 999px;
-							font-weight: 700;
-							font-size: 11px;
-						}
-						.status.final {
-							background: #dcfce7;
-							color: #166534;
-						}
-						.status.progress {
-							background: #fef3c7;
-							color: #92400e;
-						}
-						table {
-							width: 100%;
-							border-collapse: collapse;
-							margin-top: 6px;
-						}
-						th, td {
-							border: 1px solid #d1d5db;
-							padding: 7px 8px;
-							text-align: left;
-							vertical-align: top;
-						}
-						th {
-							background: #f3f4f6;
-							font-weight: 700;
-						}
-						.total-row td {
-							font-weight: 700;
-							background: #f9fafb;
-						}
-						.missing-list, .recommendations {
-							margin: 6px 0 0;
-							padding-left: 18px;
-						}
-						.student-summary {
-							display: grid;
-							grid-template-columns: repeat(3, 1fr);
-							gap: 8px;
-						}
-						.student-summary div {
-							border: 1px solid #d1d5db;
-							padding: 7px 8px;
-						}
-						.student-summary span {
-							display: block;
-							color: #4b5563;
-							font-size: 11px;
-						}
-						.signatures {
-							margin-top: 22px;
-							break-inside: avoid;
-						}
-						.signature-grid {
-							display: grid;
-							grid-template-columns: 1fr 1fr;
-							gap: 18px;
-							margin-top: 14px;
-						}
-						.signature-grid div {
-							min-height: 70px;
-						}
-						.signature-grid span {
-							display: block;
-							border-bottom: 1px solid #111827;
-							margin-top: 32px;
-						}
-						.date-line {
-							margin-top: 12px;
-						}
-						.generated {
-							margin-top: 18px;
-							color: #6b7280;
-							font-size: 10px;
-						}
-					</style>
-				</head>
-				<body>
-					<header>
-						<div class="org">Hədəf STEAM Liseyi MMC</div>
-						<h1>Pedaqoji Kadrların Performans Dəyərləndirilməsi</h1>
-						<div class="subtitle">${reportTitle}</div>
-					</header>
-
-					<section>
-						<h2>Müəllim məlumatları</h2>
-						<div class="info-grid">
-							<div class="info-item"><span>Müəllim</span><strong>${escapeHtml(selectedTeacher.name)}</strong></div>
-							<div class="info-item"><span>Kampus</span><strong>${escapeHtml(selectedTeacher.branchName)}</strong></div>
-							<div class="info-item"><span>Kafedra</span><strong>${escapeHtml(selectedTeacher.departmentName)}</strong></div>
-							<div class="info-item"><span>Qiymətləndirmə modeli</span><strong>${escapeHtml(modelLabel)}</strong></div>
-							<div class="info-item"><span>Hesabat statusu</span><strong><span class="status ${statusClass}">${statusText}</span></strong></div>
-						</div>
-					</section>
-
-					<section>
-						<h2>Xülasə</h2>
-						<div class="summary-grid">${summaryHtml}</div>
-					</section>
-
-					<section>
-						<h2>Bal bölgüsü</h2>
-						<table>
-							<thead>
-								<tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr>
-							</thead>
-							<tbody>${breakdownHtml}</tbody>
-						</table>
-					</section>
-
-					${missingHtml}
-
-					<section>
-						<h2>Portfolio xülasəsi</h2>
-						<table>
-							<thead>
-								<tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr>
-							</thead>
-							<tbody>${portfolioHtml}</tbody>
-						</table>
-					</section>
-
-					<section>
-						<h2>Balabilgə sorğusu xülasəsi</h2>
-						<div class="student-summary">
-							<div><span>10 üzərindən orta bal</span><strong>${scoreText(selectedTeacher.studentAvg)}</strong></div>
-							<div><span>Cavab sayı</span><strong>${selectedTeacher.studentCount}</strong></div>
-							<div><span>Çevrilmiş bal</span><strong>${scoreText(selectedTeacher.studentWeightedScore)} / ${isWithBiq ? 15 : 20}</strong></div>
-						</div>
-					</section>
-
-					<section>
-						<h2>Rəy və tövsiyələr</h2>
-						<ul class="recommendations">${recommendationsHtml}</ul>
-					</section>
-
-					${signaturesHtml}
-
-					<div class="generated">Hazırlanma vaxtı: ${generatedAt}</div>
-				</body>
-			</html>
-		`;
-
+			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>`
+			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div><p class="note">Qeyd: Bu göstərici yekun PKPD balı deyil. Bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra yekun nəticə və qərar formalaşdırılacaq.</p>`;
+		const totalLabel = isFinalReport ? "PKPD yekun balı" : "Daxil edilmiş cari cəm";
+		const totalValue = isFinalReport ? baseTotalScore : selectedTeacher.currentEnteredScore;
+		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>100</td></tr>`].join("");
+		const missingHtml = !isFinalReport && uniqueMissingLabels.length > 0 ? `<section><h2>Çatışmayan sahələr</h2><ul class="missing-list">${uniqueMissingLabels.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>` : "";
+		const portfolioHtml = hasAnyPortfolioScore ? `<table><thead><tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr></thead><tbody>${[...portfolioRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>Portfolio cəmi</td><td>${scoreText(selectedTeacher.portfolioScore)}</td><td>${portfolioMax}</td></tr>`].join("")}</tbody></table>` : `<p class="empty-note">Portfolio alt meyarları üzrə bal hələ daxil edilməyib.</p><p class="empty-note">Maksimum portfolio balı: ${portfolioMax}</p>`;
+		const recommendations = isFinalReport ? buildFinalRecommendations(baseTotalScore, breakdownRows) : ["Rəy və tövsiyələr yekun qiymətləndirmə tamamlandıqdan sonra formalaşdırılacaq."];
+		const recommendationsHtml = recommendations.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+		const signaturesHtml = isFinalReport ? `<section class="signatures"><h2>Təsdiq və imzalar</h2><div class="signature-line"><strong>Müəllim:</strong><span></span></div><div class="signature-line"><strong>Kafedra rəhbəri:</strong><span></span></div><div class="signature-line"><strong>Filial rəhbəri:</strong><span></span></div><div class="signature-line"><strong>Attestasiya komissiyasının sədri:</strong><span></span></div><div class="signature-line"><strong>Tarix:</strong><span>____ / ____ / ______</span></div><div class="signature-line"><strong>Möhür üçün yer:</strong><span></span></div></section>` : "";
+		const html = `<!doctype html><html lang="az"><head><meta charset="utf-8" /><title>${escapeHtml(selectedTeacher.name)} - ${reportTitle}</title><style>@page { size: A4; margin: 15mm; } body { font-family: Arial, Helvetica, sans-serif; color: #111827; margin: 0; font-size: 12px; line-height: 1.45; } header { border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 14px; } .org { font-size: 13px; font-weight: 700; text-transform: uppercase; } h1 { font-size: 18px; margin: 4px 0; } .subtitle { font-size: 15px; font-weight: 700; } section { margin-top: 14px; break-inside: avoid; } h2 { font-size: 14px; margin: 0 0 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; } .info-grid, .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; } .info-item, .summary-item { border: 1px solid #d1d5db; padding: 7px 8px; min-height: 28px; } .info-item span, .summary-item span { display: block; color: #4b5563; font-size: 11px; } .info-item strong, .summary-item strong { font-size: 13px; } .note { grid-column: 1 / -1; margin: 2px 0 0; padding: 8px; border-left: 3px solid #92400e; background: #fffbeb; } table { width: 100%; border-collapse: collapse; margin-top: 6px; break-inside: avoid; } tr { break-inside: avoid; } th, td { border: 1px solid #d1d5db; padding: 7px 8px; text-align: left; vertical-align: top; } th { background: #f3f4f6; font-weight: 700; } .total-row td { font-weight: 700; background: #f9fafb; } .missing-list { margin: 6px 0 0; padding-left: 18px; } .empty-note { margin: 4px 0; } .student-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .student-summary div { border: 1px solid #d1d5db; padding: 7px 8px; } .student-summary span { display: block; color: #4b5563; font-size: 11px; } .signatures { margin-top: 20px; break-inside: avoid; } .signature-line { display: grid; grid-template-columns: 190px 1fr; gap: 12px; align-items: end; margin-top: 14px; } .signature-line span { display: block; min-height: 20px; border-bottom: 1px solid #111827; } .generated { margin-top: 18px; color: #4b5563; font-size: 11px; }</style></head><body><header><div class="org">Hədəf STEAM Liseyi MMC</div><h1>Pedaqoji Kadrların Performans Dəyərləndirilməsi</h1><div class="subtitle">${reportTitle}</div></header><section><h2>Müəllim məlumatları</h2><div class="info-grid"><div class="info-item"><span>Müəllim</span><strong>${escapeHtml(selectedTeacher.name)}</strong></div><div class="info-item"><span>Kampus</span><strong>${escapeHtml(selectedTeacher.branchName)}</strong></div><div class="info-item"><span>Kafedra</span><strong>${escapeHtml(selectedTeacher.departmentName)}</strong></div><div class="info-item"><span>Qiymətləndirmə modeli</span><strong>${escapeHtml(modelLabel)}</strong></div><div class="info-item"><span>Hesabat statusu</span><strong>${statusText}</strong></div></div></section><section><h2>Xülasə</h2><div class="summary-grid">${summaryHtml}</div></section><section><h2>Bal bölgüsü</h2><table><thead><tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr></thead><tbody>${breakdownHtml}</tbody></table></section>${missingHtml}<section><h2>Portfolio xülasəsi</h2>${portfolioHtml}</section><section><h2>Balabilgə sorğusu xülasəsi</h2><div class="student-summary"><div><span>10 üzərindən orta bal</span><strong>${scoreText(selectedTeacher.studentAvg)}</strong></div><div><span>Cavab sayı</span><strong>${selectedTeacher.studentCount}</strong></div><div><span>Çevrilmiş bal</span><strong>${scoreWithMax(selectedTeacher.studentWeightedScore, isWithBiq ? 15 : 20)}</strong></div></div></section><section><h2>Rəy və tövsiyələr</h2>${recommendationsHtml}</section>${signaturesHtml}<div class="generated"><div>Hazırlanma tarixi: ${generatedDate}</div><div>Hazırlanma saatı: ${generatedTime}</div></div></body></html>`;
 		const blob = new Blob([html], { type: "text/html;charset=utf-8" });
 		const url = URL.createObjectURL(blob);
 		const popup = window.open(url, "_blank");
-		if (!popup) {
-			URL.revokeObjectURL(url);
-			return;
-		}
-
-		popup.addEventListener("load", () => {
-			popup.focus();
-			popup.print();
-			setTimeout(() => URL.revokeObjectURL(url), 1000);
-		});
+		if (!popup) { URL.revokeObjectURL(url); return; }
+		popup.addEventListener("load", () => { popup.focus(); popup.print(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
 	};
-
-	const handleTeacherDetailOpenChange = (open: boolean) => {
+const handleTeacherDetailOpenChange = (open: boolean) => {
 		if (!open) {
 			setSelectedTeacherId(null);
 			setSelfReviewQuestionScores({});
