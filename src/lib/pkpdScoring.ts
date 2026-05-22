@@ -1,9 +1,17 @@
 import type { PkpdPortfolioDoc, TeacherCategory } from "./types";
 
+export type PkpdEvaluationType = "WITH_BIQ" | "WITHOUT_BIQ";
+
+export const isEnteredPkpdScore = (
+	value: number | null | undefined,
+): value is number =>
+	value !== null &&
+	value !== undefined &&
+	typeof value === "number" &&
+	!Number.isNaN(value);
+
 const sumScores = (values: Array<number | null | undefined>) => {
-	const numericValues = values.filter(
-		(value): value is number => typeof value === "number" && !Number.isNaN(value),
-	);
+	const numericValues = values.filter(isEnteredPkpdScore);
 	return numericValues.length > 0
 		? numericValues.reduce((sum, value) => sum + value, 0)
 		: null;
@@ -74,10 +82,14 @@ export const getPkpdPortfolioLimits = (
 export const getPkpdEvaluationType = (
 	category?: TeacherCategory,
 	isBiqTeacher?: boolean,
-) =>
+): PkpdEvaluationType =>
 	getPkpdWeights(category, isBiqTeacher).biq > 0
 		? "WITH_BIQ"
 		: "WITHOUT_BIQ";
+
+export const getPkpdEvaluationTypeFromBiq = (
+	isBiqTeacher: boolean,
+): PkpdEvaluationType => (isBiqTeacher ? "WITH_BIQ" : "WITHOUT_BIQ");
 
 export const getPkpdPortfolioMax = (
 	category?: TeacherCategory,
@@ -133,7 +145,39 @@ type PkpdScoreParts = {
 };
 
 const getExtraScore = (score?: number | null) =>
-	typeof score === "number" && !Number.isNaN(score) ? score : null;
+	isEnteredPkpdScore(score) ? score : null;
+
+export const computePkpdCompletion = (
+	evaluationType: PkpdEvaluationType,
+	parts: PkpdScoreParts,
+) => {
+	const requiredScores =
+		evaluationType === "WITH_BIQ"
+			? [
+					parts.biqScore,
+					parts.studentScore,
+					parts.selfScore,
+					parts.managementScore,
+					parts.examScore,
+					parts.portfolioScore,
+				]
+			: [
+					parts.studentScore,
+					parts.selfScore,
+					parts.managementScore,
+					parts.portfolioScore,
+				];
+	const currentEnteredScore = requiredScores
+		.filter(isEnteredPkpdScore)
+		.reduce((sum, value) => sum + value, 0);
+	const isComplete = requiredScores.every(isEnteredPkpdScore);
+
+	return {
+		isComplete,
+		currentEnteredScore,
+		baseTotalScore: isComplete ? currentEnteredScore : null,
+	};
+};
 
 export const computePkpdBaseScore = (parts: PkpdScoreParts) =>
 	sumScores([

@@ -25,14 +25,16 @@ import {
 	isPkpdSelfReviewQuestionScoresError,
 } from "../../lib/pkpdSelfReview";
 import {
+	computePkpdCompletion,
 	computePkpdPortfolioScore,
-	computePkpdScoreSummary,
+	getPkpdEvaluationTypeFromBiq,
 	getPkpdPortfolioLimits,
 	getPkpdWeights,
 	normalizePkpdScale,
 	pkpdDecision,
 	pkpdBucket,
 } from "../../lib/pkpdScoring";
+import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import type {
 	AnswerDoc,
 	BiqClassResultDoc,
@@ -109,6 +111,7 @@ type SummaryRow = {
 	name: string;
 	category: TeacherCategory;
 	isBiqTeacher: boolean;
+	evaluationType: PkpdEvaluationType;
 	assessmentResultLabel: string;
 	studentScore: number | null;
 	managementScore: number | null;
@@ -123,6 +126,8 @@ type SummaryRow = {
 	examScore: number | null;
 	portfolioScore: number | null;
 	extraScore: number;
+	currentEnteredScore: number;
+	isComplete: boolean;
 	baseTotalScore: number | null;
 	finalScoreWithExtra: number | null;
 };
@@ -148,7 +153,7 @@ const formatScoreValue = (value: number | null) =>
 	value === null ? "-" : value.toFixed(1);
 
 const getIsBiqTeacher = (teacher: TeacherDoc) =>
-	teacher.isBiqTeacher ?? (teacher.category ?? "standard") === "standard";
+	teacher.isBiqTeacher !== false;
 
 const clampExamScore = (score: number | null | undefined) =>
 	typeof score === "number" && !Number.isNaN(score)
@@ -244,7 +249,6 @@ export const BranchPkpdPage = () => {
 	const [portfolioEvents, setPortfolioEvents] = useState("");
 	const [portfolioNote, setPortfolioNote] = useState("");
 	const [selfReviewTeacherId, setSelfReviewTeacherId] = useState("");
-	const [selfReviewScore, setSelfReviewScore] = useState("");
 	const [selfReviewNote, setSelfReviewNote] = useState("");
 	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
 	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
@@ -872,6 +876,7 @@ export const BranchPkpdPage = () => {
 		return teachers.map((teacher) => {
 			const category = teacher.data.category ?? "standard";
 			const isBiqTeacher = getIsBiqTeacher(teacher.data);
+			const evaluationType = getPkpdEvaluationTypeFromBiq(isBiqTeacher);
 			const weights = getPkpdWeights(category, isBiqTeacher);
 			const assessmentResultLabel = isBiqTeacher
 				? "Balabilgənin fənni mənimsəməsi"
@@ -945,22 +950,25 @@ export const BranchPkpdPage = () => {
 			const hrSelfReviewScore = selfReview?.score ?? null;
 			const bonus = achievementTotals[teacher.id] ?? 0;
 
-			const { baseTotalScore, extraScore, finalScoreWithExtra } =
-				computePkpdScoreSummary({
+			const { baseTotalScore, currentEnteredScore, isComplete } =
+				computePkpdCompletion(evaluationType, {
 					studentScore,
 					managementScore,
 					selfScore,
 					biqScore,
 					examScore,
 					portfolioScore,
-					bonusScore: bonus,
 				});
+			const extraScore = bonus;
+			const finalScoreWithExtra =
+				baseTotalScore === null ? null : baseTotalScore + extraScore;
 
 			return {
 				teacherId: teacher.id,
 				name: teacher.data.name,
 				category,
 				isBiqTeacher,
+				evaluationType,
 				assessmentResultLabel,
 				studentScore,
 				managementScore,
@@ -975,6 +983,8 @@ export const BranchPkpdPage = () => {
 				examScore,
 				portfolioScore,
 				extraScore,
+				currentEnteredScore,
+				isComplete,
 				baseTotalScore,
 				finalScoreWithExtra,
 			};
@@ -998,6 +1008,12 @@ export const BranchPkpdPage = () => {
 	const examPagination = usePagination(examTeachers);
 	const achievementPagination = usePagination(achievements);
 	const summaryPagination = usePagination(summaryRows);
+
+	const formatPkpdCategory = (row: SummaryRow) =>
+		row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
+
+	const formatPkpdDecision = (row: SummaryRow) =>
+		row.isComplete ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
 
 	const selectedSummaryRow = useMemo(
 		() =>
@@ -1757,7 +1773,6 @@ export const BranchPkpdPage = () => {
 	const loadSelfReviewForTeacher = (teacherId: string) => {
 		if (!teacherId) {
 			setSelfReviewTeacherId("");
-			setSelfReviewScore("");
 			setSelfReviewNote("");
 			setSelfReviewEditUnlocked(false);
 			setSelfReviewUnlockOpen(false);
@@ -1770,9 +1785,6 @@ export const BranchPkpdPage = () => {
 
 		const review = selfReviewMap[teacherId];
 		setSelfReviewTeacherId(teacherId);
-		setSelfReviewScore(
-			typeof review?.score === "number" ? review.score.toString() : "",
-		);
 		setSelfReviewNote(review?.note ?? "");
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockOpen(false);
@@ -1892,22 +1904,10 @@ export const BranchPkpdPage = () => {
 			return;
 		}
 
-		const scoreRaw = selfReviewScore.trim();
 		const noteValue = selfReviewNote.trim() || null;
 
-		if (scoreRaw === "") {
-			if (!noteValue) {
-				setStatus("Boş HR qiymətləndirməsi saxlanmadı; mövcud qeyd silinmədi");
-				return;
-			}
-
-			setStatus("Daxili HR qeydi 0-10 aralığında daxil edilməlidir");
-			return;
-		}
-
-		const scoreValue = Number(scoreRaw);
-		if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > 10) {
-			setStatus("Daxili HR qeydi 0-10 aralığında daxil edilməlidir");
+		if (!noteValue) {
+			setStatus("Boş HR qeydi saxlanmadı; mövcud qeyd silinmədi");
 			return;
 		}
 
@@ -1921,7 +1921,6 @@ export const BranchPkpdPage = () => {
 			branch_id: branchId,
 			cycle_id: selectedCycleId,
 			teacher_id: selfReviewTeacherId,
-			score: scoreValue,
 			question_scores: existingQuestionScores,
 			note:
 				selectedTeacherHasSavedSelfReview && editReason
@@ -2547,8 +2546,8 @@ export const BranchPkpdPage = () => {
 									<div className="data-row" key={row.teacherId}>
 										<div>{row.name}</div>
 										<div>{row.isBiqTeacher ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim"}</div>
-										<div>{formatScoreValue(row.baseTotalScore)}</div>
-										<div>{pkpdBucket(row.baseTotalScore)}</div>
+										<div>{row.isComplete ? formatScoreValue(row.baseTotalScore) : formatScoreValue(row.currentEnteredScore)}</div>
+										<div>{formatPkpdCategory(row)}</div>
 										<div>{decisionLabel[decision?.status ?? 'PENDING']}</div>
 										<div>{notePreview}</div>
 										<div className="actions">
@@ -2612,8 +2611,7 @@ export const BranchPkpdPage = () => {
 									{(!selectedTeacherSelfResponse || selectedTeacherSelfResponse.textAnswers.length === 0) && <div className="empty">MÃ¼É™llim bu sorÄŸuda hÉ™lÉ™ aÃ§Ä±q cavab yazmayÄ±b.</div>}
 								</div>
 								<div className="form-row">
-									<input className="input" type="number" min="0" max="10" step="0.1" placeholder="Daxili HR qeydi (0-10)" value={selfReviewScore} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewScore(event.target.value)} />
-									<input className="input" placeholder="Qeyd (istəyə bağlı)" value={selfReviewNote} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewNote(event.target.value)} />
+									<input className="input" placeholder="HR qeydi (hesaba daxil deyil)" value={selfReviewNote} disabled={selectedTeacherSelfReviewLocked} onChange={(event) => setSelfReviewNote(event.target.value)} />
 									<button className="btn primary" type="button" onClick={handleSaveSelfReview} disabled={selectedTeacherSelfReviewLocked}>Saxla</button>
 								</div>
 								<div className="hint">HR qeydi sənəddəki rəsmi PKPD cəminə əlavə olunmur.</div>
@@ -2635,15 +2633,19 @@ export const BranchPkpdPage = () => {
 								<div className="stat-card"><div className="stat-label">Şagird sorğusu</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Rəhbərlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Özünüqiymətləndirmə</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">BİQ ortalaması</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqAvg)}</div><div className="stat-meta">{selectedSummaryRow.biqAverageSource === "manual" ? "manual daxil edilib" : selectedSummaryRow.biqAverageSource === "computed" ? "qrup/fənn üzrə hesablanıb" : "məlumat yoxdur"}</div></div>
-								<div className="stat-card"><div className="stat-label">{selectedSummaryRow.assessmentResultLabel}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Attestasiya imtahanı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+								{selectedSummaryRow.isBiqTeacher && (
+									<>
+										<div className="stat-card"><div className="stat-label">BİQ ortalaması</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqAvg)}</div><div className="stat-meta">{selectedSummaryRow.biqAverageSource === "manual" ? "manual daxil edilib" : selectedSummaryRow.biqAverageSource === "computed" ? "qrup/fənn üzrə hesablanıb" : "məlumat yoxdur"}</div></div>
+										<div className="stat-card"><div className="stat-label">{selectedSummaryRow.assessmentResultLabel}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
+										<div className="stat-card"><div className="stat-label">Attestasiya imtahanı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+									</>
+								)}
 								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Əlavə bal</div><div className="stat-value">{selectedSummaryRow.extraScore.toFixed(1)}</div></div>
 								<div className="stat-card"><div className="stat-label">Daxil edilmiş balların cari cəmi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.teacherCriteriaTotal)}</div></div>
 								<div className="stat-card"><div className="stat-label">HR qeydi (hesaba daxil deyil)</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">PKPD yekun balı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.baseTotalScore)}</div><div className="stat-meta">{pkpdBucket(selectedSummaryRow.baseTotalScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Stimullaşdırıcı yekun</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.finalScoreWithExtra)}</div><div className="stat-meta">{pkpdDecision(selectedSummaryRow.baseTotalScore)}</div></div>
+								<div className="stat-card"><div className="stat-label">{selectedSummaryRow.isComplete ? "PKPD yekun balı" : "Daxil edilmiş cari bal"}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.isComplete ? selectedSummaryRow.baseTotalScore : selectedSummaryRow.currentEnteredScore)}</div><div className="stat-meta">{formatPkpdCategory(selectedSummaryRow)}</div></div>
+								<div className="stat-card"><div className="stat-label">Stimullaşdırıcı yekun</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.finalScoreWithExtra)}</div><div className="stat-meta">{formatPkpdDecision(selectedSummaryRow)}</div></div>
 							</div>
 							{selectedSummaryPortfolioLimits && (
 								<div className="card">
