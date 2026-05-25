@@ -4,10 +4,14 @@ import type {
 	AnswerDoc,
 	BiqClassResultDoc,
 	BranchDoc,
+	CampusLeadershipDoc,
+	CampusLeadershipTeacherScopeDoc,
 	DepartmentDoc,
 	GroupDoc,
 	ManagementAssignmentDoc,
 	NotificationDoc,
+	LeadershipCompletionDoc,
+	LeadershipEvaluationDoc,
 	PkpdAchievementDoc,
 	PkpdDecisionDoc,
 	PkpdExamDoc,
@@ -138,6 +142,70 @@ export const mapManagementAssignmentRow = (
 	branchId: row.branch_id,
 	departmentId: row.department_id ?? null,
 	year: row.year,
+});
+
+export const mapCampusLeadershipRow = (row: Row): CampusLeadershipDoc => ({
+	campusId: row.campus_id,
+	userId: row.user_id,
+	role: row.role,
+	coverageType: row.coverage_type,
+	gradeFrom: row.grade_from ?? null,
+	gradeTo: row.grade_to ?? null,
+	departmentId: row.department_id ?? null,
+	isActive: row.is_active ?? false,
+	canEvaluateTeachers: row.can_evaluate_teachers ?? false,
+	startsAt: row.starts_at ?? null,
+	endsAt: row.ends_at ?? null,
+	note: row.note ?? null,
+	createdBy: row.created_by ?? null,
+	createdAt: row.created_at ?? null,
+	updatedAt: row.updated_at ?? null,
+});
+
+export const mapCampusLeadershipTeacherScopeRow = (
+	row: Row,
+): CampusLeadershipTeacherScopeDoc => ({
+	campusLeadershipId: row.campus_leadership_id,
+	teacherId: row.teacher_id,
+});
+
+export const mapLeadershipEvaluationRow = (
+	row: Row,
+): LeadershipEvaluationDoc => ({
+	cycleId: row.cycle_id,
+	teacherId: row.teacher_id,
+	evaluatorId: row.evaluator_id,
+	campusId: row.campus_id,
+	evaluatorRole: row.evaluator_role,
+	coverageType: row.coverage_type,
+	disciplineScore: Number(row.discipline_score),
+	teamworkScore: Number(row.teamwork_score),
+	communicationScore: Number(row.communication_score),
+	professionalDevelopmentScore: Number(row.professional_development_score),
+	platformUsageScore: Number(row.platform_usage_score),
+	totalScore: Number(row.total_score),
+	comment: row.comment ?? null,
+	submittedAt: row.submitted_at ?? null,
+	updatedAt: row.updated_at ?? null,
+	isSubmitted: row.is_submitted ?? false,
+});
+
+export const mapLeadershipCompletionRow = (
+	row: Row,
+): LeadershipCompletionDoc => ({
+	teacherId: row.teacher_id,
+	leadershipEvaluationScore:
+		row.leadership_evaluation_score === null ||
+		row.leadership_evaluation_score === undefined
+			? null
+			: Number(row.leadership_evaluation_score),
+	submittedCount: Number(row.submitted_count ?? 0),
+	eligibleCount: Number(row.eligible_count ?? 0),
+	isComplete: row.is_complete ?? false,
+	isOverridden: row.is_overridden ?? false,
+	branchManagerSubmitted: row.branch_manager_submitted ?? false,
+	deputySubmitted: row.deputy_submitted ?? false,
+	departmentHeadSubmitted: row.department_head_submitted ?? false,
 });
 
 export const mapQuestionRow = (row: Row): QuestionDoc => ({

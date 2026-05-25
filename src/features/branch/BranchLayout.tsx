@@ -266,6 +266,7 @@ export const BranchLayout = ({
 					icon: "dashboard",
 				},
 				{ to: "/admin/branches", label: "Filiallar", icon: "branches" },
+				{ to: "/admin/leadership", label: "Rəhbərlik", icon: "management" },
 				{ to: "/admin/users", label: "Filial adminləri", icon: "admins" },
 			],
 		},
@@ -322,6 +323,15 @@ export const BranchLayout = ({
 					label: "Kafedra müdirləri",
 					icon: "management",
 				},
+				...(userDoc?.role === "branch_admin" || userDoc?.role === "superadmin"
+					? [
+							{
+								to: "/branch/leadership",
+								label: "Rəhbərlik",
+								icon: "management" as const,
+							},
+						]
+					: []),
 			],
 		},
 		{

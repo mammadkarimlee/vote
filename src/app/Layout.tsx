@@ -59,6 +59,11 @@ export const Layout = () => {
 							Səs ver
 						</NavLink>
 					)}
+					{role && ["teacher", "manager"].includes(role) && (
+						<NavLink to="/leadership" className={navClass}>
+							Rəhbərlik qiymətləndirməsi
+						</NavLink>
+					)}
 					{role &&
 						["branch_admin", "moderator", "superadmin"].includes(role) && (
 							<NavLink to="/branch" className={navClass}>

@@ -19,6 +19,7 @@ import { BranchCyclesPage } from "./features/branch/BranchCyclesPage";
 import { BranchDepartmentsPage } from "./features/branch/BranchDepartmentsPage";
 import { BranchGroupsPage } from "./features/branch/BranchGroupsPage";
 import { BranchLayout } from "./features/branch/BranchLayout";
+import { BranchLeadershipPage } from "./features/branch/BranchLeadershipPage";
 import { BranchManagementAssignmentsPage } from "./features/branch/BranchManagementAssignmentsPage";
 import { BranchPkpdPage } from "./features/branch/BranchPkpdPage";
 import { BranchProfilesPage } from "./features/branch/BranchProfilesPage";
@@ -27,6 +28,7 @@ import { BranchStudentsPage } from "./features/branch/BranchStudentsPage";
 import { BranchSubjectsPage } from "./features/branch/BranchSubjectsPage";
 import { BranchTeachersPage } from "./features/branch/BranchTeachersPage";
 import { HrCyclesPage } from "./features/hr/HrCyclesPage";
+import { LeadershipEvaluationPage } from "./features/leadership/LeadershipEvaluationPage";
 import { PkpdCalculatorPage } from "./features/pkpd/PkpdCalculatorPage";
 import { PkpdDocumentPage } from "./features/pkpd/PkpdDocumentPage";
 import { TaskListPage } from "./features/tasks/TaskListPage";
@@ -58,6 +60,14 @@ const App = () => (
 				element={
 					<RequireRole roles={["student", "teacher", "manager"]}>
 						<TaskVotePage />
+					</RequireRole>
+				}
+			/>
+			<Route
+				path="/leadership"
+				element={
+					<RequireRole roles={["teacher", "manager"]}>
+						<LeadershipEvaluationPage />
 					</RequireRole>
 				}
 			/>
@@ -104,6 +114,14 @@ const App = () => (
 					path="management"
 					element={<BranchManagementAssignmentsPage />}
 				/>
+				<Route
+					path="leadership"
+					element={
+						<RequireRole roles={["branch_admin", "superadmin"]}>
+							<BranchLeadershipPage />
+						</RequireRole>
+					}
+				/>
 				<Route path="profiles" element={<BranchProfilesPage />} />
 				<Route path="results/:section?" element={<BranchResultsPage />} />
 				<Route path="cycles" element={<BranchCyclesPage />} />
@@ -128,6 +146,7 @@ const App = () => (
 				}
 			>
 				<Route path="branches" element={<AdminBranchesPage />} />
+				<Route path="leadership" element={<BranchLeadershipPage />} />
 				<Route path="users" element={<AdminUsersPage />} />
 				<Route path="dashboard/:section?" element={<AdminDashboardPage />} />
 				<Route path="cycles" element={<AdminCyclesPage />} />

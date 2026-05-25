@@ -13,6 +13,7 @@ import {
 	mapPkpdSelfReviewRow,
 	mapPkpdTeacherBiqAverageRow,
 	mapPkpdTeacherBiqResultRow,
+	mapLeadershipCompletionRow,
 	mapQuestionRow,
 	mapSubjectRow,
 	mapSurveyCycleRow,
@@ -47,6 +48,7 @@ import type {
 	PkpdSelfReviewDoc,
 	PkpdTeacherBiqAverageDoc,
 	PkpdTeacherBiqResultDoc,
+	LeadershipCompletionDoc,
 	QuestionDoc,
 	SubjectDoc,
 	SurveyCycleDoc,
@@ -115,6 +117,10 @@ type SummaryRow = {
 	assessmentResultLabel: string;
 	studentScore: number | null;
 	managementScore: number | null;
+	leadershipSubmittedCount: number;
+	leadershipEligibleCount: number;
+	leadershipComplete: boolean;
+	leadershipOverridden: boolean;
 	selfScore: number | null;
 	teacherCriteriaTotal: number | null;
 	hrSelfReviewScore: number | null;
@@ -179,7 +185,7 @@ const getTeacherCriteriaTotal = (review?: PkpdSelfReviewDoc | null) => {
 };
 
 export const BranchPkpdPage = () => {
-	const { user } = useAuth();
+	const { user, userDoc } = useAuth();
 	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
 	const [cycles, setCycles] = useState<Array<DocEntry<SurveyCycleDoc>>>([]);
 	const [selectedCycleId, setSelectedCycleId] = useState("");
@@ -216,6 +222,9 @@ export const BranchPkpdPage = () => {
 	const [decisions, setDecisions] = useState<Array<DocEntry<PkpdDecisionDoc>>>(
 		[],
 	);
+	const [leadershipCompletion, setLeadershipCompletion] = useState<
+		Record<string, LeadershipCompletionDoc>
+	>({});
 	const [status, setStatus] = useFeedbackState();
 
 	const [biqGroupId, setBiqGroupId] = useState("");
@@ -365,6 +374,7 @@ export const BranchPkpdPage = () => {
 				selfReviewRows,
 				achievementRows,
 				decisionRows,
+				leadershipSummaryResult,
 			] = await Promise.all([
 				fetchAllBatched<any>(async (from, to) =>
 					supabase
@@ -464,6 +474,10 @@ export const BranchPkpdPage = () => {
 						.order("id")
 						.range(from, to),
 				),
+				supabase.rpc("leadership_score_summary", {
+					p_cycle_id: selectedCycleId,
+					p_campus_id: branchId,
+				}),
 			]);
 
 			const questionMap: Record<string, QuestionDoc> = {};
@@ -550,6 +564,14 @@ export const BranchPkpdPage = () => {
 					};
 					return acc;
 				}, {}),
+			);
+			setLeadershipCompletion(
+				Object.fromEntries(
+					(leadershipSummaryResult.data ?? []).map((row: Record<string, unknown>) => {
+						const summary = mapLeadershipCompletionRow(row);
+						return [summary.teacherId, summary];
+					}),
+				),
 			);
 
 			if (taskDocs.length === 0) {
@@ -887,10 +909,6 @@ export const BranchPkpdPage = () => {
 				stats && stats.student.count > 0
 					? stats.student.sum / stats.student.count
 					: null;
-			const managementAvg =
-				stats && stats.management.count > 0
-					? stats.management.sum / stats.management.count
-					: null;
 			const selfAvg =
 				stats && stats.self.count > 0
 					? stats.self.sum / stats.self.count
@@ -898,10 +916,8 @@ export const BranchPkpdPage = () => {
 
 			const studentScore =
 				studentAvg === null ? null : (studentAvg * weights.student) / 100;
-			const managementScore =
-				managementAvg === null
-					? null
-					: (managementAvg * weights.management) / 100;
+			const leadershipSummary = leadershipCompletion[teacher.id];
+			const managementScore = leadershipSummary?.leadershipEvaluationScore ?? null;
 			const selfScore =
 				selfAvg === null ? null : (selfAvg * weights.self) / 100;
 
@@ -950,8 +966,7 @@ export const BranchPkpdPage = () => {
 			const hrSelfReviewScore = selfReview?.score ?? null;
 			const bonus = achievementTotals[teacher.id] ?? 0;
 
-			const { baseTotalScore, currentEnteredScore, isComplete } =
-				computePkpdCompletion(evaluationType, {
+			const completion = computePkpdCompletion(evaluationType, {
 					studentScore,
 					managementScore,
 					selfScore,
@@ -959,6 +974,10 @@ export const BranchPkpdPage = () => {
 					examScore,
 					portfolioScore,
 				});
+			const isComplete =
+				completion.isComplete && Boolean(leadershipSummary?.isComplete);
+			const currentEnteredScore = completion.currentEnteredScore;
+			const baseTotalScore = isComplete ? currentEnteredScore : null;
 			const extraScore = bonus;
 			const finalScoreWithExtra =
 				baseTotalScore === null ? null : baseTotalScore + extraScore;
@@ -972,6 +991,10 @@ export const BranchPkpdPage = () => {
 				assessmentResultLabel,
 				studentScore,
 				managementScore,
+				leadershipSubmittedCount: leadershipSummary?.submittedCount ?? 0,
+				leadershipEligibleCount: leadershipSummary?.eligibleCount ?? 0,
+				leadershipComplete: leadershipSummary?.isComplete ?? false,
+				leadershipOverridden: leadershipSummary?.isOverridden ?? false,
 				selfScore,
 				teacherCriteriaTotal,
 				hrSelfReviewScore,
@@ -995,6 +1018,7 @@ export const BranchPkpdPage = () => {
 		biqMap,
 		examMap,
 		flowStats,
+		leadershipCompletion,
 		portfolioMap,
 		selfReviewMap,
 		teacherBiqAverageMap,
@@ -2072,6 +2096,36 @@ export const BranchPkpdPage = () => {
 		setStatus("Qərar saxlanıldı");
 	};
 
+	const handleLeadershipOverride = async (teacherId: string, enabled: boolean) => {
+		if (!selectedCycleId) return;
+		const { error } = await supabase.rpc("set_leadership_completion_override", {
+			p_cycle_id: selectedCycleId,
+			p_teacher_id: teacherId,
+			p_enabled: enabled,
+			p_note: enabled ? "Cari verilmiş rəhbərlik səsləri əsasında yekunlaşdırıldı." : null,
+		});
+		if (error) {
+			setStatus(error.message);
+			return;
+		}
+		setLeadershipCompletion((previous) => {
+			const row = previous[teacherId];
+			if (!row) return previous;
+			return {
+				...previous,
+				[teacherId]: {
+					...row,
+					isOverridden: enabled,
+					isComplete:
+						row.eligibleCount > 0 &&
+						(row.submittedCount >= row.eligibleCount ||
+							(enabled && row.submittedCount > 0)),
+				},
+			};
+		});
+		setStatus(enabled ? "Rəhbərlik səsi yekunlaşdırıldı." : "Yekunlaşdırma ləğv edildi.");
+	};
+
 	return (
 		<div className="panel">
 			{isSuperAdmin && (
@@ -2538,7 +2592,7 @@ export const BranchPkpdPage = () => {
 							<div className="stat-pill">Cəmi: {summaryRows.length}</div>
 						</div>
 						<div className="data-table">
-							<div className="data-row header"><div>Müəllim</div><div>PKPD modeli</div><div>PKPD yekun balı</div><div>PKPD kateqoriyası</div><div>Qərar</div><div>Qeyd</div><div></div></div>
+							<div className="data-row header"><div>Müəllim</div><div>PKPD modeli</div><div>Rəhbərlik səsi</div><div>PKPD yekun balı</div><div>PKPD kateqoriyası</div><div>Qərar</div><div>Qeyd</div><div></div></div>
 							{summaryPagination.paginatedItems.map((row) => {
 								const decision = decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId] ?? null;
 								const notePreview = decision?.note?.trim() || '-';
@@ -2546,6 +2600,7 @@ export const BranchPkpdPage = () => {
 									<div className="data-row" key={row.teacherId}>
 										<div>{row.name}</div>
 										<div>{row.isBiqTeacher ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim"}</div>
+										<div>{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}{row.leadershipComplete ? " (tamamlanıb)" : ""}</div>
 										<div>{row.isComplete ? formatScoreValue(row.baseTotalScore) : formatScoreValue(row.currentEnteredScore)}</div>
 										<div>{formatPkpdCategory(row)}</div>
 										<div>{decisionLabel[decision?.status ?? 'PENDING']}</div>
@@ -2631,7 +2686,27 @@ export const BranchPkpdPage = () => {
 							<div className="grid three">
 								<div className="stat-card"><div className="stat-label">PKPD modeli</div><div className="stat-value">{selectedSummaryRow.isBiqTeacher ? "WITH_BIQ" : "WITHOUT_BIQ"}</div><div className="stat-meta">{selectedSummaryRow.isBiqTeacher ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim"}</div></div>
 								<div className="stat-card"><div className="stat-label">Şagird sorğusu</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">Rəhbərlik</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)}</div></div>
+								<div className="stat-card">
+									<div className="stat-label">Rəhbərlik qiymətləndirməsi</div>
+									<div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)} / 10</div>
+									<div className="stat-meta">{selectedSummaryRow.leadershipSubmittedCount} / {selectedSummaryRow.leadershipEligibleCount} səs verilib{selectedSummaryRow.leadershipComplete ? "" : " · tamamlanmayıb"}{selectedSummaryRow.leadershipOverridden ? " · admin yekunlaşdırıb" : ""}</div>
+									{(userDoc?.role === "branch_admin" || userDoc?.role === "superadmin") &&
+										selectedSummaryRow.leadershipSubmittedCount > 0 &&
+										selectedSummaryRow.leadershipSubmittedCount < selectedSummaryRow.leadershipEligibleCount && (
+											<button
+												className="btn ghost"
+												type="button"
+												onClick={() =>
+													void handleLeadershipOverride(
+														selectedSummaryRow.teacherId,
+														!selectedSummaryRow.leadershipOverridden,
+													)
+												}
+											>
+												{selectedSummaryRow.leadershipOverridden ? "Yekunlaşdırmanı ləğv et" : "Cari səslərlə yekunlaşdır"}
+											</button>
+										)}
+								</div>
 								<div className="stat-card"><div className="stat-label">Özünüqiymətləndirmə</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.selfScore)}</div></div>
 								{selectedSummaryRow.isBiqTeacher && (
 									<>

@@ -110,3 +110,22 @@ Muellimleri kafedralara toplu sekilde yerlestirmek ucun:
 Qeyd:
 - `new_department` adina uygun kafedra yoxdursa script onu avtomatik yaradir.
 - Eyni filial daxilinde `teachers.department_id` sahesi toplu yenilenir.
+
+## Campus leadership evaluation assignments
+
+`campus-leadership-2026.seed.sql` ilkin filial müdiri və direktor müavini
+təyinatlarını `campus_leadership` cədvəlinə əlavə edir. Faylı
+`20260525_campus_leadership_evaluations.sql` migration-ından və rəhbərlik
+şəxslərinin istifadəçi profilləri yaradıldıqdan sonra run edin.
+
+`PENDING` təyinatları strukturda saxlanır, lakin aktiv rəhbərlik səsverməsi
+siyahısına daxil olmur.
+
+`Campus -> Rəhbərlik` ekranı yalnız ayrıca yaradılan rəhbərlik təyinatlarını
+idarə edir. Mövcud `management_assignments` kafedra əlaqələri avtomatik
+rəhbərlik səsverməsinə daxil edilmir.
+
+Əsas rəhbərlik migration-ı daha əvvəl tətbiq edilibsə,
+`20260525_campus_leadership_manager_hierarchy.sql` faylını da run edin.
+Bu qayda direktor müavinlərinin aktiv filial müdirlərini qiymətləndirməsinin
+qarşısını alır.

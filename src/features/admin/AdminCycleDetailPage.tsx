@@ -32,6 +32,7 @@ import {
 	mapBiqClassResultRow,
 	mapBranchRow,
 	mapDepartmentRow,
+	mapLeadershipCompletionRow,
 	mapPkpdAchievementRow,
 	mapPkpdExamRow,
 	mapPkpdPortfolioRow,
@@ -51,6 +52,7 @@ import type {
 	BiqClassResultDoc,
 	BranchDoc,
 	DepartmentDoc,
+	LeadershipCompletionDoc,
 	PkpdAchievementDoc,
 	PkpdExamDoc,
 	PkpdPortfolioDoc,
@@ -110,6 +112,13 @@ type TeacherRow = {
 	biqAverageSource: "manual" | "computed" | "none";
 	studentWeightedScore: number | null;
 	managementWeightedScore: number | null;
+	leadershipSubmittedCount: number;
+	leadershipEligibleCount: number;
+	leadershipComplete: boolean;
+	leadershipOverridden: boolean;
+	branchManagerSubmitted: boolean;
+	deputySubmitted: boolean;
+	departmentHeadSubmitted: boolean;
 	selfWeightedScore: number | null;
 	biqWeightedScore: number | null;
 	examScore: number | null;
@@ -497,10 +506,14 @@ export const AdminCycleDetailPage = () => {
 	>([]);
 	const [answers, setAnswers] = useState<Array<DocEntry<AnswerDoc>>>([]);
 	const [raters, setRaters] = useState<Array<DocEntry<UserDoc>>>([]);
+	const [leadershipCompletion, setLeadershipCompletion] = useState<
+		Record<string, LeadershipCompletionDoc>
+	>({});
 
 	const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 	const [showAllTeachers, setShowAllTeachers] = useState(false);
 	const [teacherQuery, setTeacherQuery] = useState("");
+	const [leadershipFilter, setLeadershipFilter] = useState("all");
 	const [showRaters, setShowRaters] = useState(false);
 	const [showComments, setShowComments] = useState(false);
 	const [selfReviewQuestionScores, setSelfReviewQuestionScores] = useState<
@@ -513,6 +526,7 @@ export const AdminCycleDetailPage = () => {
 	const [biqAverageDraft, setBiqAverageDraft] = useState("");
 	const [miqScoreDraft, setMiqScoreDraft] = useState("");
 	const [assessmentStatus, setAssessmentStatus] = useFeedbackState();
+	const [leadershipStatus, setLeadershipStatus] = useFeedbackState();
 	const [selfReviewEditUnlocked, setSelfReviewEditUnlocked] = useState(false);
 	const [selfReviewUnlockOpen, setSelfReviewUnlockOpen] = useState(false);
 	const [selfReviewUnlockPassword, setSelfReviewUnlockPassword] = useState("");
@@ -638,6 +652,7 @@ export const AdminCycleDetailPage = () => {
 					portfolioRows,
 					selfReviewRows,
 					achievementRows,
+					leadershipSummaryResult,
 				] = await Promise.all([
 						fetchAllBatchedOrEmpty<any>("tasks", async (from, to) =>
 							await (() => {
@@ -756,6 +771,10 @@ export const AdminCycleDetailPage = () => {
 								return query.range(from, to);
 							})(),
 						),
+						supabase.rpc("leadership_score_summary", {
+							p_cycle_id: cycleId,
+							p_campus_id: scopedBranchId || null,
+						}),
 					]);
 
 				setTasks(
@@ -811,6 +830,14 @@ export const AdminCycleDetailPage = () => {
 						id: row.id,
 						data: mapPkpdAchievementRow(row),
 					})),
+				);
+				setLeadershipCompletion(
+					Object.fromEntries(
+						(leadershipSummaryResult.data ?? []).map((row: Record<string, unknown>) => {
+							const summary = mapLeadershipCompletionRow(row);
+							return [summary.teacherId, summary];
+						}),
+					),
 				);
 
 				if (cycle?.year) {
@@ -1161,7 +1188,8 @@ export const AdminCycleDetailPage = () => {
 				};
 				const studentAvg = average(studentStats);
 				const studentCount = studentStats.count;
-				const managementAvg = average(flow.management);
+				const leadershipSummary = leadershipCompletion[teacher.id];
+				const managementAvg = leadershipSummary?.leadershipEvaluationScore ?? null;
 				const selfDeclaredScore = average(flow.self);
 				const teacherSelfReview = selfReviewMap[teacher.id] ?? null;
 				const academicIndicator = getAcademicIndicator(teacherSelfReview);
@@ -1208,10 +1236,7 @@ export const AdminCycleDetailPage = () => {
 							: "none";
 				const studentWeightedScore =
 					studentAvg === null ? null : (studentAvg * weights.student) / 10;
-				const managementWeightedScore =
-					managementAvg === null
-						? null
-						: (managementAvg * weights.management) / 10;
+				const managementWeightedScore = managementAvg;
 				const selfWeightedScore =
 					selfDeclaredScore === null
 						? null
@@ -1239,7 +1264,10 @@ export const AdminCycleDetailPage = () => {
 					examScore,
 					portfolioScore,
 				});
-				const { baseTotalScore, currentEnteredScore, isComplete } = completion;
+				const currentEnteredScore = completion.currentEnteredScore;
+				const isComplete =
+					completion.isComplete && Boolean(leadershipSummary?.isComplete);
+				const baseTotalScore = isComplete ? currentEnteredScore : null;
 				const finalScoreWithExtra =
 					baseTotalScore === null ? null : baseTotalScore + bonusScore;
 				const finalScore = baseTotalScore;
@@ -1279,6 +1307,13 @@ export const AdminCycleDetailPage = () => {
 					biqAverageSource,
 					studentWeightedScore,
 					managementWeightedScore,
+					leadershipSubmittedCount: leadershipSummary?.submittedCount ?? 0,
+					leadershipEligibleCount: leadershipSummary?.eligibleCount ?? 0,
+					leadershipComplete: leadershipSummary?.isComplete ?? false,
+					leadershipOverridden: leadershipSummary?.isOverridden ?? false,
+					branchManagerSubmitted: leadershipSummary?.branchManagerSubmitted ?? false,
+					deputySubmitted: leadershipSummary?.deputySubmitted ?? false,
+					departmentHeadSubmitted: leadershipSummary?.departmentHeadSubmitted ?? false,
 					selfWeightedScore,
 					biqWeightedScore,
 					examScore,
@@ -1293,7 +1328,7 @@ export const AdminCycleDetailPage = () => {
 					studentCount,
 					studentClassCount: classScores.length,
 					studentClassScores: classScores,
-					managementCount: flow.management.count,
+					managementCount: leadershipSummary?.submittedCount ?? 0,
 					selfCount: flow.self.count,
 				};
 			})
@@ -1314,6 +1349,7 @@ export const AdminCycleDetailPage = () => {
 		departmentMap,
 		examMap,
 		flowStats,
+		leadershipCompletion,
 		portfolioMap,
 		selfReviewMap,
 		submissionCountByTeacher,
@@ -1369,6 +1405,7 @@ export const AdminCycleDetailPage = () => {
 			setBiqAverageDraft("");
 			setMiqScoreDraft("");
 			setAssessmentStatus(null);
+			setLeadershipStatus(null);
 			setSelfReviewEditUnlocked(false);
 			setSelfReviewUnlockOpen(false);
 			setSelfReviewUnlockPassword("");
@@ -1442,6 +1479,18 @@ export const AdminCycleDetailPage = () => {
 				row.biqAvg !== null;
 
 			if (!showAllTeachers && !hasAnyData) return false;
+			if (leadershipFilter === "complete" && !row.leadershipComplete) return false;
+			if (leadershipFilter === "incomplete" && row.leadershipComplete) return false;
+			if (leadershipFilter === "branch-manager-given" && !row.branchManagerSubmitted)
+				return false;
+			if (leadershipFilter === "branch-manager-missing" && row.branchManagerSubmitted)
+				return false;
+			if (leadershipFilter === "deputy-given" && !row.deputySubmitted) return false;
+			if (leadershipFilter === "deputy-missing" && row.deputySubmitted) return false;
+			if (leadershipFilter === "department-head-given" && !row.departmentHeadSubmitted)
+				return false;
+			if (leadershipFilter === "department-head-missing" && row.departmentHeadSubmitted)
+				return false;
 			if (!query) return true;
 
 			return (
@@ -1450,7 +1499,7 @@ export const AdminCycleDetailPage = () => {
 				row.branchName.toLowerCase().includes(query)
 			);
 		});
-	}, [showAllTeachers, teacherQuery, teacherRows]);
+	}, [leadershipFilter, showAllTeachers, teacherQuery, teacherRows]);
 
 	const topTeacher = validTeacherScores[0];
 	const bottomTeacher =
@@ -1469,6 +1518,38 @@ export const AdminCycleDetailPage = () => {
 			submissions: submissions.length,
 		};
 	}, [validTeacherScores, submissions.length]);
+
+	const handleLeadershipOverride = async (enabled: boolean) => {
+		if (!cycleId || !selectedTeacher) return;
+		const { error } = await supabase.rpc("set_leadership_completion_override", {
+			p_cycle_id: cycleId,
+			p_teacher_id: selectedTeacher.teacherId,
+			p_enabled: enabled,
+			p_note: enabled ? "Cari verilmiş rəhbərlik səsləri əsasında yekunlaşdırıldı." : null,
+		});
+		if (error) {
+			setLeadershipStatus(error.message);
+			return;
+		}
+		setLeadershipCompletion((previous) => {
+			const row = previous[selectedTeacher.teacherId];
+			if (!row) return previous;
+			return {
+				...previous,
+				[selectedTeacher.teacherId]: {
+					...row,
+					isOverridden: enabled,
+					isComplete:
+						row.eligibleCount > 0 &&
+						(row.submittedCount >= row.eligibleCount ||
+							(enabled && row.submittedCount > 0)),
+				},
+			};
+		});
+		setLeadershipStatus(
+			enabled ? "Rəhbərlik səsi admin tərəfindən yekunlaşdırıldı." : "Admin yekunlaşdırması ləğv edildi.",
+		);
+	};
 
 	const raterStats = useMemo(() => {
 		const doneSet = new Set(submissions.map((item) => item.data.raterUid));
@@ -1963,6 +2044,10 @@ export const AdminCycleDetailPage = () => {
 		const generatedTime = now.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit", hour12: false });
 		const scoreText = (value: number | null | undefined) => isMissingScore(value) ? "Daxil edilməyib" : formatScore(value ?? null);
 		const scoreWithMax = (value: number | null | undefined, max: number) => `${scoreText(value)} / ${max}`;
+		const leadershipVoteStatus = `${selectedTeacher.leadershipSubmittedCount} / ${selectedTeacher.leadershipEligibleCount}`;
+		const leadershipCompletionText = selectedTeacher.leadershipComplete
+			? "Rəhbərlik qiymətləndirməsi tamamlanıb"
+			: "Rəhbərlik qiymətləndirməsi tamamlanmayıb";
 
 		const breakdownRows: PdfScoreRow[] = isWithBiq
 			? [
@@ -1999,8 +2084,8 @@ export const AdminCycleDetailPage = () => {
 		const uniqueMissingLabels = Array.from(new Set(missingRows.map((row) => row.key === "portfolioScore" ? "Portfolio alt meyarları" : row.label)));
 		const hasAnyPortfolioScore = portfolioRows.some((row) => !isMissingScore(row.value));
 		const summaryHtml = isFinalReport
-			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>`
-			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div><p class="note">Qeyd: Bu göstərici yekun PKPD balı deyil. Bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra yekun nəticə və qərar formalaşdırılacaq.</p>`;
+			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div>`
+			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik statusu</span><strong>${leadershipCompletionText}</strong></div><p class="note">Qeyd: Bu göstərici yekun PKPD balı deyil. Bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra yekun nəticə və qərar formalaşdırılacaq.</p>`;
 		const totalLabel = isFinalReport ? "PKPD yekun balı" : "Daxil edilmiş cari cəm";
 		const totalValue = isFinalReport ? baseTotalScore : selectedTeacher.currentEnteredScore;
 		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>100</td></tr>`].join("");
@@ -2451,6 +2536,24 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 								setTeacherPage(1);
 							}}
 						/>
+						<select
+							className="input"
+							value={leadershipFilter}
+							onChange={(event) => {
+								setLeadershipFilter(event.target.value);
+								setTeacherPage(1);
+							}}
+						>
+							<option value="all">Rəhbərlik statusu: hamısı</option>
+							<option value="complete">Tamamlanıb</option>
+							<option value="incomplete">Tamamlanmayıb</option>
+							<option value="branch-manager-given">Filial müdiri səs verib</option>
+							<option value="branch-manager-missing">Filial müdiri səs verməyib</option>
+							<option value="deputy-given">Direktor müavini səs verib</option>
+							<option value="deputy-missing">Direktor müavini səs verməyib</option>
+							<option value="department-head-given">Kafedra müdiri səs verib</option>
+							<option value="department-head-missing">Kafedra müdiri səs verməyib</option>
+						</select>
 						<button
 							className="btn ghost"
 							type="button"
@@ -2467,6 +2570,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						<div>Müəllim</div>
 						<div>Kampus</div>
 						<div>Kafedra</div>
+						<div>Rəhbərlik səsi</div>
 						<div>PKPD yekun balı</div>
 						<div>n</div>
 					</div>
@@ -2483,6 +2587,10 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 							</div>
 							<div>{item.branchName}</div>
 							<div>{item.departmentName}</div>
+							<div>
+								{item.leadershipSubmittedCount} / {item.leadershipEligibleCount}
+								<div className="hint">{item.leadershipComplete ? "Tamamlanıb" : "Tamamlanmayıb"}</div>
+							</div>
 							<div>
 								{item.isComplete
 									? formatScore(item.finalScore)
@@ -2559,14 +2667,35 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										</div>
 									</div>
 									<div className="stat-card">
-										<div className="stat-label">Rəhbərlik sorğusu (10 bal üzrə)</div>
+										<div className="stat-label">Rəhbərlik qiymətləndirməsi (10 bal üzrə)</div>
 										<div className="stat-value">
 											{formatScore(selectedTeacher.managementWeightedScore)}
 										</div>
 										<div className="stat-meta">
-											ümumi orta: {formatScore(selectedTeacher.managementAvg)} ⬢ cavab sayı:{" "}
-											{selectedTeacher.managementCount}
+											Verilmiş səs sayı: {selectedTeacher.leadershipSubmittedCount} /{" "}
+											{selectedTeacher.leadershipEligibleCount} ·{" "}
+											{selectedTeacher.leadershipComplete ? "tamamlanıb" : "tamamlanmayıb"}
+											{selectedTeacher.leadershipOverridden ? " · admin yekunlaşdırıb" : ""}
 										</div>
+										{leadershipStatus && <div className="notice">{leadershipStatus}</div>}
+										{userDoc?.role === "superadmin" &&
+											selectedTeacher.leadershipSubmittedCount > 0 &&
+											selectedTeacher.leadershipSubmittedCount <
+												selectedTeacher.leadershipEligibleCount && (
+												<button
+													className="btn ghost"
+													type="button"
+													onClick={() =>
+														void handleLeadershipOverride(
+															!selectedTeacher.leadershipOverridden,
+														)
+													}
+												>
+													{selectedTeacher.leadershipOverridden
+														? "Yekunlaşdırmanı ləğv et"
+														: "Cari verilmiş səslər əsasında yekunlaşdır"}
+												</button>
+											)}
 									</div>
 									<div className="stat-card">
 										<div className="stat-label">Özünüqiymətləndirmə (10 bal üzrə)</div>

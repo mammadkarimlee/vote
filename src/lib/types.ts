@@ -17,6 +17,18 @@ export type QuestionType = "scale" | "choice" | "text";
 
 export type TeacherCategory = "standard" | "drama_gym" | "chess";
 export type PkpdDecisionStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type CampusLeadershipRole =
+	| "BRANCH_MANAGER"
+	| "DEPUTY_DIRECTOR"
+	| "DEPARTMENT_HEAD"
+	| "SUBJECT_DEPUTY"
+	| "CAMBRIDGE_DEPUTY";
+export type LeadershipCoverageType =
+	| "ALL_CAMPUS_TEACHERS"
+	| "GRADE_RANGE"
+	| "DEPARTMENT_BASED"
+	| "CUSTOM_TEACHERS"
+	| "PENDING";
 
 export type UserDoc = {
 	role: Role;
@@ -118,6 +130,60 @@ export type ManagementAssignmentDoc = {
 	branchId: string;
 	departmentId?: string | null;
 	year: number;
+};
+
+export type CampusLeadershipDoc = {
+	campusId: string;
+	userId: string;
+	role: CampusLeadershipRole;
+	coverageType: LeadershipCoverageType;
+	gradeFrom?: number | null;
+	gradeTo?: number | null;
+	departmentId?: string | null;
+	isActive: boolean;
+	canEvaluateTeachers: boolean;
+	startsAt?: unknown;
+	endsAt?: unknown;
+	note?: string | null;
+	createdBy?: string | null;
+	createdAt?: unknown;
+	updatedAt?: unknown;
+};
+
+export type CampusLeadershipTeacherScopeDoc = {
+	campusLeadershipId: string;
+	teacherId: string;
+};
+
+export type LeadershipEvaluationDoc = {
+	cycleId: string;
+	teacherId: string;
+	evaluatorId: string;
+	campusId: string;
+	evaluatorRole: CampusLeadershipRole;
+	coverageType: LeadershipCoverageType;
+	disciplineScore: number;
+	teamworkScore: number;
+	communicationScore: number;
+	professionalDevelopmentScore: number;
+	platformUsageScore: number;
+	totalScore: number;
+	comment?: string | null;
+	submittedAt?: unknown;
+	updatedAt?: unknown;
+	isSubmitted: boolean;
+};
+
+export type LeadershipCompletionDoc = {
+	teacherId: string;
+	leadershipEvaluationScore: number | null;
+	submittedCount: number;
+	eligibleCount: number;
+	isComplete: boolean;
+	isOverridden: boolean;
+	branchManagerSubmitted: boolean;
+	deputySubmitted: boolean;
+	departmentHeadSubmitted: boolean;
 };
 
 export type QuestionDoc = {
