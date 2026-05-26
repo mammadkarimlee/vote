@@ -176,6 +176,40 @@ const sumQuestionScores = (scores: Array<number | null | undefined>) => {
 	return sumNumbers(numericScores);
 };
 
+type SelfReviewPortfolioField = "trainingScore" | "olympiadScore" | "eventsScore";
+
+const getSelfReviewPortfolioField = (
+	questionId: string,
+	questionText: string,
+): SelfReviewPortfolioField => {
+	const normalized = `${questionId} ${questionText}`.toLowerCase();
+	if (
+		normalized.includes("olympiad") ||
+		normalized.includes("olimpiada") ||
+		normalized.includes("competition") ||
+		normalized.includes("sabiq") ||
+		normalized.includes("festival") ||
+		normalized.includes("contest") ||
+		normalized.includes("yarış") ||
+		normalized.includes("yaris")
+	) {
+		return "olympiadScore";
+	}
+	if (
+		normalized.includes("project") ||
+		normalized.includes("layih") ||
+		normalized.includes("event") ||
+		normalized.includes("tədbir") ||
+		normalized.includes("tedbir") ||
+		normalized.includes("award") ||
+		normalized.includes("təltif") ||
+		normalized.includes("teltif")
+	) {
+		return "eventsScore";
+	}
+	return "trainingScore";
+};
+
 const getSelfReviewQuestionLimit = (
 	questionId: string,
 	questionText: string,
@@ -519,6 +553,8 @@ export const AdminCycleDetailPage = () => {
 	const [selfReviewQuestionScores, setSelfReviewQuestionScores] = useState<
 		Record<string, string>
 	>({});
+	const [portfolioEducationDraft, setPortfolioEducationDraft] = useState("");
+	const [portfolioAttendanceDraft, setPortfolioAttendanceDraft] = useState("");
 	const [selfReviewNote, setSelfReviewNote] = useState("");
 	const [selfReviewStatus, setSelfReviewStatus] = useFeedbackState();
 	const [assessmentMode, setAssessmentMode] =
@@ -1399,6 +1435,8 @@ export const AdminCycleDetailPage = () => {
 	useEffect(() => {
 		if (!selectedTeacherId) {
 			setSelfReviewQuestionScores({});
+			setPortfolioEducationDraft("");
+			setPortfolioAttendanceDraft("");
 			setSelfReviewNote("");
 			setSelfReviewStatus(null);
 			setAssessmentMode("WITH_BIQ");
@@ -1420,10 +1458,28 @@ export const AdminCycleDetailPage = () => {
 				questionId,
 				typeof selectedTeacherSelfReview?.questionScores?.[questionId] === "number"
 					? String(selectedTeacherSelfReview.questionScores?.[questionId])
-					: "",
+					: (() => {
+							const questionText =
+								selectedTeacherSelfResponse?.textAnswers.find(
+									(item) => item.questionId === questionId,
+								)?.questionText ?? "";
+							const field = getSelfReviewPortfolioField(questionId, questionText);
+							const savedScore = selectedTeacherPortfolio?.[field];
+							return typeof savedScore === "number" ? String(savedScore) : "";
+						})(),
 			]),
 		);
 		setSelfReviewQuestionScores(nextScores);
+		setPortfolioEducationDraft(
+			typeof selectedTeacherPortfolio?.educationScore === "number"
+				? String(selectedTeacherPortfolio.educationScore)
+				: "",
+		);
+		setPortfolioAttendanceDraft(
+			typeof selectedTeacherPortfolio?.attendanceScore === "number"
+				? String(selectedTeacherPortfolio.attendanceScore)
+				: "",
+		);
 		setSelfReviewNote(selectedTeacherSelfReview?.note ?? "");
 		setSelfReviewStatus(null);
 		const teacher = teacherMap[selectedTeacherId];
@@ -1452,7 +1508,9 @@ export const AdminCycleDetailPage = () => {
 	}, [
 		selectedTeacherId,
 		selectedTeacherOpenQuestionIds,
+		selectedTeacherSelfResponse,
 		selectedTeacherSelfReview,
+		selectedTeacherPortfolio,
 		teacherBiqAverageMap,
 		teacherMap,
 		examMap,
@@ -2105,6 +2163,8 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		if (!open) {
 			setSelectedTeacherId(null);
 			setSelfReviewQuestionScores({});
+			setPortfolioEducationDraft("");
+			setPortfolioAttendanceDraft("");
 			setSelfReviewStatus(null);
 			setAssessmentMode("WITH_BIQ");
 			setBiqAverageDraft("");
@@ -2268,7 +2328,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			return;
 		}
 		if (!selfReviewUnlockPassword.trim()) {
-			setSelfReviewUnlockError("Admin şifrəsini daxil edin.");
+			setSelfReviewUnlockError("Hesab şifrəsini daxil edin.");
 			return;
 		}
 		if (!selfReviewUnlockReason.trim()) {
@@ -2305,7 +2365,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		}
 		if (selectedTeacherOpenReviewLocked) {
 			setSelfReviewStatus(
-				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün admin şifrəsi tələb olunur.",
+				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün hesab şifrəsi tələb olunur.",
 			);
 			return;
 		}
@@ -2315,8 +2375,25 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			setSelfReviewStatus("Müəllimin filialı tapılmadı");
 			return;
 		}
+		if (!selectedTeacherPortfolioLimits) {
+			setSelfReviewStatus("Portfolio limitləri tapılmadı");
+			return;
+		}
 
 		const noteValue = selfReviewNote.trim() || null;
+		const educationScore = toNumber(portfolioEducationDraft);
+		const attendanceScore = toNumber(portfolioAttendanceDraft);
+		if (
+			(educationScore !== null &&
+				(educationScore < 0 ||
+					educationScore > selectedTeacherPortfolioLimits.education)) ||
+			(attendanceScore !== null &&
+				(attendanceScore < 0 ||
+					attendanceScore > selectedTeacherPortfolioLimits.attendance))
+		) {
+			setSelfReviewStatus("Təhsil və davamiyyət balları 0-3 arasında olmalıdır");
+			return;
+		}
 		const questionScores = Object.fromEntries(
 			selectedTeacherOpenQuestionIds.map((questionId) => [
 				questionId,
@@ -2338,6 +2415,11 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		}
 
 		const normalizedQuestionScores: Record<string, number> = {};
+		const portfolioQuestionScores: Record<SelfReviewPortfolioField, number | null> = {
+			trainingScore: null,
+			olympiadScore: null,
+			eventsScore: null,
+		};
 		for (const [questionId, rawValue] of Object.entries(questionScores)) {
 			if (rawValue === "") {
 				setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
@@ -2360,6 +2442,23 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 				return;
 			}
 			normalizedQuestionScores[questionId] = scoreValue;
+			const portfolioField = getSelfReviewPortfolioField(questionId, questionText);
+			portfolioQuestionScores[portfolioField] =
+				(portfolioQuestionScores[portfolioField] ?? 0) + scoreValue;
+		}
+
+		const portfolioLimits: Record<SelfReviewPortfolioField, number> = {
+			trainingScore: selectedTeacherPortfolioLimits.training,
+			olympiadScore: selectedTeacherPortfolioLimits.olympiad,
+			eventsScore: selectedTeacherPortfolioLimits.events,
+		};
+		for (const [field, value] of Object.entries(portfolioQuestionScores) as Array<
+			[SelfReviewPortfolioField, number | null]
+		>) {
+			if (value !== null && value > portfolioLimits[field]) {
+				setSelfReviewStatus("Açıq meyar ballarının cəmi portfolio limitini aşır");
+				return;
+			}
 		}
 
 		const teacherCriteriaTotal = sumQuestionScores(
@@ -2415,6 +2514,28 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			return;
 		}
 
+		const { error: portfolioError } = await supabase.from("pkpd_portfolios").upsert(
+			{
+				org_id: ORG_ID,
+				branch_id: teacherBranchId,
+				cycle_id: cycleId,
+				teacher_id: selectedTeacherId,
+				education_score: educationScore,
+				attendance_score: attendanceScore,
+				training_score: portfolioQuestionScores.trainingScore,
+				olympiad_score: portfolioQuestionScores.olympiadScore,
+				events_score: portfolioQuestionScores.eventsScore,
+				note: selectedTeacherPortfolio?.note ?? null,
+			},
+			{ onConflict: "org_id,cycle_id,teacher_id" },
+		);
+		if (portfolioError) {
+			setSelfReviewStatus(
+				`Rəsmi portfolio balları saxlanmadı: ${portfolioError.message ?? "naməlum xəta"}`,
+			);
+			return;
+		}
+
 		const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
 			await supabase
 				.from("pkpd_self_reviews")
@@ -2429,8 +2550,32 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 				data: mapPkpdSelfReviewRow(row),
 			})),
 		);
+		const refreshedPortfolioRows = await fetchAllBatched<
+			{ id: string } & Record<string, unknown>
+		>(
+			async (from, to) =>
+				await supabase
+					.from("pkpd_portfolios")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", cycleId)
+					.range(from, to),
+		);
+		setPortfolios(
+			refreshedPortfolioRows.map((row) => ({
+				id: row.id,
+				data: mapPkpdPortfolioRow(row),
+			})),
+		);
 		setSelfReviewStatus(
-			`Daxil edilmiş balların cari cəmi (${teacherCriteriaTotal.toFixed(1)}) saxlanıldı; HR qeydi rəsmi cəmə daxil edilmir`,
+			`Portfolio balları (${[
+				educationScore,
+				attendanceScore,
+				teacherCriteriaTotal,
+			]
+				.filter((value): value is number => value !== null)
+				.reduce((sum, value) => sum + value, 0)
+				.toFixed(1)}) rəsmi PKPD cəminə daxil edildi; HR qeydi cəmə daxil edilmir`,
 		);
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
@@ -2816,7 +2961,10 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										<div className="section-header">
 											<div>
 												<h3>Portfolio alt meyarları</h3>
-												<p>HR tərəfindən daxil edilən alt ballar və avtomatik cəm.</p>
+												<p>
+													HR və superadmin tərəfindən daxil edilən alt ballar və
+													avtomatik cəm.
+												</p>
 											</div>
 											<div className="tag">
 												Cəmi: {formatScore(selectedTeacher.portfolioScore)}
@@ -2902,8 +3050,8 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										<div>
 											<h3>Açıq özünüqiymətləndirmə cavabları</h3>
 											<p>
-												Superadmin burada müəllimin açıq cavablarını oxuyub ayrıca
-												qeyd saxlaya bilər. HR qeydi rəsmi PKPD cəminə daxil edilmir.
+												HR və superadmin burada portfolio alt meyarlarına bal verə
+												bilər. HR qeydi rəsmi PKPD cəminə daxil edilmir.
 											</p>
 										</div>
 										{selectedTeacherHasSavedOpenReview && (
@@ -2925,7 +3073,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 									{selectedTeacherHasSavedOpenReview && (
 										<div className="notice">
 											{selectedTeacherOpenReviewLocked
-												? "Bu qiymətləndirmə kilidlənib. Dəyişiklik üçün admin şifrəsi tələb olunur."
+												? "Bu qiymətləndirmə kilidlənib. Dəyişiklik üçün hesab şifrəsi tələb olunur."
 												: "Düzəliş rejimi aktivdir. Yenidən saxladıqdan sonra forma yenə kilidlənəcək."}
 										</div>
 									)}
@@ -2936,18 +3084,68 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										</div>
 										<div className="stat-meta">0-10</div>
 									</div>
+									<div className="grid gap-4 md:grid-cols-2">
+										<label className="field">
+											<span className="label">
+												Təhsil pilləsi üzrə qiymətləndirmə
+											</span>
+											<input
+												className="input"
+												type="number"
+												min="0"
+												max={selectedTeacherPortfolioLimits?.education ?? 3}
+												step="0.1"
+												placeholder={`0-${selectedTeacherPortfolioLimits?.education ?? 3}`}
+												value={portfolioEducationDraft}
+												disabled={selectedTeacherOpenReviewLocked}
+												onChange={(event) =>
+													setPortfolioEducationDraft(event.target.value)
+												}
+											/>
+											<span className="stat-meta">
+												max {selectedTeacherPortfolioLimits?.education ?? 3} bal
+											</span>
+										</label>
+										<label className="field">
+											<span className="label">
+												İşə davamiyyəti (İnsan resursları şöbəsi)
+											</span>
+											<input
+												className="input"
+												type="number"
+												min="0"
+												max={selectedTeacherPortfolioLimits?.attendance ?? 3}
+												step="0.1"
+												placeholder={`0-${selectedTeacherPortfolioLimits?.attendance ?? 3}`}
+												value={portfolioAttendanceDraft}
+												disabled={selectedTeacherOpenReviewLocked}
+												onChange={(event) =>
+													setPortfolioAttendanceDraft(event.target.value)
+												}
+											/>
+											<span className="stat-meta">
+												max {selectedTeacherPortfolioLimits?.attendance ?? 3} bal
+											</span>
+										</label>
+									</div>
 									<div className="stat-card">
 										<div className="stat-label">Daxil edilmiş balların cari cəmi</div>
 										<div className="stat-value">
 											{sumQuestionScores(
-												selectedTeacherOpenQuestionIds.map((questionId) => {
-													const value =
-														selfReviewQuestionScores[questionId]?.trim() ?? "";
-													return value === "" ? null : Number(value);
-												}),
+												[
+													toNumber(portfolioEducationDraft),
+													toNumber(portfolioAttendanceDraft),
+													...selectedTeacherOpenQuestionIds.map((questionId) => {
+														const value =
+															selfReviewQuestionScores[questionId]?.trim() ?? "";
+														return value === "" ? null : Number(value);
+													}),
+												],
 											)?.toFixed(1) ?? "—"}
 										</div>
-										<div className="stat-meta">3 açıq meyar üzrə cəm bal</div>
+										<div className="stat-meta">
+											5 portfolio meyarı üzrə rəsmi cəm bal
+										</div>
 									</div>
 									{selectedTeacherSelfReview?.editReason && (
 										<div className="hint">
@@ -3071,13 +3269,13 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					<DialogHeader>
 						<DialogTitle>Düzəlişi təsdiqlə</DialogTitle>
 						<DialogDescription>
-							Saxlanmış açıq sual balını dəyişmək üçün admin şifrəsini və
+							Saxlanmış portfolio balını dəyişmək üçün hesab şifrəsini və
 							düzəliş səbəbini daxil edin.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="stack">
 						<label className="field">
-							<span className="label">Admin şifrəsi</span>
+							<span className="label">Hesab şifrəsi</span>
 							<input
 								className="input"
 								type="password"
