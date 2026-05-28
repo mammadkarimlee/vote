@@ -26,7 +26,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "../../components/ui/dialog";
-import { downloadCsv } from "../../lib/csv";
 import {
 	buildPkpdSelfReviewNote,
 	isPkpdSelfReviewQuestionScoresError,
@@ -84,6 +83,7 @@ import type {
 	UserDoc,
 } from "../../lib/types";
 import { chunkValuesForInFilter, toNumber } from "../../lib/utils";
+import { downloadWorkbook } from "../../lib/xlsx";
 import { useAuth } from "../auth/AuthProvider";
 
 type DocEntry<T> = { id: string; data: T };
@@ -291,6 +291,11 @@ const formatScoreOrMissing = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value)
 		? "Daxil edilməyib"
 		: value.toFixed(2);
+
+const toExportScore = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value)
+		? null
+		: Number(value.toFixed(2));
 
 const evaluationTypeLabel = (isWithBiq: boolean) =>
 	isWithBiq
@@ -1930,34 +1935,72 @@ export const AdminCycleDetailPage = () => {
 		return comments.slice(start, start + commentPageSize);
 	}, [commentPage, commentPageSize, comments]);
 
-	const handleExportCsv = () => {
+	const handleExportWorkbook = async () => {
 		if (!cycleId) return;
 		const year = cycle?.year ?? "-";
 		const rows = teacherRows.map((item) => [
 			item.branchName,
+			item.name,
 			item.firstName,
 			item.lastName,
 			item.departmentName,
-			item.baseTotalScore === null ? "" : item.baseTotalScore.toFixed(2),
-			item.bonusScore.toFixed(2),
-			item.finalScoreWithExtra === null
-				? ""
-				: item.finalScoreWithExtra.toFixed(2),
+			evaluationTypeLabel(item.isBiqTeacher),
+			getTeacherStatusInfo(item).label,
+			toExportScore(item.currentEnteredScore),
+			toExportScore(item.baseTotalScore),
+			toExportScore(item.bonusScore),
+			toExportScore(item.finalScoreWithExtra),
+			toExportScore(item.studentWeightedScore),
+			item.studentCount,
+			toExportScore(item.selfWeightedScore),
+			toExportScore(item.selfDeclaredScore),
+			toExportScore(item.managementWeightedScore),
+			item.leadershipSubmittedCount,
+			item.leadershipEligibleCount,
+			item.leadershipComplete ? "Tamamlanıb" : "Gözləyir",
+			toExportScore(item.biqAvg),
+			toExportScore(item.biqWeightedScore),
+			toExportScore(item.examScore),
+			toExportScore(item.portfolioScore),
+			toExportScore(item.teacherCriteriaTotal),
+			toExportScore(item.hrEvaluationScore),
+			item.surveySubmissionCount,
 		]);
 
-		downloadCsv(
-			`cycle-${year}-teacher-final-scores.csv`,
-			[
-				"campus",
-				"ad",
-				"soyad",
-				"kafedra",
-				"esas_pkpd_bali",
-				"elave_bal",
-				"stimullasdirici_yekun",
-			],
-			rows,
-		);
+		await downloadWorkbook(`cycle-${year}-pkpd-results.xlsx`, [
+			{
+				name: "PKPD neticeleri",
+				headers: [
+					"campus",
+					"muellim",
+					"ad",
+					"soyad",
+					"kafedra",
+					"model",
+					"status",
+					"cari_daxil_edilmis_bal",
+					"yekun_pkpd_bali",
+					"elave_bal",
+					"stimullasdirici_yekun",
+					"sagird_sorgusu_bali",
+					"sagird_cavab_sayi",
+					"ozunuqiymetlendirme_bali",
+					"muellimin_verdiyi_bal",
+					"rehberlik_qiymetlendirmesi",
+					"rehberlik_verilmis_ses",
+					"rehberlik_gozlenen_ses",
+					"rehberlik_statusu",
+					"biq_orta",
+					"biq_cevrilmis_bal",
+					"attestasiya_imtahani",
+					"portfolio",
+					"akademik_meyarlar_cemi",
+					"hr_qiymetlendirmesi",
+					"umumi_sorgu_yazisi_sayi",
+				],
+				rows,
+			},
+		]);
 	};
 
 	const handleExportTeacherPdfLegacy = () => {
@@ -2838,7 +2881,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					<button
 						className="btn primary"
 						type="button"
-						onClick={handleExportCsv}
+						onClick={() => void handleExportWorkbook()}
 						disabled={!cycleId}
 					>
 						Excel export
