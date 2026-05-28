@@ -1,4 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+	PageHeader,
+	ScoreBreakdownTable,
+	StatCard,
+	StatusBadge,
+	type ScoreBreakdownRow,
+} from "../../components/dashboard";
+import {
+	DataTable,
+	sortData,
+	type DataTableColumn,
+	type SortState,
+} from "../../components/DataTable";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
 import { ORG_ID, supabase } from "../../lib/supabase";
@@ -158,6 +171,110 @@ const decisionLabel: Record<PkpdDecisionStatus, string> = {
 const formatScoreValue = (value: number | null) =>
 	value === null ? "-" : value.toFixed(1);
 
+const isMissingScore = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value);
+
+const formatScoreOrMissing = (value: number | null | undefined) =>
+	isMissingScore(value) ? "Daxil edilməyib" : Number(value).toFixed(1);
+
+const evaluationTypeLabel = (isWithBiq: boolean) =>
+	isWithBiq
+		? "BİQ/KİQ nəticəsi olan müəllim"
+		: "BİQ/KİQ nəticəsi olmayan müəllim";
+
+const getSummaryStatusInfo = (row: SummaryRow) => {
+	if (!row.isComplete) {
+		if (!row.leadershipComplete) {
+			return { label: "Rəhbərlik səsi gözləyir", tone: "warning" as const };
+		}
+		if (isMissingScore(row.portfolioScore)) {
+			return { label: "Portfolio gözləyir", tone: "warning" as const };
+		}
+		return { label: "Hesablama tamamlanmayıb", tone: "warning" as const };
+	}
+	if ((row.baseTotalScore ?? 0) < 60) {
+		return { label: "Risk qrupu", tone: "danger" as const };
+	}
+	return { label: "Tamamlanıb", tone: "success" as const };
+};
+
+const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
+	const rows = row.isBiqTeacher
+		? [
+				{
+					key: "subject-mastery",
+					label: "Balabilgənin fənni mənimsəməsi",
+					value: row.biqScore,
+					max: 15,
+					meta: `Orta BİQ: ${formatScoreOrMissing(row.biqAvg)}`,
+				},
+				{
+					key: "student-survey",
+					label: "Balabilgə sorğusu",
+					value: row.studentScore,
+					max: 15,
+				},
+				{
+					key: "self-review",
+					label: "Özünüqiymətləndirmə",
+					value: row.selfScore,
+					max: 10,
+				},
+				{
+					key: "leadership",
+					label: "Rəhbərlik qiymətləndirməsi",
+					value: row.managementScore,
+					max: 10,
+					meta: `${row.leadershipSubmittedCount} / ${row.leadershipEligibleCount} səs`,
+				},
+				{
+					key: "exam",
+					label: "Attestasiya imtahanı",
+					value: row.examScore,
+					max: 30,
+				},
+				{
+					key: "portfolio",
+					label: "Portfolio",
+					value: row.portfolioScore,
+					max: 20,
+				},
+			]
+		: [
+				{
+					key: "student-survey",
+					label: "Balabilgə sorğusu",
+					value: row.studentScore,
+					max: 20,
+				},
+				{
+					key: "self-review",
+					label: "Özünüqiymətləndirmə",
+					value: row.selfScore,
+					max: 10,
+				},
+				{
+					key: "leadership",
+					label: "Rəhbərlik qiymətləndirməsi",
+					value: row.managementScore,
+					max: 10,
+					meta: `${row.leadershipSubmittedCount} / ${row.leadershipEligibleCount} səs`,
+				},
+				{
+					key: "portfolio",
+					label: "Portfolio",
+					value: row.portfolioScore,
+					max: 60,
+				},
+			];
+
+	return rows.map((item) => ({
+		...item,
+		value: formatScoreOrMissing(item.value),
+		tone: isMissingScore(item.value) ? "warning" : "success",
+	}));
+};
+
 const getIsBiqTeacher = (teacher: TeacherDoc) =>
 	teacher.isBiqTeacher !== false;
 
@@ -277,6 +394,9 @@ export const BranchPkpdPage = () => {
 	const [selectedSummaryTeacherId, setSelectedSummaryTeacherId] = useState<
 		string | null
 	>(null);
+	const [summaryQuery, setSummaryQuery] = useState("");
+	const [summaryStatusFilter, setSummaryStatusFilter] = useState("all");
+	const [summarySort, setSummarySort] = useState<SortState>(null);
 
 	useEffect(() => {
 		const loadLookups = async () => {
@@ -1031,13 +1151,140 @@ export const BranchPkpdPage = () => {
 	const teacherBiqAveragePagination = usePagination(examTeachers);
 	const examPagination = usePagination(examTeachers);
 	const achievementPagination = usePagination(achievements);
-	const summaryPagination = usePagination(summaryRows);
 
 	const formatPkpdCategory = (row: SummaryRow) =>
 		row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
 
 	const formatPkpdDecision = (row: SummaryRow) =>
 		row.isComplete ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
+
+	const filteredSummaryRows = useMemo(() => {
+		const query = summaryQuery.trim().toLocaleLowerCase("az");
+		return summaryRows.filter((row) => {
+			const statusInfo = getSummaryStatusInfo(row);
+			if (summaryStatusFilter !== "all") {
+				if (summaryStatusFilter === "complete" && !row.isComplete) return false;
+				if (summaryStatusFilter === "incomplete" && row.isComplete) return false;
+				if (summaryStatusFilter === "risk" && statusInfo.label !== "Risk qrupu")
+					return false;
+				if (
+					summaryStatusFilter === "portfolio" &&
+					statusInfo.label !== "Portfolio gözləyir"
+				)
+					return false;
+				if (
+					summaryStatusFilter === "leadership" &&
+					statusInfo.label !== "Rəhbərlik səsi gözləyir"
+				)
+					return false;
+			}
+			if (!query) return true;
+			return [
+				row.name,
+				evaluationTypeLabel(row.isBiqTeacher),
+				statusInfo.label,
+				row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb",
+			]
+				.join(" ")
+				.toLocaleLowerCase("az")
+				.includes(query);
+		});
+	}, [summaryQuery, summaryRows, summaryStatusFilter]);
+
+	const summaryTableColumns = useMemo<Array<DataTableColumn<SummaryRow>>>(
+		() => [
+			{
+				key: "name",
+				header: "Müəllim",
+				sortValue: (row) => row.name,
+				render: (row) => row.name,
+			},
+			{
+				key: "model",
+				header: "PKPD modeli",
+				sortValue: (row) => evaluationTypeLabel(row.isBiqTeacher),
+				render: (row) => (
+					<StatusBadge tone={row.isBiqTeacher ? "info" : "accent"}>
+						{evaluationTypeLabel(row.isBiqTeacher)}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "leadership",
+				header: "Rəhbərlik səsi",
+				sortValue: (row) => row.leadershipSubmittedCount,
+				render: (row) => (
+					<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
+						{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "score",
+				header: "PKPD yekun balı",
+				sortValue: (row) => (row.isComplete ? row.baseTotalScore : row.currentEnteredScore),
+				render: (row) =>
+					row.isComplete
+						? formatScoreValue(row.baseTotalScore)
+						: `Cari: ${formatScoreValue(row.currentEnteredScore)}`,
+			},
+			{
+				key: "bonus",
+				header: "Əlavə bal",
+				sortValue: (row) => row.extraScore,
+				render: (row) => row.extraScore.toFixed(1),
+			},
+			{
+				key: "stimulus",
+				header: "Stimullaşdırıcı yekun",
+				sortValue: (row) => row.finalScoreWithExtra,
+				render: (row) => formatScoreValue(row.finalScoreWithExtra),
+			},
+			{
+				key: "status",
+				header: "Status",
+				sortValue: (row) => getSummaryStatusInfo(row).label,
+				render: (row) => {
+					const statusInfo = getSummaryStatusInfo(row);
+					return <StatusBadge tone={statusInfo.tone}>{statusInfo.label}</StatusBadge>;
+				},
+			},
+			{
+				key: "decision",
+				header: "Qərar",
+				sortValue: (row) => decisionLabel[(decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId])?.status ?? "PENDING"],
+				render: (row) => {
+					const decision = decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId] ?? null;
+					return (
+						<StatusBadge tone={decision?.status === "APPROVED" ? "success" : decision?.status === "REJECTED" ? "danger" : "neutral"}>
+							{decisionLabel[decision?.status ?? "PENDING"]}
+						</StatusBadge>
+					);
+				},
+			},
+			{
+				key: "actions",
+				header: "",
+				render: (row) => (
+					<div className="actions">
+						<button
+							className="btn"
+							type="button"
+							onClick={() => setSelectedSummaryTeacherId(row.teacherId)}
+						>
+							Detallar
+						</button>
+					</div>
+				),
+			},
+		],
+		[decisionDrafts, decisionMap],
+	);
+	const sortedSummaryRows = useMemo(
+		() => sortData(filteredSummaryRows, summaryTableColumns, summarySort),
+		[filteredSummaryRows, summarySort, summaryTableColumns],
+	);
+	const summaryPagination = usePagination(sortedSummaryRows);
 
 	const selectedSummaryRow = useMemo(
 		() =>
@@ -1108,26 +1355,6 @@ export const BranchPkpdPage = () => {
 					row.data.score !== null ? String(row.data.score) : "",
 				]),
 			),
-		);
-	};
-
-	const openTeacherBiqEdit = (teacherId: string) => {
-		const teacherAssignments = assignmentByTeacher[teacherId] ?? [];
-		const firstAssignment = teacherAssignments[0];
-		const firstKey = firstAssignment
-			? `${firstAssignment.groupId}_${firstAssignment.subjectId}`
-			: "";
-		const existingScore = firstAssignment
-			? teacherBiqMap[
-					`${teacherId}_${firstAssignment.groupId}_${firstAssignment.subjectId}`
-				]?.score
-			: null;
-		setTeacherBiqEditTeacherId(teacherId);
-		setTeacherBiqEditAssignmentKey(firstKey);
-		setTeacherBiqEditScore(
-			existingScore === null || existingScore === undefined
-				? ""
-				: String(existingScore),
 		);
 	};
 
@@ -2126,22 +2353,32 @@ export const BranchPkpdPage = () => {
 		setStatus(enabled ? "Rəhbərlik səsi yekunlaşdırıldı." : "Yekunlaşdırma ləğv edildi.");
 	};
 
+	const completedSummaryRows = summaryRows.filter(
+		(row) => row.isComplete && row.baseTotalScore !== null,
+	);
+	const averageSummaryScore =
+		completedSummaryRows.length > 0
+			? completedSummaryRows.reduce(
+					(sum, row) => sum + (row.baseTotalScore ?? 0),
+					0,
+				) / completedSummaryRows.length
+			: null;
+
 	return (
 		<div className="panel">
-			{isSuperAdmin && (
-				<BranchSelector
-					branchId={branchId}
-					branches={branches}
-					onChange={setBranchId}
-				/>
-			)}
-
-			<div className="panel-header">
-				<div>
-					<h2>PKPD</h2>
-					<p>PKPD məlumatları və yekun hesablamalar.</p>
-				</div>
-				<div className="actions">
+			<PageHeader
+				eyebrow="PKPD idarəetməsi"
+				title="PKPD"
+				description="Müəllimlərin cari ballarını, portfolio göstəricilərini və yekun qərarlarını idarə edin."
+				actions={
+					<>
+					{isSuperAdmin && (
+						<BranchSelector
+							branchId={branchId}
+							branches={branches}
+							onChange={setBranchId}
+						/>
+					)}
 					<label className="field">
 						<span className="label">Sorğu dövrü</span>
 						<select
@@ -2157,10 +2394,70 @@ export const BranchPkpdPage = () => {
 							))}
 						</select>
 					</label>
-				</div>
-			</div>
+					</>
+				}
+				meta={
+					<>
+						<StatusBadge tone="neutral">Müəllim: {summaryRows.length}</StatusBadge>
+						<StatusBadge tone="success">
+							Tamamlanıb: {summaryRows.filter((row) => row.isComplete).length}
+						</StatusBadge>
+						<StatusBadge tone="warning">
+							Gözləyir: {summaryRows.filter((row) => !row.isComplete).length}
+						</StatusBadge>
+					</>
+				}
+			/>
 
 						{status && <div className="notice">{status}</div>}
+
+			<div className="grid three">
+				<StatCard
+					tone="neutral"
+					icon="MT"
+					label="Ümumi müəllim sayı"
+					value={summaryRows.length}
+					meta={`dövr: ${cycleYear}`}
+				/>
+				<StatCard
+					tone="success"
+					icon="OK"
+					label="Tamamlanan qiymətləndirmələr"
+					value={summaryRows.filter((row) => row.isComplete).length}
+					meta="yekun PKPD balı formalaşıb"
+				/>
+				<StatCard
+					tone="warning"
+					icon="ID"
+					label="Tamamlanmayan qiymətləndirmələr"
+					value={summaryRows.filter((row) => !row.isComplete).length}
+					meta="daxil edilməmiş sahələr var"
+				/>
+				<StatCard
+					tone="info"
+					icon="PK"
+					label="Orta PKPD balı"
+					value={formatScoreValue(averageSummaryScore)}
+					meta="yalnız tamamlanmış nəticələr"
+				/>
+				<StatCard
+					tone="accent"
+					icon="PF"
+					label="Portfolio daxil edilməyənlər"
+					value={summaryRows.filter((row) => isMissingScore(row.portfolioScore)).length}
+					meta="portfolio cəmi boş olanlar"
+				/>
+				<StatCard
+					tone="danger"
+					icon="RS"
+					label="Risk qrupu"
+					value={
+						summaryRows.filter((row) => row.isComplete && (row.baseTotalScore ?? 0) < 60)
+							.length
+					}
+					meta="yekun balı 60-dan aşağı"
+				/>
+			</div>
 
 			<Tabs defaultValue="inputs" className="stack">
 				<div className="card">
@@ -2589,34 +2886,70 @@ export const BranchPkpdPage = () => {
 								<h3>PKPD yekun cədvəli</h3>
 								<p className="hint">Ətraflı bal bölgüsü və qərar redaktəsi üçün hər müəllimdə <code>Detallar</code> düyməsini açın.</p>
 							</div>
-							<div className="stat-pill">Cəmi: {summaryRows.length}</div>
+							<div className="stat-pill">Cəmi: {filteredSummaryRows.length}</div>
 						</div>
-						<div className="data-table">
-							<div className="data-row header"><div>Müəllim</div><div>PKPD modeli</div><div>Rəhbərlik səsi</div><div>PKPD yekun balı</div><div>PKPD kateqoriyası</div><div>Qərar</div><div>Qeyd</div><div></div></div>
-							{summaryPagination.paginatedItems.map((row) => {
-								const decision = decisionDrafts[row.teacherId] ?? decisionMap[row.teacherId] ?? null;
-								const notePreview = decision?.note?.trim() || '-';
-								return (
-									<div className="data-row" key={row.teacherId}>
-										<div>{row.name}</div>
-										<div>{row.isBiqTeacher ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim"}</div>
-										<div>{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}{row.leadershipComplete ? " (tamamlanıb)" : ""}</div>
-										<div>{row.isComplete ? formatScoreValue(row.baseTotalScore) : formatScoreValue(row.currentEnteredScore)}</div>
-										<div>{formatPkpdCategory(row)}</div>
-										<div>{decisionLabel[decision?.status ?? 'PENDING']}</div>
-										<div>{notePreview}</div>
-										<div className="actions">
-											<button className="btn" type="button" onClick={() => setSelectedSummaryTeacherId(row.teacherId)}>Detallar</button>
-											{row.isBiqTeacher && (
-												<button className="btn ghost" type="button" onClick={() => openTeacherBiqEdit(row.teacherId)}>BİQ</button>
-											)}
-										</div>
-									</div>
-								);
-							})}
-							{summaryRows.length === 0 && <div className="empty">Məlumat yoxdur.</div>}
+						<div className="filters mt-4">
+							<label className="field">
+								<span className="label">Axtarış</span>
+								<input
+									className="input"
+									placeholder="Müəllim, status və ya model üzrə axtar..."
+									value={summaryQuery}
+									onChange={(event) => {
+										setSummaryQuery(event.target.value);
+										summaryPagination.setPage(1);
+									}}
+								/>
+							</label>
+							<label className="field">
+								<span className="label">Status</span>
+								<select
+									className="input"
+									value={summaryStatusFilter}
+									onChange={(event) => {
+										setSummaryStatusFilter(event.target.value);
+										summaryPagination.setPage(1);
+									}}
+								>
+									<option value="all">Hamısı</option>
+									<option value="complete">Tamamlanıb</option>
+									<option value="incomplete">Hesablama tamamlanmayıb</option>
+									<option value="portfolio">Portfolio gözləyir</option>
+									<option value="leadership">Rəhbərlik səsi gözləyir</option>
+									<option value="risk">Risk qrupu</option>
+								</select>
+							</label>
+							<label className="field">
+								<span className="label">Əməliyyat</span>
+								<button
+									className="btn"
+									type="button"
+									onClick={() => {
+										setSummaryQuery("");
+										setSummaryStatusFilter("all");
+										setSummarySort(null);
+										summaryPagination.setPage(1);
+									}}
+								>
+									Filterləri sıfırla
+								</button>
+							</label>
 						</div>
-						{summaryRows.length > 0 && (
+						<div className="mt-4">
+							<DataTable
+								columns={summaryTableColumns}
+								rows={summaryPagination.paginatedItems}
+								getRowKey={(row) => row.teacherId}
+								sort={summarySort}
+								onSortChange={(nextSort) => {
+									setSummarySort(nextSort);
+									summaryPagination.setPage(1);
+								}}
+								emptyTitle="Bu filterlərə uyğun məlumat tapılmadı."
+								emptyDescription="Filterləri dəyişərək yenidən yoxlayın."
+							/>
+						</div>
+						{filteredSummaryRows.length > 0 && (
 							<PaginationControls
 								totalItems={summaryPagination.totalItems}
 								page={summaryPagination.page}
@@ -2684,7 +3017,7 @@ export const BranchPkpdPage = () => {
 								<DialogDescription>{cycleYear} dövrü üçün PKPD detal görünüşü və qərar redaktəsi.</DialogDescription>
 							</DialogHeader>
 							<div className="grid three">
-								<div className="stat-card"><div className="stat-label">PKPD modeli</div><div className="stat-value">{selectedSummaryRow.isBiqTeacher ? "WITH_BIQ" : "WITHOUT_BIQ"}</div><div className="stat-meta">{selectedSummaryRow.isBiqTeacher ? "BİQ/KİQ nəticəsi olan müəllim" : "BİQ/KİQ nəticəsi olmayan müəllim"}</div></div>
+								<div className="stat-card"><div className="stat-label">PKPD modeli</div><div className="stat-value text-base leading-snug">{evaluationTypeLabel(selectedSummaryRow.isBiqTeacher)}</div><div className="stat-meta">{selectedSummaryRow.assessmentResultLabel}</div></div>
 								<div className="stat-card"><div className="stat-label">Şagird sorğusu</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.studentScore)}</div></div>
 								<div className="stat-card">
 									<div className="stat-label">Rəhbərlik qiymətləndirməsi</div>
@@ -2721,6 +3054,15 @@ export const BranchPkpdPage = () => {
 								<div className="stat-card"><div className="stat-label">HR qeydi (hesaba daxil deyil)</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">{selectedSummaryRow.isComplete ? "PKPD yekun balı" : "Daxil edilmiş cari bal"}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.isComplete ? selectedSummaryRow.baseTotalScore : selectedSummaryRow.currentEnteredScore)}</div><div className="stat-meta">{formatPkpdCategory(selectedSummaryRow)}</div></div>
 								<div className="stat-card"><div className="stat-label">Stimullaşdırıcı yekun</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.finalScoreWithExtra)}</div><div className="stat-meta">{formatPkpdDecision(selectedSummaryRow)}</div></div>
+							</div>
+							<div className="card">
+								<div className="section-header">
+									<div>
+										<div className="section-kicker">Bal bölgüsü</div>
+										<h3 className="section-title">PKPD komponentləri</h3>
+									</div>
+								</div>
+								<ScoreBreakdownTable rows={buildSummaryBreakdownRows(selectedSummaryRow)} />
 							</div>
 							{selectedSummaryPortfolioLimits && (
 								<div className="card">

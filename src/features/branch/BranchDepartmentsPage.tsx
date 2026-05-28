@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { DataTable, sortData, type DataTableColumn, type SortState } from "../../components/DataTable";
+import { PageHeader, StatCard, StatusBadge } from "../../components/dashboard";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import { mapDepartmentRow } from "../../lib/supabaseMappers";
 import type { DepartmentDoc } from "../../lib/types";
@@ -24,6 +26,8 @@ export const BranchDepartmentsPage = () => {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
 	const [savingEdit, setSavingEdit] = useState(false);
+	const [departmentQuery, setDepartmentQuery] = useState("");
+	const [departmentSort, setDepartmentSort] = useState<SortState>(null);
 
 	const loadDepartments = useCallback(async () => {
 		if (!branchId) {
@@ -133,17 +137,106 @@ export const BranchDepartmentsPage = () => {
 	};
 
 	const summary = useMemo(() => departments.length, [departments]);
-	const departmentsPagination = usePagination(departments);
+	const filteredDepartments = useMemo(() => {
+		const query = departmentQuery.trim().toLocaleLowerCase("az");
+		if (!query) return departments;
+		return departments.filter((department) =>
+			department.data.name.toLocaleLowerCase("az").includes(query),
+		);
+	}, [departmentQuery, departments]);
+	const departmentColumns = useMemo<Array<DataTableColumn<DepartmentEntry>>>(
+		() => [
+			{
+				key: "name",
+				header: "Kafedra adı",
+				sortValue: (department) => department.data.name,
+				render: (department) =>
+					editingId === department.id ? (
+						<input
+							className="input"
+							value={editName}
+							onChange={(event) => setEditName(event.target.value)}
+						/>
+					) : (
+						<div className="font-semibold">{department.data.name}</div>
+					),
+			},
+			{
+				key: "status",
+				header: "Status",
+				sortValue: () => "Aktiv",
+				render: () => <StatusBadge tone="success">Aktiv</StatusBadge>,
+			},
+			{
+				key: "actions",
+				header: "",
+				render: (department) => (
+					<div className="actions">
+						{editingId === department.id ? (
+							<>
+								<button
+									className="btn primary"
+									type="button"
+									onClick={handleEditSave}
+									disabled={savingEdit}
+								>
+									Yadda saxla
+								</button>
+								<button
+									className="btn ghost"
+									type="button"
+									onClick={handleEditCancel}
+									disabled={savingEdit}
+								>
+									Ləğv et
+								</button>
+							</>
+						) : (
+							<>
+								<button
+									className="btn"
+									type="button"
+									onClick={() => handleEditStart(department)}
+								>
+									Redaktə
+								</button>
+								<button
+									className="btn ghost"
+									type="button"
+									onClick={() => void handleDelete(department.id)}
+								>
+									Sil
+								</button>
+							</>
+						)}
+					</div>
+				),
+			},
+		],
+		[
+			editName,
+			editingId,
+			handleDelete,
+			handleEditCancel,
+			handleEditSave,
+			handleEditStart,
+			savingEdit,
+		],
+	);
+	const sortedDepartments = useMemo(
+		() => sortData(filteredDepartments, departmentColumns, departmentSort),
+		[departmentColumns, departmentSort, filteredDepartments],
+	);
+	const departmentsPagination = usePagination(sortedDepartments);
 
 	return (
 		<div className="panel branch-page">
-			<div className="page-hero">
-				<div className="page-hero__content">
-					<div className="eyebrow">Filial strukturu</div>
-					<h1>Kafedralar</h1>
-					<p>Filial üzrə kafedra siyahısı və idarəetmə paneli.</p>
-				</div>
-				<div className="page-hero__aside">
+			<PageHeader
+				eyebrow="Filial strukturu"
+				title="Kafedralar"
+				description="Filial üzrə kafedra siyahısı və idarəetmə paneli."
+				actions={
+					<>
 					{isSuperAdmin && (
 						<BranchSelector
 							branchId={branchId}
@@ -151,9 +244,10 @@ export const BranchDepartmentsPage = () => {
 							onChange={setBranchId}
 						/>
 					)}
-					<div className="stat-pill">Cəmi: {summary}</div>
-				</div>
-			</div>
+					<StatusBadge tone="neutral">Cəmi: {summary}</StatusBadge>
+					</>
+				}
+			/>
 			{isSuperAdmin && !branchId && (
 				<div className="notice">
 					Filial seçilməyib. Davam etmək üçün filial seçin.
@@ -188,70 +282,54 @@ export const BranchDepartmentsPage = () => {
 							<div className="section-kicker">Siyahı</div>
 							<div className="section-title">Kafedralar</div>
 						</div>
+						<StatCard
+							label="Aktiv kafedra"
+							value={filteredDepartments.length}
+							tone="info"
+						/>
 					</div>
 					{loadError && <div className="notice">{loadError}</div>}
-					<div className="data-table">
-						<div className="data-row header">
-							<div>Kafedra</div>
-							<div></div>
-						</div>
-						{departmentsPagination.paginatedItems.map((department) => (
-							<div className="data-row" key={department.id}>
-								<div>
-									{editingId === department.id ? (
-										<input
-											className="input"
-											value={editName}
-											onChange={(event) => setEditName(event.target.value)}
-										/>
-									) : (
-										department.data.name
-									)}
-								</div>
-								<div className="actions">
-									{editingId === department.id ? (
-										<>
-											<button
-												className="btn primary"
-												type="button"
-												onClick={handleEditSave}
-												disabled={savingEdit}
-											>
-												Yadda saxla
-											</button>
-											<button
-												className="btn ghost"
-												type="button"
-												onClick={handleEditCancel}
-												disabled={savingEdit}
-											>
-												Ləğv et
-											</button>
-										</>
-									) : (
-										<>
-											<button
-												className="btn"
-												type="button"
-												onClick={() => handleEditStart(department)}
-											>
-												Redaktə
-											</button>
-											<button
-												className="btn ghost"
-												type="button"
-												onClick={() => void handleDelete(department.id)}
-											>
-												Sil
-											</button>
-										</>
-									)}
-								</div>
-							</div>
-						))}
-						{departments.length === 0 && (
-							<div className="empty">Məlumat yoxdur.</div>
-						)}
+					<div className="filters mt-4">
+						<label className="field">
+							<span className="label">Axtarış</span>
+							<input
+								className="input"
+								placeholder="Kafedra adı üzrə axtar..."
+								value={departmentQuery}
+								onChange={(event) => {
+									setDepartmentQuery(event.target.value);
+									departmentsPagination.setPage(1);
+								}}
+							/>
+						</label>
+						<label className="field">
+							<span className="label">Əməliyyat</span>
+							<button
+								className="btn"
+								type="button"
+								onClick={() => {
+									setDepartmentQuery("");
+									setDepartmentSort(null);
+									departmentsPagination.setPage(1);
+								}}
+							>
+								Filterləri sıfırla
+							</button>
+						</label>
+					</div>
+					<div className="mt-4">
+						<DataTable
+							columns={departmentColumns}
+							rows={departmentsPagination.paginatedItems}
+							getRowKey={(department) => department.id}
+							sort={departmentSort}
+							onSortChange={(nextSort) => {
+								setDepartmentSort(nextSort);
+								departmentsPagination.setPage(1);
+							}}
+							emptyTitle="Bu filterlərə uyğun kafedra tapılmadı."
+							emptyDescription="Filterləri dəyişərək yenidən yoxlayın."
+						/>
 					</div>
 					{departmentsPagination.totalItems > 0 && (
 						<PaginationControls

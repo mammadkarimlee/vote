@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
+import { DataTable, sortData, type DataTableColumn, type SortState } from "../../components/DataTable";
+import { PageHeader, StatCard, StatusBadge } from "../../components/dashboard";
 import {
 	Dialog,
 	DialogContent,
@@ -88,6 +90,8 @@ export const BranchLeadershipPage = () => {
 	const [open, setOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [draft, setDraft] = useState<Draft>(emptyDraft);
+	const [leadershipQuery, setLeadershipQuery] = useState("");
+	const [leadershipSort, setLeadershipSort] = useState<SortState>(null);
 
 	const loadData = useCallback(async () => {
 		if (!branchId) {
@@ -184,8 +188,6 @@ export const BranchLeadershipPage = () => {
 		() => Object.fromEntries(departments.map((item) => [item.id, item.data])),
 		[departments],
 	);
-	const leadershipPagination = usePagination(leadership);
-
 	const beginCreate = () => {
 		setEditingId(null);
 		setDraft(emptyDraft());
@@ -357,24 +359,158 @@ export const BranchLeadershipPage = () => {
 		}
 	};
 
+	const filteredLeadership = useMemo(() => {
+		const query = leadershipQuery.trim().toLocaleLowerCase("az");
+		if (!query) return leadership;
+		return leadership.filter((entry) =>
+			[
+				userMap[entry.data.userId]?.displayName ?? entry.data.userId,
+				userMap[entry.data.userId]?.login ?? "",
+				leadershipRoleLabels[entry.data.role],
+				leadershipCoverageLabels[entry.data.coverageType],
+				entry.data.departmentId ? departmentMap[entry.data.departmentId]?.name ?? "" : "",
+				entry.data.isActive ? "Aktiv" : "Passiv",
+			]
+				.join(" ")
+				.toLocaleLowerCase("az")
+				.includes(query),
+		);
+	}, [departmentMap, leadership, leadershipQuery, userMap]);
+
+	const leadershipColumns = useMemo<Array<DataTableColumn<Entry<CampusLeadershipDoc>>>>(
+		() => [
+			{
+				key: "name",
+				header: "Ad soyad",
+				sortValue: (entry) => userMap[entry.data.userId]?.displayName ?? entry.data.userId,
+				render: (entry) => userMap[entry.data.userId]?.displayName ?? entry.data.userId,
+			},
+			{
+				key: "login",
+				header: "Login",
+				sortValue: (entry) => userMap[entry.data.userId]?.login ?? "",
+				render: (entry) => userMap[entry.data.userId]?.login ?? "-",
+			},
+			{
+				key: "role",
+				header: "Rol",
+				sortValue: (entry) => leadershipRoleLabels[entry.data.role],
+				render: (entry) => leadershipRoleLabels[entry.data.role],
+			},
+			{
+				key: "coverage",
+				header: "Kurasiya tipi",
+				sortValue: (entry) => leadershipCoverageLabels[entry.data.coverageType],
+				render: (entry) => leadershipCoverageLabels[entry.data.coverageType],
+			},
+			{
+				key: "department",
+				header: "Kafedra",
+				sortValue: (entry) =>
+					entry.data.departmentId ? departmentMap[entry.data.departmentId]?.name ?? "" : "",
+				render: (entry) =>
+					entry.data.departmentId ? departmentMap[entry.data.departmentId]?.name ?? "-" : "-",
+			},
+			{
+				key: "active",
+				header: "Aktiv status",
+				sortValue: (entry) => (entry.data.isActive ? "Aktiv" : "Passiv"),
+				render: (entry) => (
+					<StatusBadge tone={entry.data.isActive ? "success" : "neutral"}>
+						{entry.data.isActive ? "Aktiv" : "Passiv"}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "canEvaluate",
+				header: "Qiymətləndirə bilər",
+				sortValue: (entry) => (entry.data.canEvaluateTeachers ? "Bəli" : "Xeyr"),
+				render: (entry) => (
+					<StatusBadge tone={entry.data.canEvaluateTeachers ? "info" : "warning"}>
+						{entry.data.canEvaluateTeachers ? "Bəli" : "Xeyr"}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "starts",
+				header: "Başlama",
+				sortValue: (entry) =>
+					entry.data.startsAt ? new Date(String(entry.data.startsAt)).getTime() : 0,
+				render: (entry) => formatShortDate(toJsDate(entry.data.startsAt)),
+			},
+			{
+				key: "ends",
+				header: "Bitmə",
+				sortValue: (entry) =>
+					entry.data.endsAt ? new Date(String(entry.data.endsAt)).getTime() : 0,
+				render: (entry) => formatShortDate(toJsDate(entry.data.endsAt)),
+			},
+			{
+				key: "actions",
+				header: "",
+				render: (entry) => (
+					<div className="actions">
+						<button className="btn" type="button" onClick={() => beginEdit(entry)}>
+							Redaktə et
+						</button>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => void updateStatus(entry, { is_active: !entry.data.isActive }, entry.data.isActive ? "Rəhbərlik passiv edildi." : "Rəhbərlik aktiv edildi.")}
+						>
+							{entry.data.isActive ? "Passiv et" : "Aktiv et"}
+						</button>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => void updateStatus(entry, { can_evaluate_teachers: !entry.data.canEvaluateTeachers }, "Qiymətləndirmə hüququ yeniləndi.")}
+						>
+							{entry.data.canEvaluateTeachers ? "Hüququ bağla" : "Hüququ aç"}
+						</button>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => void archive(entry)}
+						>
+							Arxivlə
+						</button>
+					</div>
+				),
+			},
+		],
+		[archive, beginEdit, departmentMap, updateStatus, userMap],
+	);
+	const sortedLeadership = useMemo(
+		() => sortData(filteredLeadership, leadershipColumns, leadershipSort),
+		[filteredLeadership, leadershipColumns, leadershipSort],
+	);
+	const leadershipPagination = usePagination(sortedLeadership);
+
 	return (
 		<div className="panel branch-page">
-			<div className="page-hero">
-				<div className="page-hero__content">
-					<div className="eyebrow">Campus strukturu</div>
-					<h1>Rəhbərlik</h1>
-					<p>Filial müdiri, müavinlər və kafedra müdirlərinin müəllim qiymətləndirmə dairəsini idarə edin.</p>
-				</div>
-				<div className="page-hero__aside">
+			<PageHeader
+				eyebrow="Campus strukturu"
+				title="Rəhbərlik"
+				description="Filial müdiri, müavinlər və kafedra müdirlərinin müəllim qiymətləndirmə dairəsini idarə edin."
+				actions={
+					<>
 					{isSuperAdmin && (
 						<BranchSelector branchId={branchId} branches={branches} onChange={setBranchId} />
 					)}
-					<div className="stat-pill">Aktiv rəhbərlik: {leadership.filter((item) => item.data.isActive).length}</div>
 					<button className="btn primary" type="button" disabled={!branchId} onClick={beginCreate}>
 						Rəhbərlik əlavə et
 					</button>
-				</div>
-			</div>
+					</>
+				}
+				meta={
+					<>
+						<StatusBadge tone="success">
+							Aktiv rəhbərlik: {leadership.filter((item) => item.data.isActive).length}
+						</StatusBadge>
+						<StatusBadge tone="neutral">Cəmi: {leadership.length}</StatusBadge>
+					</>
+				}
+			/>
 			{status && <div className="notice">{status}</div>}
 			<div className="card">
 				<div className="section-header">
@@ -387,41 +523,55 @@ export const BranchLeadershipPage = () => {
 							Parol ilkin qaydaya əsasən login ilə eyni göstərilir.
 						</p>
 					</div>
+					<StatCard
+						label="Qiymətləndirə bilən"
+						value={leadership.filter((item) => item.data.canEvaluateTeachers).length}
+						tone="info"
+					/>
 				</div>
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Ad soyad</div><div>Login</div><div>Parol</div><div>Rol</div><div>Kurasiya tipi</div><div>Sinif aralığı</div>
-						<div>Kafedra</div><div>Aktiv status</div><div>Qiymətləndirə bilər</div>
-						<div>Başlama tarixi</div><div>Bitmə tarixi</div><div>Əməliyyatlar</div>
-					</div>
-					{leadershipPagination.paginatedItems.map((entry) => (
-						<div className="data-row" key={entry.id}>
-							<div>{userMap[entry.data.userId]?.displayName ?? entry.data.userId}</div>
-							<div>{userMap[entry.data.userId]?.login ?? "-"}</div>
-							<div>{userMap[entry.data.userId]?.login ?? "-"}</div>
-							<div>{leadershipRoleLabels[entry.data.role]}</div>
-							<div>{leadershipCoverageLabels[entry.data.coverageType]}</div>
-							<div>{entry.data.coverageType === "GRADE_RANGE" ? `${entry.data.gradeFrom}–${entry.data.gradeTo}` : "-"}</div>
-							<div>{entry.data.departmentId ? departmentMap[entry.data.departmentId]?.name ?? "-" : "-"}</div>
-							<div>{entry.data.isActive ? "Aktiv" : "Passiv"}</div>
-							<div>{entry.data.canEvaluateTeachers ? "Bəli" : "Xeyr"}</div>
-							<div>{formatShortDate(toJsDate(entry.data.startsAt))}</div>
-							<div>{formatShortDate(toJsDate(entry.data.endsAt))}</div>
-							<div className="actions">
-								<button className="btn" type="button" onClick={() => beginEdit(entry)}>Redaktə et</button>
-								<button className="btn ghost" type="button" onClick={() => void updateStatus(entry, { is_active: !entry.data.isActive }, entry.data.isActive ? "Rəhbərlik passiv edildi." : "Rəhbərlik aktiv edildi.")}>
-									{entry.data.isActive ? "Passiv et" : "Aktiv et"}
-								</button>
-								<button className="btn ghost" type="button" onClick={() => void updateStatus(entry, { can_evaluate_teachers: !entry.data.canEvaluateTeachers }, "Qiymətləndirmə hüququ yeniləndi.")}>
-									{entry.data.canEvaluateTeachers ? "Hüququ bağla" : "Hüququ aç"}
-								</button>
-								<button className="btn ghost" type="button" onClick={() => void archive(entry)}>Arxivlə</button>
-							</div>
-						</div>
-					))}
-					{leadership.length === 0 && <div className="empty">Bu campus üçün rəhbərlik təyin edilməyib.</div>}
+				<div className="filters mt-4">
+					<label className="field">
+						<span className="label">Axtarış</span>
+						<input
+							className="input"
+							placeholder="Ad, rol, kafedra və ya status üzrə axtar..."
+							value={leadershipQuery}
+							onChange={(event) => {
+								setLeadershipQuery(event.target.value);
+								leadershipPagination.setPage(1);
+							}}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">Əməliyyat</span>
+						<button
+							className="btn"
+							type="button"
+							onClick={() => {
+								setLeadershipQuery("");
+								setLeadershipSort(null);
+								leadershipPagination.setPage(1);
+							}}
+						>
+							Filterləri sıfırla
+						</button>
+					</label>
 				</div>
-				{leadership.length > 0 && (
+				<div className="mt-4">
+					<DataTable
+						columns={leadershipColumns}
+						rows={leadershipPagination.paginatedItems}
+						getRowKey={(entry) => entry.id}
+						sort={leadershipSort}
+						onSortChange={(nextSort) => {
+							setLeadershipSort(nextSort);
+							leadershipPagination.setPage(1);
+						}}
+						emptyTitle="Bu campus üçün rəhbərlik təyin edilməyib."
+						emptyDescription="Yeni rəhbərlik əlavə edin və ya filterləri dəyişin."
+					/>
+				</div>
+				{filteredLeadership.length > 0 && (
 					<PaginationControls
 						totalItems={leadershipPagination.totalItems}
 						page={leadershipPagination.page}

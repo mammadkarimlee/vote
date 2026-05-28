@@ -1,4 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+	FilterPanel,
+	PageHeader,
+	ScoreBreakdownTable,
+	SectionCard,
+	StatCard,
+	StatusBadge,
+	type ScoreBreakdownRow,
+} from "../../components/dashboard";
+import {
+	DataTable,
+	sortData,
+	type DataTableColumn,
+	type SortState,
+} from "../../components/DataTable";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
@@ -272,6 +287,16 @@ const formatScore = (value: number | null | undefined) => {
 	return value.toFixed(2);
 };
 
+const formatScoreOrMissing = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value)
+		? "Daxil edilməyib"
+		: value.toFixed(2);
+
+const evaluationTypeLabel = (isWithBiq: boolean) =>
+	isWithBiq
+		? "BİQ/KİQ nəticəsi olan müəllim"
+		: "BİQ/KİQ nəticəsi olmayan müəllim";
+
 const getIsBiqTeacher = (teacher: TeacherDoc) =>
 	teacher.isBiqTeacher !== false;
 
@@ -423,6 +448,108 @@ type PdfScoreRow = {
 const isMissingScore = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value);
 
+const getTeacherStatusInfo = (row: TeacherRow) => {
+	if (!row.isComplete) {
+		if (!row.leadershipComplete) {
+			return { label: "Rəhbərlik səsi gözləyir", tone: "warning" as const };
+		}
+		if (isMissingScore(row.portfolioScore)) {
+			return { label: "Portfolio gözləyir", tone: "warning" as const };
+		}
+		return { label: "Hesablama tamamlanmayıb", tone: "warning" as const };
+	}
+	if ((row.finalScore ?? row.baseTotalScore ?? 0) < 60) {
+		return { label: "Risk qrupu", tone: "danger" as const };
+	}
+	return { label: "Tamamlanıb", tone: "success" as const };
+};
+
+const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
+	const rows = teacher.isBiqTeacher
+		? [
+				{
+					key: "subject-mastery",
+					label: "Balabilgənin fənni mənimsəməsi",
+					value: teacher.biqWeightedScore,
+					max: 15,
+					meta: `Orta BİQ: ${formatScoreOrMissing(teacher.biqAvg)}`,
+				},
+				{
+					key: "student-survey",
+					label: "Balabilgə sorğusu",
+					value: teacher.studentWeightedScore,
+					max: 15,
+					meta: `Cavab sayı: ${teacher.studentCount}`,
+				},
+				{
+					key: "self-review",
+					label: "Özünüqiymətləndirmə",
+					value: teacher.selfWeightedScore,
+					max: 10,
+					meta: `Müəllimin verdiyi bal: ${formatScoreOrMissing(teacher.selfDeclaredScore)}`,
+				},
+				{
+					key: "leadership",
+					label: "Rəhbərlik qiymətləndirməsi",
+					value: teacher.managementWeightedScore,
+					max: 10,
+					meta: `${teacher.leadershipSubmittedCount} / ${teacher.leadershipEligibleCount} səs`,
+				},
+				{
+					key: "exam",
+					label: "Attestasiya imtahanı",
+					value: teacher.examScore,
+					max: 30,
+				},
+				{
+					key: "portfolio",
+					label: "Portfolio",
+					value: teacher.portfolioScore,
+					max: 20,
+				},
+			]
+		: [
+				{
+					key: "student-survey",
+					label: "Balabilgə sorğusu",
+					value: teacher.studentWeightedScore,
+					max: 20,
+					meta: `Cavab sayı: ${teacher.studentCount}`,
+				},
+				{
+					key: "self-review",
+					label: "Özünüqiymətləndirmə",
+					value: teacher.selfWeightedScore,
+					max: 10,
+					meta: `Müəllimin verdiyi bal: ${formatScoreOrMissing(teacher.selfDeclaredScore)}`,
+				},
+				{
+					key: "leadership",
+					label: "Rəhbərlik qiymətləndirməsi",
+					value: teacher.managementWeightedScore,
+					max: 10,
+					meta: `${teacher.leadershipSubmittedCount} / ${teacher.leadershipEligibleCount} səs`,
+				},
+				{
+					key: "portfolio",
+					label: "Portfolio",
+					value: teacher.portfolioScore,
+					max: 60,
+				},
+			];
+
+	return rows.map((row) => ({
+		...row,
+		value: formatScoreOrMissing(row.value),
+		tone: isMissingScore(row.value) ? "warning" : "success",
+	}));
+};
+
+const getMissingScoreLabels = (teacher: TeacherRow) =>
+	buildScoreBreakdownRows(teacher)
+		.filter((row) => row.tone === "warning")
+		.map((row) => String(row.label));
+
 const buildFinalRecommendations = (
 	baseTotalScore: number | null,
 	rows: PdfScoreRow[],
@@ -573,6 +700,7 @@ export const AdminCycleDetailPage = () => {
 
 	const [teacherPage, setTeacherPage] = useState(1);
 	const [teacherPageSize, setTeacherPageSize] = useState(15);
+	const [teacherSort, setTeacherSort] = useState<SortState>(null);
 	const [raterPage, setRaterPage] = useState(1);
 	const [raterPageSize, setRaterPageSize] = useState(15);
 	const [commentPage, setCommentPage] = useState(1);
@@ -1559,6 +1687,112 @@ export const AdminCycleDetailPage = () => {
 		});
 	}, [leadershipFilter, showAllTeachers, teacherQuery, teacherRows]);
 
+	const teacherTableColumns = useMemo<Array<DataTableColumn<TeacherRow>>>(
+		() => [
+			{
+				key: "name",
+				header: "Müəllim",
+				sortValue: (row) => row.name,
+				render: (row) => (
+					<button
+						className="btn ghost"
+						type="button"
+						onClick={() => setSelectedTeacherId(row.teacherId)}
+					>
+						{row.name}
+					</button>
+				),
+			},
+			{
+				key: "campus",
+				header: "Campus",
+				sortValue: (row) => row.branchName,
+				render: (row) => row.branchName,
+			},
+			{
+				key: "department",
+				header: "Kafedra",
+				sortValue: (row) => row.departmentName,
+				render: (row) => row.departmentName,
+			},
+			{
+				key: "model",
+				header: "Model",
+				sortValue: (row) => evaluationTypeLabel(row.isBiqTeacher),
+				render: (row) => (
+					<StatusBadge tone={row.isBiqTeacher ? "info" : "accent"}>
+						{evaluationTypeLabel(row.isBiqTeacher)}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "leadership",
+				header: "Rəhbərlik səsi",
+				sortValue: (row) => row.leadershipSubmittedCount,
+				render: (row) => (
+					<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
+						{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
+					</StatusBadge>
+				),
+			},
+			{
+				key: "status",
+				header: "Status",
+				sortValue: (row) => getTeacherStatusInfo(row).label,
+				render: (row) => {
+					const statusInfo = getTeacherStatusInfo(row);
+					return <StatusBadge tone={statusInfo.tone}>{statusInfo.label}</StatusBadge>;
+				},
+			},
+			{
+				key: "score",
+				header: "PKPD balı",
+				sortValue: (row) => (row.isComplete ? row.finalScore : row.currentEnteredScore),
+				render: (row) =>
+					row.isComplete
+						? formatScore(row.finalScore)
+						: `Cari: ${formatScore(row.currentEnteredScore)}`,
+			},
+			{
+				key: "bonus",
+				header: "Əlavə bal",
+				sortValue: (row) => row.bonusScore,
+				render: (row) => row.bonusScore.toFixed(2),
+			},
+			{
+				key: "stimulus",
+				header: "Stimullaşdırıcı yekun",
+				sortValue: (row) => row.finalScoreWithExtra,
+				render: (row) => formatScore(row.finalScoreWithExtra),
+			},
+			{
+				key: "updated",
+				header: "Son yenilənmə",
+				sortValue: (row) => {
+					const reviewedAt = selfReviewMap[row.teacherId]?.reviewedAt;
+					return reviewedAt ? new Date(String(reviewedAt)).getTime() : 0;
+				},
+				render: (row) => {
+					const reviewedAt = selfReviewMap[row.teacherId]?.reviewedAt;
+					return reviewedAt
+						? new Date(String(reviewedAt)).toLocaleDateString("az-AZ")
+						: "—";
+				},
+			},
+			{
+				key: "submissions",
+				header: "n",
+				sortValue: (row) => row.surveySubmissionCount,
+				render: (row) => row.surveySubmissionCount,
+			},
+		],
+		[selfReviewMap],
+	);
+	const sortedTeacherRows = useMemo(
+		() => sortData(visibleTeacherRows, teacherTableColumns, teacherSort),
+		[teacherSort, teacherTableColumns, visibleTeacherRows],
+	);
+
 	const topTeacher = validTeacherScores[0];
 	const bottomTeacher =
 		validTeacherScores.length > 0
@@ -1683,8 +1917,8 @@ export const AdminCycleDetailPage = () => {
 
 	const paginatedTeacherRows = useMemo(() => {
 		const start = (teacherPage - 1) * teacherPageSize;
-		return visibleTeacherRows.slice(start, start + teacherPageSize);
-	}, [teacherPage, teacherPageSize, visibleTeacherRows]);
+		return sortedTeacherRows.slice(start, start + teacherPageSize);
+	}, [teacherPage, teacherPageSize, sortedTeacherRows]);
 
 	const paginatedRaterRows = useMemo(() => {
 		const start = (raterPage - 1) * raterPageSize;
@@ -2583,174 +2817,196 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 
 	return (
 		<div className="panel">
-			<div className="panel-header">
-				<div>
-					<h2>Sorğu dövrü detalları</h2>
-					<p>Seçilmiş sorğu dövrü üzrə nəticələr və iştirak statistikası.</p>
-				</div>
-				<div className="actions">
+			<PageHeader
+				eyebrow={isHr ? "HR paneli" : "Admin paneli"}
+				title="PKPD Qiymətləndirmələri"
+				description="Müəllimlərin cari və yekun PKPD nəticələrini izləyin."
+				meta={
+					cycle && (
+						<>
+							<StatusBadge tone="info">Dövr: {cycle.year}</StatusBadge>
+							<StatusBadge tone="neutral">Status: {cycle.status}</StatusBadge>
+							<StatusBadge tone="neutral">Kampus: {cycleBranchNames}</StatusBadge>
+						</>
+					)
+				}
+				actions={
+					<>
 					<Link className="btn ghost" to={cycleListPath}>
 						Geri
 					</Link>
 					<button
-						className="btn"
+						className="btn primary"
 						type="button"
 						onClick={handleExportCsv}
 						disabled={!cycleId}
 					>
-						CSV ixracı
+						Excel export
 					</button>
-				</div>
-			</div>
+					</>
+				}
+			/>
 
-			<div className="card">
-				<div className="section-header">
-					<div>
-						<h3>Ümumi xülasə</h3>
-						<p>Yekun bal və iştirak göstəriciləri.</p>
-					</div>
-					{cycle && (
-						<div className="meta">
-							Sorğu dövrü: {cycle.year} ⬢ Vəziyyət: {cycle.status} ⬢ Kampus:{" "}
-							{cycleBranchNames}
-						</div>
-					)}
-				</div>
+			<SectionCard
+				eyebrow="Xülasə"
+				title="Ümumi vəziyyət"
+				description="Yekun bal, tamamlanma və rəhbərlik səsi üzrə əsas göstəricilər."
+			>
 				<div className="grid three">
-					<div className="stat-card">
-							<div className="stat-label">
+					<StatCard
+						icon="PK"
+						tone="info"
+						label={
+							<>
 								PKPD yekun orta balı
 								<InfoTip text="Yekun bal PKPD sənədinə görə hesablanır: BİQ olan müəllimlərdə şagird sorğusu, rəhbərlik, özünüqiymətləndirmə, BİQ, attestasiya imtahanı və portfolio; BİQ olmayan müəllimlərdə şagird sorğusu, rəhbərlik, özünüqiymətləndirmə və portfolio. HR qeydi rəsmi cəmə daxil edilmir." />
-							</div>
-							<div className="stat-value">{formatScore(overallSummary.avg)}</div>
-							<div className="stat-meta">
-								nəticəsi olan müəllim: {validTeacherScores.length} /{" "}
-								{teacherRows.length}
-							</div>
-						</div>
-					<div className="stat-card">
-						<div className="stat-label">Səs verənlər</div>
-						<div className="stat-value">{raterStats.doneSet.size}</div>
-						<div className="stat-meta">unikal səs verən</div>
-					</div>
-					<div className="stat-card">
-						<div className="stat-label">Tapşırıqlar</div>
-						<div className="stat-value">{overallSummary.submissions}</div>
-						<div className="stat-meta">ümumi səsvermə</div>
-					</div>
+							</>
+						}
+						value={formatScore(overallSummary.avg)}
+						meta={`nəticəsi olan müəllim: ${validTeacherScores.length} / ${teacherRows.length}`}
+						progress={overallSummary.avg === null ? null : overallSummary.avg}
+					/>
+					<StatCard
+						icon="OK"
+						tone="success"
+						label="Tamamlanan qiymətləndirmələr"
+						value={teacherRows.filter((row) => row.isComplete).length}
+						meta={`ümumi müəllim: ${teacherRows.length}`}
+					/>
+					<StatCard
+						icon="ID"
+						tone="warning"
+						label="Rəhbərlik səsi gözləyənlər"
+						value={teacherRows.filter((row) => !row.leadershipComplete).length}
+						meta={`səs verənlər: ${raterStats.doneSet.size}`}
+					/>
+					<StatCard
+						icon="PF"
+						tone="accent"
+						label="Portfolio daxil edilməyənlər"
+						value={teacherRows.filter((row) => isMissingScore(row.portfolioScore)).length}
+						meta="portfolio alt meyarları üzrə"
+					/>
+					<StatCard
+						icon="RS"
+						tone="danger"
+						label="Risk qrupu"
+						value={
+							teacherRows.filter(
+								(row) => row.isComplete && (row.finalScore ?? row.baseTotalScore ?? 0) < 60,
+							).length
+						}
+						meta="yekun balı 60-dan aşağı"
+					/>
+					<StatCard
+						icon="TS"
+						tone="neutral"
+						label="Tapşırıqlar"
+						value={overallSummary.submissions}
+						meta="ümumi səsvermə"
+					/>
 				</div>
 				<div className="divider" />
 				<div className="grid two">
-					<div className="stat-card">
-						<div className="stat-label">Ən yaxşı nəticə</div>
-						<div className="stat-value">
-							{topTeacher ? formatScore(topTeacher.finalScore) : "—"}
-						</div>
-						<div className="stat-meta">
-							{topTeacher ? topTeacher.name : "Məlumat yoxdur"}
-						</div>
-					</div>
-					<div className="stat-card">
-						<div className="stat-label">Ən aşağı nəticə</div>
-						<div className="stat-value">
-							{bottomTeacher ? formatScore(bottomTeacher.finalScore) : "—"}
-						</div>
-						<div className="stat-meta">
-							{bottomTeacher ? bottomTeacher.name : "Məlumat yoxdur"}
-						</div>
-					</div>
+					<StatCard
+						tone="success"
+						label="Ən yaxşı nəticə"
+						value={topTeacher ? formatScore(topTeacher.finalScore) : "—"}
+						meta={topTeacher ? topTeacher.name : "Məlumat yoxdur"}
+					/>
+					<StatCard
+						tone="warning"
+						label="Ən aşağı nəticə"
+						value={bottomTeacher ? formatScore(bottomTeacher.finalScore) : "—"}
+						meta={bottomTeacher ? bottomTeacher.name : "Məlumat yoxdur"}
+					/>
 				</div>
-			</div>
+			</SectionCard>
 
-			<div className="card">
-					<div className="section-header">
-						<div>
-							<h3>Müəllim nəticələri</h3>
-							<p>
-								Müəllim adına klik edin: detallar drawer içində açılacaq.
-							</p>
-						</div>
-					</div>
-					<div className="form-row">
-						<input
-							className="input"
-							placeholder="Müəllim, kampus və ya kafedra axtar..."
-							value={teacherQuery}
-							onChange={(event) => {
-								setTeacherQuery(event.target.value);
-								setTeacherPage(1);
-							}}
-						/>
-						<select
-							className="input"
-							value={leadershipFilter}
-							onChange={(event) => {
-								setLeadershipFilter(event.target.value);
-								setTeacherPage(1);
-							}}
-						>
-							<option value="all">Rəhbərlik statusu: hamısı</option>
-							<option value="complete">Tamamlanıb</option>
-							<option value="incomplete">Tamamlanmayıb</option>
-							<option value="branch-manager-given">Filial müdiri səs verib</option>
-							<option value="branch-manager-missing">Filial müdiri səs verməyib</option>
-							<option value="deputy-given">Direktor müavini səs verib</option>
-							<option value="deputy-missing">Direktor müavini səs verməyib</option>
-							<option value="department-head-given">Kafedra müdiri səs verib</option>
-							<option value="department-head-missing">Kafedra müdiri səs verməyib</option>
-						</select>
-						<button
-							className="btn ghost"
-							type="button"
-							onClick={() => {
-								setShowAllTeachers((prev) => !prev);
-								setTeacherPage(1);
-							}}
-						>
-							{showAllTeachers ? "Yalnız nəticə olanlar" : "Hamısını göstər"}
-						</button>
-					</div>
-					<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div>
-						<div>Kampus</div>
-						<div>Kafedra</div>
-						<div>Rəhbərlik səsi</div>
-						<div>PKPD yekun balı</div>
-						<div>n</div>
-					</div>
-					{paginatedTeacherRows.map((item) => (
-						<div className="data-row" key={item.teacherId}>
-							<div>
-								<button
-									className="btn ghost"
-									type="button"
-									onClick={() => setSelectedTeacherId(item.teacherId)}
-								>
-									{item.name}
-								</button>
-							</div>
-							<div>{item.branchName}</div>
-							<div>{item.departmentName}</div>
-							<div>
-								{item.leadershipSubmittedCount} / {item.leadershipEligibleCount}
-								<div className="hint">{item.leadershipComplete ? "Tamamlanıb" : "Tamamlanmayıb"}</div>
-							</div>
-							<div>
-								{item.isComplete
-									? formatScore(item.finalScore)
-									: `Cari: ${formatScore(item.currentEnteredScore)}`}
-							</div>
-							<div>{item.surveySubmissionCount}</div>
-						</div>
-					))}
-						{visibleTeacherRows.length === 0 && (
-							<div className="empty">
-								Göstərmək üçün müəllim tapılmadı. Axtarışı dəyişin və ya
-								&quot;Hamısını göstər&quot; seçin.
-							</div>
-						)}
-					</div>
+			<FilterPanel
+				title="Filterlər"
+				description="Axtarış və rəhbərlik səsi statusuna görə siyahını daraldın."
+				actions={
+					<button
+						className="btn ghost"
+						type="button"
+						onClick={() => {
+							setTeacherQuery("");
+							setLeadershipFilter("all");
+							setShowAllTeachers(false);
+							setTeacherPage(1);
+						}}
+					>
+						Filterləri sıfırla
+					</button>
+				}
+			>
+				<label className="field">
+					<span className="label">Axtarış</span>
+					<input
+						className="input"
+						placeholder="Müəllim, kampus və ya kafedra axtar..."
+						value={teacherQuery}
+						onChange={(event) => {
+							setTeacherQuery(event.target.value);
+							setTeacherPage(1);
+						}}
+					/>
+				</label>
+				<label className="field">
+					<span className="label">Rəhbərlik statusu</span>
+					<select
+						className="input"
+						value={leadershipFilter}
+						onChange={(event) => {
+							setLeadershipFilter(event.target.value);
+							setTeacherPage(1);
+						}}
+					>
+						<option value="all">Hamısı</option>
+						<option value="complete">Tamamlanıb</option>
+						<option value="incomplete">Tamamlanmayıb</option>
+						<option value="branch-manager-given">Filial müdiri səs verib</option>
+						<option value="branch-manager-missing">Filial müdiri səs verməyib</option>
+						<option value="deputy-given">Direktor müavini səs verib</option>
+						<option value="deputy-missing">Direktor müavini səs verməyib</option>
+						<option value="department-head-given">Kafedra müdiri səs verib</option>
+						<option value="department-head-missing">Kafedra müdiri səs verməyib</option>
+					</select>
+				</label>
+				<label className="field">
+					<span className="label">Görünüş</span>
+					<button
+						className="btn"
+						type="button"
+						onClick={() => {
+							setShowAllTeachers((prev) => !prev);
+							setTeacherPage(1);
+						}}
+					>
+						{showAllTeachers ? "Yalnız nəticə olanlar" : "Hamısını göstər"}
+					</button>
+				</label>
+			</FilterPanel>
+
+			<SectionCard
+				eyebrow="Nəticələr"
+				title="Müəllim nəticələri"
+				description="Müəllim adına klik edin: detallar paneldə açılacaq."
+				actions={<StatusBadge tone="neutral">Cəmi: {visibleTeacherRows.length}</StatusBadge>}
+			>
+					<DataTable
+						columns={teacherTableColumns}
+						rows={paginatedTeacherRows}
+						getRowKey={(row) => row.teacherId}
+						sort={teacherSort}
+						onSortChange={(nextSort) => {
+							setTeacherSort(nextSort);
+							setTeacherPage(1);
+						}}
+						emptyTitle="Bu filterlərə uyğun müəllim tapılmadı."
+						emptyDescription="Filterləri dəyişərək yenidən yoxlayın."
+					/>
 					{visibleTeacherRows.length > 0 && (
 						<PaginationControls
 							totalItems={visibleTeacherRows.length}
@@ -2763,7 +3019,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						}}
 					/>
 				)}
-			</div>
+			</SectionCard>
 
 			<Dialog
 				open={Boolean(selectedTeacher)}
@@ -2775,14 +3031,20 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 							<div className="panel-header sticky top-0 z-10 border-b border-border bg-card px-6 py-5">
 								<DialogHeader className="text-left">
 									<DialogTitle>{selectedTeacher.name}</DialogTitle>
-									<p className="text-sm text-muted-foreground">
-										Kampus: {selectedTeacher.branchName} ⬢ Kafedra:{" "}
-										{selectedTeacher.departmentName}
-									</p>
+									<div className="mt-2 flex flex-wrap gap-2">
+										<StatusBadge tone="neutral">{selectedTeacher.branchName}</StatusBadge>
+										<StatusBadge tone="neutral">{selectedTeacher.departmentName}</StatusBadge>
+										<StatusBadge tone="info">
+											{evaluationTypeLabel(selectedTeacher.isBiqTeacher)}
+										</StatusBadge>
+										<StatusBadge tone={getTeacherStatusInfo(selectedTeacher).tone}>
+											{getTeacherStatusInfo(selectedTeacher).label}
+										</StatusBadge>
+									</div>
 								</DialogHeader>
 								<div className="actions">
 									<button
-										className="btn ghost"
+										className="btn primary"
 										type="button"
 										onClick={handleExportTeacherPdf}
 									>
@@ -2799,16 +3061,95 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 							</div>
 
 							<div className="panel-content px-6 py-6">
+								<SectionCard
+									eyebrow="Müəllim detalı"
+									title="Xülasə"
+									description="Cari daxil edilən bal, yekun nəticə və qərar göstəriciləri."
+								>
+									<div className="grid three">
+										<StatCard
+											tone={selectedTeacher.isComplete ? "success" : "warning"}
+											label={selectedTeacher.isComplete ? "PKPD yekun balı" : "Daxil edilmiş cari bal"}
+											value={formatScore(
+												selectedTeacher.isComplete
+													? selectedTeacher.finalScore
+													: selectedTeacher.currentEnteredScore,
+											)}
+											meta={formatPkpdCategory(selectedTeacher)}
+										/>
+										<StatCard
+											tone="accent"
+											label="Əlavə bal"
+											value={selectedTeacher.bonusScore.toFixed(2)}
+											meta="stimullaşdırıcı maddə üzrə"
+										/>
+										<StatCard
+											tone="info"
+											label="Stimullaşdırıcı yekun"
+											value={formatScore(selectedTeacher.finalScoreWithExtra)}
+											meta={formatPkpdDecision(selectedTeacher)}
+										/>
+										<StatCard
+											tone={selectedTeacher.leadershipComplete ? "success" : "warning"}
+											label="Rəhbərlik səsi"
+											value={`${selectedTeacher.leadershipSubmittedCount} / ${selectedTeacher.leadershipEligibleCount}`}
+											meta={selectedTeacher.leadershipComplete ? "Tamamlanıb" : "Gözləyir"}
+										/>
+										<StatCard
+											tone="neutral"
+											label="Qiymətləndirmə modeli"
+											value={
+												<span className="text-base leading-snug">
+													{evaluationTypeLabel(selectedTeacher.isBiqTeacher)}
+												</span>
+											}
+											meta={selectedTeacher.assessmentResultLabel}
+										/>
+										<StatCard
+											tone={getTeacherStatusInfo(selectedTeacher).tone}
+											label="Status"
+											value={
+												<span className="text-base leading-snug">
+													{getTeacherStatusInfo(selectedTeacher).label}
+												</span>
+											}
+										/>
+									</div>
+								</SectionCard>
+
+								<SectionCard
+									eyebrow="Bal bölgüsü"
+									title="PKPD komponentləri"
+									description="Seçilən modelə uyğun maksimum ballar və daxil edilmiş nəticələr."
+								>
+									<ScoreBreakdownTable rows={buildScoreBreakdownRows(selectedTeacher)} />
+								</SectionCard>
+
+								{!selectedTeacher.isComplete &&
+									getMissingScoreLabels(selectedTeacher).length > 0 && (
+										<SectionCard
+											eyebrow="Tamamlama"
+											title="Çatışmayan sahələr"
+											description="Bu sahələr daxil edildikdən sonra yekun nəticə formalaşacaq."
+										>
+											<div className="check-grid">
+												{getMissingScoreLabels(selectedTeacher).map((label) => (
+													<div className="check-item" key={label}>
+														<StatusBadge tone="warning">{label}</StatusBadge>
+													</div>
+												))}
+											</div>
+										</SectionCard>
+									)}
+
 								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 									<div className="stat-card">
 										<div className="stat-label">PKPD modeli</div>
 										<div className="stat-value">
-											{selectedTeacher.isBiqTeacher ? "WITH_BIQ" : "WITHOUT_BIQ"}
+											{evaluationTypeLabel(selectedTeacher.isBiqTeacher)}
 										</div>
 										<div className="stat-meta">
-											{selectedTeacher.isBiqTeacher
-												? "BİQ/KİQ nəticəsi olan müəllim"
-												: "BİQ/KİQ nəticəsi olmayan müəllim"}
+											{selectedTeacher.assessmentResultLabel}
 										</div>
 									</div>
 									<div className="stat-card">
@@ -2991,19 +3332,31 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										</div>
 									</div>
 									<div className="form-row">
-										<label className="field">
+										<div className="field min-w-[min(100%,28rem)] flex-1">
 											<span className="label">PKPD modeli</span>
-											<select
-												className="input"
-												value={assessmentMode}
-												onChange={(event) =>
-													setAssessmentMode(event.target.value as PkpdEvaluationType)
-												}
-											>
-												<option value="WITH_BIQ">BIQ/KIQ neticesi olan muellim</option>
-												<option value="WITHOUT_BIQ">BIQ/KIQ neticesi olmayan muellim</option>
-											</select>
-										</label>
+											<div className="grid gap-2 md:grid-cols-2">
+												<label className={`check-item ${assessmentMode === "WITH_BIQ" ? "active" : ""}`}>
+													<input
+														type="radio"
+														name="admin-assessment-mode"
+														value="WITH_BIQ"
+														checked={assessmentMode === "WITH_BIQ"}
+														onChange={() => setAssessmentMode("WITH_BIQ")}
+													/>
+													BİQ/KİQ nəticəsi olan müəllim
+												</label>
+												<label className={`check-item ${assessmentMode === "WITHOUT_BIQ" ? "active" : ""}`}>
+													<input
+														type="radio"
+														name="admin-assessment-mode"
+														value="WITHOUT_BIQ"
+														checked={assessmentMode === "WITHOUT_BIQ"}
+														onChange={() => setAssessmentMode("WITHOUT_BIQ")}
+													/>
+													BİQ/KİQ nəticəsi olmayan müəllim
+												</label>
+											</div>
+										</div>
 										{assessmentMode === "WITH_BIQ" && (
 											<label className="field">
 												<span className="label">BİQ ortalaması</span>

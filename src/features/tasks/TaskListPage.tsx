@@ -177,15 +177,26 @@ export const TaskListPage = () => {
 
 		setLoading(true);
 
-		const { data, error } = await supabase
-			.from("tasks")
-			.select("*")
-			.eq("org_id", ORG_ID)
-			.eq("rater_id", user.id)
-			.eq("target_type", "teacher")
-			.order("created_at", { ascending: false });
+		const [tasksRes, leadershipRes] = await Promise.all([
+			supabase
+				.from("tasks")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.eq("rater_id", user.id)
+				.eq("target_type", "teacher")
+				.order("created_at", { ascending: false }),
+			supabase
+				.from("campus_leadership")
+				.select("campus_id")
+				.eq("org_id", ORG_ID)
+				.eq("user_id", user.id)
+				.eq("is_active", true)
+				.eq("can_evaluate_teachers", true)
+				.neq("coverage_type", "PENDING")
+				.is("deleted_at", null),
+		]);
 
-		if (error) {
+		if (tasksRes.error) {
 			setTasks([]);
 			setCycles({});
 			setQuestionSetsByKey({});
@@ -193,10 +204,22 @@ export const TaskListPage = () => {
 			return;
 		}
 
-		const nextTasks = (data ?? []).map((row) => ({
-			id: row.id,
-			data: mapTaskRow(row),
-		}));
+		const leadershipCampusIds = new Set(
+			(leadershipRes.data ?? []).map((row) => String(row.campus_id)),
+		);
+		const nextTasks = (tasksRes.data ?? [])
+			.map((row) => ({
+				id: row.id,
+				data: mapTaskRow(row),
+			}))
+			.filter((task) => {
+				if (leadershipRes.error) return true;
+				return !(
+					task.data.raterRole === "manager" &&
+					task.data.groupName === MANAGEMENT_SCOPE_BRANCH_LABEL &&
+					leadershipCampusIds.has(task.data.branchId)
+				);
+			});
 		setTasks(nextTasks);
 
 		const cycleIds = Array.from(new Set(nextTasks.map((task) => task.data.cycleId)));

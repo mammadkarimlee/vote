@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
+import { DataTable, sortData, type DataTableColumn, type SortState } from "../../components/DataTable";
+import { LoadingSkeleton, StatusBadge } from "../../components/dashboard";
 import {
 	Dialog,
 	DialogContent,
@@ -26,6 +28,7 @@ import type {
 } from "../../lib/types";
 import { usePagination } from "../../lib/usePagination";
 import { formatShortDate, toJsDate } from "../../lib/utils";
+import { useAuth } from "../auth/AuthProvider";
 
 type CycleEntry = { id: string; data: SurveyCycleDoc };
 type Target = {
@@ -100,6 +103,7 @@ const mapTarget = (row: Record<string, unknown>): Target => ({
 });
 
 export const LeadershipEvaluationPage = () => {
+	const { user } = useAuth();
 	const [cycles, setCycles] = useState<CycleEntry[]>([]);
 	const [cycleId, setCycleId] = useState("");
 	const [targets, setTargets] = useState<Target[]>([]);
@@ -109,29 +113,64 @@ export const LeadershipEvaluationPage = () => {
 	const [status, setStatus] = useFeedbackState();
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
+	const [targetQuery, setTargetQuery] = useState("");
+	const [targetStatusFilter, setTargetStatusFilter] = useState("all");
+	const [targetSort, setTargetSort] = useState<SortState>(null);
 
 	useEffect(() => {
 		const loadCycles = async () => {
-			const { data, error } = await supabase
-				.from("survey_cycles")
-				.select("*")
-				.eq("org_id", ORG_ID)
-				.order("year", { ascending: false });
-			if (error) {
-				setStatus(error.message);
+			if (!user) {
+				setCycles([]);
+				setCycleId("");
 				setLoading(false);
 				return;
 			}
-			const rows = (data ?? []).map((row) => ({
+
+			const [cyclesRes, leadershipRes] = await Promise.all([
+				supabase
+					.from("survey_cycles")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.order("year", { ascending: false }),
+				supabase
+					.from("campus_leadership")
+					.select("campus_id")
+					.eq("org_id", ORG_ID)
+					.eq("user_id", user.id)
+					.eq("is_active", true)
+					.eq("can_evaluate_teachers", true)
+					.neq("coverage_type", "PENDING")
+					.is("deleted_at", null),
+			]);
+
+			if (cyclesRes.error || leadershipRes.error) {
+				setStatus(cyclesRes.error?.message ?? leadershipRes.error?.message ?? null);
+				setCycles([]);
+				setCycleId("");
+				setLoading(false);
+				return;
+			}
+
+			const leadershipCampusIds = new Set(
+				(leadershipRes.data ?? []).map((row) => String(row.campus_id)),
+			);
+			const rows = (cyclesRes.data ?? []).map((row) => ({
 				id: row.id,
 				data: mapSurveyCycleRow(row),
-			}));
+			})).filter((cycle) => {
+				const branchIds = cycle.data.branchIds ?? [];
+				if (branchIds.length === 0) return true;
+				return branchIds.some((branchId) => leadershipCampusIds.has(branchId));
+			});
 			setCycles(rows);
 			const firstOpen = rows.find((cycle) => cycle.data.status === "OPEN") ?? rows[0];
-			setCycleId(firstOpen?.id ?? "");
+			setCycleId((current) =>
+				rows.some((cycle) => cycle.id === current) ? current : (firstOpen?.id ?? ""),
+			);
+			setLoading(false);
 		};
 		void loadCycles();
-	}, [setStatus]);
+	}, [setStatus, user]);
 
 	const loadTargets = useCallback(async () => {
 		if (!cycleId) {
@@ -156,14 +195,13 @@ export const LeadershipEvaluationPage = () => {
 		void loadTargets();
 	}, [loadTargets]);
 
-	const targetsPagination = usePagination(targets);
 	const completion = useMemo(
 		() => targets.filter((target) => target.isSubmitted).length,
 		[targets],
 	);
 	const totalScore = computeLeadershipVoteScore(scores);
 
-	const openEvaluation = (target: Target) => {
+	const openEvaluation = useCallback((target: Target) => {
 		setSelected(target);
 		setScores({
 			disciplineScore: target.disciplineScore,
@@ -173,7 +211,7 @@ export const LeadershipEvaluationPage = () => {
 			platformUsageScore: target.platformUsageScore,
 		});
 		setComment(target.comment);
-	};
+	}, []);
 
 	const updateScore = (key: LeadershipCriterionKey, rawValue: string) => {
 		setScores((previous) => ({
@@ -208,6 +246,102 @@ export const LeadershipEvaluationPage = () => {
 		await loadTargets();
 	};
 
+	const filteredTargets = useMemo(() => {
+		const query = targetQuery.trim().toLocaleLowerCase("az");
+		return targets.filter((target) => {
+			if (targetStatusFilter === "submitted" && !target.isSubmitted) return false;
+			if (targetStatusFilter === "waiting" && target.isSubmitted) return false;
+			if (!query) return true;
+			return [
+				target.teacherName,
+				target.campusName,
+				target.departmentName,
+				target.isSubmitted ? "Səs verilib" : "Gözləyir",
+			]
+				.join(" ")
+				.toLocaleLowerCase("az")
+				.includes(query);
+		});
+	}, [targetQuery, targetStatusFilter, targets]);
+
+	const targetColumns = useMemo<Array<DataTableColumn<Target>>>(
+		() => [
+			{
+				key: "teacher",
+				header: "Müəllim",
+				sortValue: (target) => target.teacherName,
+				render: (target) => target.teacherName,
+			},
+			{
+				key: "campus",
+				header: "Campus",
+				sortValue: (target) => target.campusName,
+				render: (target) => target.campusName,
+			},
+			{
+				key: "department",
+				header: "Kafedra",
+				sortValue: (target) => target.departmentName,
+				render: (target) => target.departmentName,
+			},
+			{
+				key: "scope",
+				header: "Kurasiya",
+				sortValue: (target) => target.gradeScope,
+				render: (target) => (
+					<div>
+						{target.gradeScope}
+						<div className="hint">{leadershipCoverageLabels[target.coverageType]}</div>
+					</div>
+				),
+			},
+			{
+				key: "status",
+				header: "Status",
+				sortValue: (target) => (target.isSubmitted ? "Səs verilib" : "Gözləyir"),
+				render: (target) => (
+					<div className="stack gap-1">
+						<StatusBadge tone={target.isSubmitted ? "success" : "warning"}>
+							{target.isSubmitted ? "Səs verilib" : "Gözləyir"}
+						</StatusBadge>
+						<div className="hint">
+							{target.submittedCount} / {target.eligibleCount} rəhbərlik səsi
+						</div>
+					</div>
+				),
+			},
+			{
+				key: "score",
+				header: "Verilmiş bal",
+				sortValue: (target) => target.totalScore,
+				render: (target) =>
+					target.totalScore === null ? "Daxil edilməyib" : `${target.totalScore.toFixed(2)} / 10`,
+			},
+			{
+				key: "updated",
+				header: "Son yenilənmə",
+				sortValue: (target) =>
+					target.updatedAt ? new Date(String(target.updatedAt)).getTime() : 0,
+				render: (target) => formatShortDate(toJsDate(target.updatedAt)),
+			},
+			{
+				key: "actions",
+				header: "",
+				render: (target) => (
+					<button className="btn primary" type="button" onClick={() => openEvaluation(target)}>
+						{target.isSubmitted ? "Redaktə et" : "Qiymətləndir"}
+					</button>
+				),
+			},
+		],
+		[openEvaluation],
+	);
+	const sortedTargets = useMemo(
+		() => sortData(filteredTargets, targetColumns, targetSort),
+		[filteredTargets, targetColumns, targetSort],
+	);
+	const targetsPagination = usePagination(sortedTargets);
+
 	return (
 		<div className="panel">
 			<div className="page-hero">
@@ -232,37 +366,74 @@ export const LeadershipEvaluationPage = () => {
 			</div>
 			{status && <div className="notice">{status}</div>}
 			<div className="card">
-				<div className="data-table">
-					<div className="data-row header">
-						<div>Müəllim</div><div>Campus</div><div>Kafedra</div><div>Sinif / kurasiya qrupu</div>
-						<div>Qiymətləndirmə statusu</div><div>Verilmiş bal</div><div>Son yenilənmə</div><div></div>
+				<div className="section-header">
+					<div>
+						<h3>Qiymətləndirmə siyahısı</h3>
+						<p className="hint">Müəllim, kafedra, campus və status üzrə axtarın.</p>
 					</div>
-					{targetsPagination.paginatedItems.map((target) => (
-						<div className="data-row" key={target.teacherId}>
-							<div>{target.teacherName}</div>
-							<div>{target.campusName}</div>
-							<div>{target.departmentName}</div>
-							<div>
-								{target.gradeScope}
-								<div className="hint">{leadershipCoverageLabels[target.coverageType]}</div>
-							</div>
-							<div>
-								{target.isSubmitted ? "Səs verilib" : "Gözləyir"}
-								<div className="hint">{target.submittedCount} / {target.eligibleCount} rəhbərlik səsi</div>
-							</div>
-							<div>{target.totalScore === null ? "-" : `${target.totalScore.toFixed(2)} / 10`}</div>
-							<div>{formatShortDate(toJsDate(target.updatedAt))}</div>
-							<div>
-								<button className="btn primary" type="button" onClick={() => openEvaluation(target)}>
-									{target.isSubmitted ? "Redaktə et" : "Qiymətləndir"}
-								</button>
-							</div>
-						</div>
-					))}
-					{!loading && targets.length === 0 && (
-						<div className="empty">Bu dövr üçün aktiv rəhbərlik kurasiyanızda müəllim yoxdur.</div>
+					<StatusBadge tone="neutral">Cəmi: {filteredTargets.length}</StatusBadge>
+				</div>
+				<div className="filters mt-4">
+					<label className="field">
+						<span className="label">Axtarış</span>
+						<input
+							className="input"
+							placeholder="Müəllim, kafedra və ya campus üzrə axtar..."
+							value={targetQuery}
+							onChange={(event) => {
+								setTargetQuery(event.target.value);
+								targetsPagination.setPage(1);
+							}}
+						/>
+					</label>
+					<label className="field">
+						<span className="label">Status</span>
+						<select
+							className="input"
+							value={targetStatusFilter}
+							onChange={(event) => {
+								setTargetStatusFilter(event.target.value);
+								targetsPagination.setPage(1);
+							}}
+						>
+							<option value="all">Hamısı</option>
+							<option value="submitted">Səs verilib</option>
+							<option value="waiting">Gözləyir</option>
+						</select>
+					</label>
+					<label className="field">
+						<span className="label">Əməliyyat</span>
+						<button
+							className="btn"
+							type="button"
+							onClick={() => {
+								setTargetQuery("");
+								setTargetStatusFilter("all");
+								setTargetSort(null);
+								targetsPagination.setPage(1);
+							}}
+						>
+							Filterləri sıfırla
+						</button>
+					</label>
+				</div>
+				<div className="mt-4">
+					{loading ? (
+						<LoadingSkeleton rows={5} />
+					) : (
+						<DataTable
+							columns={targetColumns}
+							rows={targetsPagination.paginatedItems}
+							getRowKey={(target) => target.teacherId}
+							sort={targetSort}
+							onSortChange={(nextSort) => {
+								setTargetSort(nextSort);
+								targetsPagination.setPage(1);
+							}}
+							emptyTitle="Bu dövr üçün aktiv rəhbərlik kurasiyanızda müəllim yoxdur."
+							emptyDescription="Sorğu dövrünü və ya filterləri dəyişərək yenidən yoxlayın."
+						/>
 					)}
-					{loading && <div className="empty">Yüklənir...</div>}
 				</div>
 				{targets.length > 0 && (
 					<PaginationControls

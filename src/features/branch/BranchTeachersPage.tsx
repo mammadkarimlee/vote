@@ -3,6 +3,8 @@ import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { Link } from "react-router-dom";
 import { PaginationControls } from "../../components/PaginationControls";
 import { useConfirmDialog } from "../../components/ConfirmDialog";
+import { DataTable, type DataTableColumn } from "../../components/DataTable";
+import { PageHeader, StatusBadge } from "../../components/dashboard";
 import {
 	Dialog,
 	DialogContent,
@@ -142,6 +144,7 @@ export const BranchTeachersPage = () => {
 	const [filterSubjectId, setFilterSubjectId] = useState("");
 	const [filterGroupId, setFilterGroupId] = useState("");
 	const [filterClassLevel, setFilterClassLevel] = useState("");
+	const [teacherQuery, setTeacherQuery] = useState("");
 
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editFirstName, setEditFirstName] = useState("");
@@ -333,12 +336,29 @@ export const BranchTeachersPage = () => {
 	}, [groups, groupSearch]);
 
 	const filteredTeachers = useMemo(() => {
+		const query = normalizeSearch(teacherQuery);
 		return teachers.filter((teacher) => {
 			if (
 				filterDepartmentId &&
 				teacher.data.departmentId !== filterDepartmentId
 			)
 				return false;
+			if (query) {
+				const teacherAssignments = assignmentMap[teacher.id] ?? [];
+				const searchText = [
+					getTeacherDisplayName(teacher.data, teacher.id),
+					departmentMap[teacher.data.departmentId ?? ""]?.name ?? "",
+					teacher.data.login ?? "",
+					teacher.data.isBiqTeacher ? "BİQ" : "BİQ müəllimi deyil",
+					...teacherAssignments.map(
+						(item) =>
+							`${groupMap[item.groupId]?.name ?? ""} ${
+								groupMap[item.groupId]?.classLevel ?? ""
+							}`,
+					),
+				].join(" ");
+				if (!normalizeSearch(searchText).includes(query)) return false;
+			}
 			const teacherAssignments = assignmentMap[teacher.id] ?? [];
 			if (
 				filterSubjectId &&
@@ -359,18 +379,20 @@ export const BranchTeachersPage = () => {
 			return true;
 		});
 	}, [
-		teachers,
-		filterDepartmentId,
-		filterSubjectId,
-		filterGroupId,
-		filterClassLevel,
 		assignmentMap,
+		departmentMap,
+		filterClassLevel,
+		filterDepartmentId,
+		filterGroupId,
+		filterSubjectId,
 		groupMap,
+		teacherQuery,
+		teachers,
 	]);
 
 	const summary = useMemo(() => filteredTeachers.length, [filteredTeachers]);
-const teachersPagination = usePagination(filteredTeachers);
-const resetTeachersPage = teachersPagination.resetPage;
+	const teachersPagination = usePagination(filteredTeachers);
+	const resetTeachersPage = teachersPagination.resetPage;
 	const displayBranchName = branchName || "Filial";
 	const selectedAssignmentCount =
 		selectedGroupIds.length * selectedSubjectIds.length;
@@ -383,6 +405,7 @@ const resetTeachersPage = teachersPagination.resetPage;
 		filterSubjectId,
 		filterGroupId,
 		filterClassLevel,
+		teacherQuery,
 		resetTeachersPage,
 	]);
 
@@ -860,17 +883,107 @@ const resetTeachersPage = teachersPagination.resetPage;
 		);
 	};
 
+	const teacherTableColumns: Array<DataTableColumn<DocEntry<TeacherDoc>>> = [
+		{
+			key: "name",
+			header: "Müəllim adı",
+			sortValue: (teacher) => getTeacherDisplayName(teacher.data, teacher.id),
+			render: (teacher) => {
+				const teacherName = getTeacherDisplayName(teacher.data, teacher.id);
+				return (
+					<div className="stack gap-2">
+						<div className="list-title">{teacherName}</div>
+						{teacher.data.photoUrl && (
+							<img
+								src={teacher.data.photoUrl}
+								alt="Şəkil"
+								style={{ width: 48, height: 48, borderRadius: 12 }}
+							/>
+						)}
+					</div>
+				);
+			},
+		},
+		{
+			key: "department",
+			header: "Kafedra",
+			sortValue: (teacher) =>
+				departmentMap[teacher.data.departmentId ?? ""]?.name ?? "",
+			render: (teacher) =>
+				departmentMap[teacher.data.departmentId ?? ""]?.name ?? "-",
+		},
+		{
+			key: "category",
+			header: "Kateqoriya",
+			sortValue: (teacher) => teacher.data.category ?? "standard",
+			render: (teacher) =>
+				teacherCategories.find(
+					(item) => item.value === (teacher.data.category ?? "standard"),
+				)?.label ?? "-",
+		},
+		{
+			key: "biq",
+			header: "BİQ statusu",
+			sortValue: (teacher) =>
+				teacher.data.isBiqTeacher ? "BİQ/KİQ nəticəsi olan" : "BİQ/KİQ nəticəsi olmayan",
+			render: (teacher) => (
+				<StatusBadge tone={teacher.data.isBiqTeacher ? "info" : "accent"}>
+					{teacher.data.isBiqTeacher
+						? "BİQ/KİQ nəticəsi olan"
+						: "BİQ/KİQ nəticəsi olmayan"}
+				</StatusBadge>
+			),
+		},
+		{
+			key: "login",
+			header: "Login",
+			sortValue: (teacher) => teacher.data.login ?? "",
+			render: (teacher) => teacher.data.login ?? "-",
+		},
+		{
+			key: "assignments",
+			header: "Dərslər",
+			sortValue: (teacher) => assignmentMap[teacher.id]?.length ?? 0,
+			render: (teacher) => `${assignmentMap[teacher.id]?.length ?? 0} təyinat`,
+		},
+		{
+			key: "actions",
+			header: "",
+			render: (teacher) => (
+				<div className="actions">
+					<button
+						className="btn"
+						type="button"
+						onClick={() => handleEditStart(teacher)}
+					>
+						Redaktə
+					</button>
+					<Link
+						className="btn ghost"
+						to={`/branch/assignments?teacherId=${teacher.id}`}
+					>
+						Təyinat yarat
+					</Link>
+					<button
+						className="btn ghost"
+						type="button"
+						onClick={() => void handleDelete(teacher.id)}
+					>
+						Sil
+					</button>
+				</div>
+			),
+		},
+	];
+
 	return (
 		<div className="panel branch-page">
-			<div className="page-hero">
-				<div className="page-hero__content">
-					<div className="eyebrow">Filial heyəti</div>
-					<h1>Müəllimlər</h1>
-					<p>
-						Filiala aid müəllim siyahısı, kafedra bölgüsü və dərs təyinatları.
-					</p>
-				</div>
-				<div className="page-hero__aside">
+			<PageHeader
+				eyebrow="Filial heyəti"
+				title="Müəllimlər"
+				description="Filiala aid müəllim siyahısı, kafedra bölgüsü və dərs təyinatları."
+				actions={
+					<>
 					{isSuperAdmin && (
 						<BranchSelector
 							branchId={branchId}
@@ -878,9 +991,10 @@ const resetTeachersPage = teachersPagination.resetPage;
 							onChange={setBranchId}
 						/>
 					)}
-					<div className="stat-pill">Cəmi: {summary}</div>
-				</div>
-			</div>
+					<StatusBadge tone="neutral">Cəmi: {summary}</StatusBadge>
+					</>
+				}
+			/>
 			{isSuperAdmin && !branchId && (
 				<div className="notice">
 					Filial seçilməyib. Davam etmək üçün filial seçin.
@@ -1135,6 +1249,15 @@ const resetTeachersPage = teachersPagination.resetPage;
 						</button>
 					</div>
 					<div className="filters">
+						<label className="field">
+							<span className="label">Axtarış</span>
+							<input
+								className="input"
+								placeholder="Müəllim, kafedra və ya login üzrə axtar..."
+								value={teacherQuery}
+								onChange={(event) => setTeacherQuery(event.target.value)}
+							/>
+						</label>
 						<select
 							className="input"
 							value={filterDepartmentId}
@@ -1185,77 +1308,29 @@ const resetTeachersPage = teachersPagination.resetPage;
 								),
 							)}
 						</select>
+						<button
+							className="btn"
+							type="button"
+							onClick={() => {
+								setTeacherQuery("");
+								setFilterDepartmentId("");
+								setFilterSubjectId("");
+								setFilterGroupId("");
+								setFilterClassLevel("");
+							}}
+						>
+							Filterləri sıfırla
+						</button>
 					</div>
 
-					<div className="data-table">
-						<div className="data-row header">
-							<div>Müəllim</div>
-							<div>Kafedra</div>
-							<div>Kateqoriya</div>
-							<div>BİQ statusu</div>
-							<div>Login</div>
-							<div>Dərslər</div>
-							<div></div>
-						</div>
-						{teachersPagination.paginatedItems.map((teacher) => {
-							const teacherAssignments = assignmentMap[teacher.id] ?? [];
-							const teacherName = getTeacherDisplayName(
-								teacher.data,
-								teacher.id,
-							);
-							return (
-								<div className="data-row" key={teacher.id}>
-									<div className="stack">
-										<div className="list-title">{teacherName}</div>
-										{teacher.data.photoUrl && (
-											<img
-												src={teacher.data.photoUrl}
-												alt="Şəkil"
-												style={{ width: 48, height: 48, borderRadius: 12 }}
-											/>
-										)}
-									</div>
-									<div>
-										{departmentMap[teacher.data.departmentId ?? ""]?.name ??
-											"-"}
-									</div>
-									<div>
-										{teacherCategories.find(
-											(item) =>
-												item.value === (teacher.data.category ?? "standard"),
-										)?.label ?? "-"}
-									</div>
-									<div>{teacher.data.isBiqTeacher ? "BİQ" : "MİQ"}</div>
-									<div>{teacher.data.login ?? "-"}</div>
-									<div>{teacherAssignments.length} təyinat</div>
-									<div className="actions">
-										<button
-											className="btn"
-											type="button"
-											onClick={() => handleEditStart(teacher)}
-										>
-											Redaktə
-										</button>
-										<Link
-											className="btn ghost"
-											to={`/branch/assignments?teacherId=${teacher.id}`}
-										>
-											Təyinat yarat
-										</Link>
-										<button
-											className="btn ghost"
-											type="button"
-											onClick={() => void handleDelete(teacher.id)}
-										>
-											Sil
-										</button>
-									</div>
-								</div>
-							);
-						})}
-						{filteredTeachers.length === 0 && (
-							<div className="empty">Məlumat yoxdur.</div>
-						)}
+					<div className="mt-4">
+						<DataTable
+							columns={teacherTableColumns}
+							rows={teachersPagination.paginatedItems}
+							getRowKey={(teacher) => teacher.id}
+							emptyTitle="Bu filterlərə uyğun müəllim tapılmadı."
+							emptyDescription="Filterləri dəyişərək yenidən yoxlayın."
+						/>
 					</div>
 					{teachersPagination.totalItems > 0 && (
 						<PaginationControls

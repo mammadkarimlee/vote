@@ -145,6 +145,7 @@ const App = () => (
 					</RequireRole>
 				}
 			>
+				<Route index element={<Navigate to="/admin/dashboard/overview" replace />} />
 				<Route path="branches" element={<AdminBranchesPage />} />
 				<Route path="leadership" element={<BranchLeadershipPage />} />
 				<Route path="users" element={<AdminUsersPage />} />
