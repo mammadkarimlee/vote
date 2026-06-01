@@ -30,6 +30,7 @@ import {
 	buildPkpdSelfReviewNote,
 	isPkpdSelfReviewQuestionScoresError,
 } from "../../lib/pkpdSelfReview";
+import { getLeadershipVoteRoleStatus } from "../../lib/leadership";
 import {
 	computePkpdCompletion,
 	computePkpdPortfolioScore,
@@ -134,6 +135,9 @@ type TeacherRow = {
 	branchManagerSubmitted: boolean;
 	deputySubmitted: boolean;
 	departmentHeadSubmitted: boolean;
+	branchManagerEligible: boolean;
+	deputyEligible: boolean;
+	departmentHeadEligible: boolean;
 	selfWeightedScore: number | null;
 	biqWeightedScore: number | null;
 	examScore: number | null;
@@ -470,6 +474,7 @@ const getTeacherStatusInfo = (row: TeacherRow) => {
 };
 
 const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
+	const leadershipRoleStatus = getLeadershipVoteRoleStatus(teacher);
 	const rows = teacher.isBiqTeacher
 		? [
 				{
@@ -498,7 +503,14 @@ const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
 					label: "Rəhbərlik qiymətləndirməsi",
 					value: teacher.managementWeightedScore,
 					max: 10,
-					meta: `${teacher.leadershipSubmittedCount} / ${teacher.leadershipEligibleCount} səs`,
+					meta: (
+						<>
+							{teacher.leadershipSubmittedCount} / {teacher.leadershipEligibleCount} səs ·{" "}
+							<span className={leadershipRoleStatus.hasPending ? "font-semibold text-red-600 dark:text-red-300" : ""}>
+								{leadershipRoleStatus.pendingText}
+							</span>
+						</>
+					),
 				},
 				{
 					key: "exam",
@@ -533,7 +545,14 @@ const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
 					label: "Rəhbərlik qiymətləndirməsi",
 					value: teacher.managementWeightedScore,
 					max: 10,
-					meta: `${teacher.leadershipSubmittedCount} / ${teacher.leadershipEligibleCount} səs`,
+					meta: (
+						<>
+							{teacher.leadershipSubmittedCount} / {teacher.leadershipEligibleCount} səs ·{" "}
+							<span className={leadershipRoleStatus.hasPending ? "font-semibold text-red-600 dark:text-red-300" : ""}>
+								{leadershipRoleStatus.pendingText}
+							</span>
+						</>
+					),
 				},
 				{
 					key: "portfolio",
@@ -1483,6 +1502,9 @@ export const AdminCycleDetailPage = () => {
 					branchManagerSubmitted: leadershipSummary?.branchManagerSubmitted ?? false,
 					deputySubmitted: leadershipSummary?.deputySubmitted ?? false,
 					departmentHeadSubmitted: leadershipSummary?.departmentHeadSubmitted ?? false,
+					branchManagerEligible: leadershipSummary?.branchManagerEligible ?? false,
+					deputyEligible: leadershipSummary?.deputyEligible ?? false,
+					departmentHeadEligible: leadershipSummary?.departmentHeadEligible ?? false,
 					selfWeightedScore,
 					biqWeightedScore,
 					examScore,
@@ -1734,11 +1756,22 @@ export const AdminCycleDetailPage = () => {
 				key: "leadership",
 				header: "Rəhbərlik səsi",
 				sortValue: (row) => row.leadershipSubmittedCount,
-				render: (row) => (
-					<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
-						{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
-					</StatusBadge>
-				),
+				render: (row) => {
+					const roleStatus = getLeadershipVoteRoleStatus(row);
+					return (
+						<div className="grid gap-1">
+							<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
+								{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
+							</StatusBadge>
+							<div className="hint">{roleStatus.submittedText}</div>
+							{!row.leadershipComplete && (
+								<div className="hint font-semibold text-red-600 dark:text-red-300">
+									{roleStatus.pendingText}
+								</div>
+							)}
+						</div>
+					);
+				},
 			},
 			{
 				key: "status",
@@ -2380,6 +2413,7 @@ export const AdminCycleDetailPage = () => {
 		const scoreText = (value: number | null | undefined) => isMissingScore(value) ? "Daxil edilməyib" : formatScore(value ?? null);
 		const scoreWithMax = (value: number | null | undefined, max: number) => `${scoreText(value)} / ${max}`;
 		const leadershipVoteStatus = `${selectedTeacher.leadershipSubmittedCount} / ${selectedTeacher.leadershipEligibleCount}`;
+		const leadershipRoleStatus = getLeadershipVoteRoleStatus(selectedTeacher);
 		const leadershipCompletionText = selectedTeacher.leadershipComplete
 			? "Rəhbərlik qiymətləndirməsi tamamlanıb"
 			: "Rəhbərlik qiymətləndirməsi tamamlanmayıb";
@@ -2419,8 +2453,8 @@ export const AdminCycleDetailPage = () => {
 		const uniqueMissingLabels = Array.from(new Set(missingRows.map((row) => row.key === "portfolioScore" ? "Portfolio alt meyarları" : row.label)));
 		const hasAnyPortfolioScore = portfolioRows.some((row) => !isMissingScore(row.value));
 		const summaryHtml = isFinalReport
-			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div>`
-			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik statusu</span><strong>${leadershipCompletionText}</strong></div><p class="note">Qeyd: Bu göstərici yekun PKPD balı deyil. Bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra yekun nəticə və qərar formalaşdırılacaq.</p>`;
+			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik rolları</span><strong>${escapeHtml(leadershipRoleStatus.submittedText)}</strong></div>`
+			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><div class="summary-item"><span>Qərar</span><strong>Qərar verilməyib</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik statusu</span><strong>${leadershipCompletionText}</strong></div><div class="summary-item"><span>Rəhbərlik rolları</span><strong>${escapeHtml(leadershipRoleStatus.submittedText)}</strong></div><div class="summary-item"><span>Gözlənilən rəhbərlik səsi</span><strong>${escapeHtml(leadershipRoleStatus.pendingText)}</strong></div><p class="note">Qeyd: Bu göstərici yekun PKPD balı deyil. Bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra yekun nəticə və qərar formalaşdırılacaq.</p>`;
 		const totalLabel = isFinalReport ? "PKPD yekun balı" : "Daxil edilmiş cari cəm";
 		const totalValue = isFinalReport ? baseTotalScore : selectedTeacher.currentEnteredScore;
 		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>100</td></tr>`].join("");
@@ -3136,7 +3170,11 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 											tone={selectedTeacher.leadershipComplete ? "success" : "warning"}
 											label="Rəhbərlik səsi"
 											value={`${selectedTeacher.leadershipSubmittedCount} / ${selectedTeacher.leadershipEligibleCount}`}
-											meta={selectedTeacher.leadershipComplete ? "Tamamlanıb" : "Gözləyir"}
+											meta={
+												<span className={getLeadershipVoteRoleStatus(selectedTeacher).hasPending ? "font-semibold text-red-600 dark:text-red-300" : ""}>
+													{getLeadershipVoteRoleStatus(selectedTeacher).pendingText}
+												</span>
+											}
 										/>
 										<StatCard
 											tone="neutral"
@@ -3205,6 +3243,12 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 											{selectedTeacher.leadershipEligibleCount} ·{" "}
 											{selectedTeacher.leadershipComplete ? "tamamlanıb" : "tamamlanmayıb"}
 											{selectedTeacher.leadershipOverridden ? " · admin yekunlaşdırıb" : ""}
+										</div>
+										<div className="stat-meta">
+											{getLeadershipVoteRoleStatus(selectedTeacher).submittedText}
+										</div>
+										<div className={getLeadershipVoteRoleStatus(selectedTeacher).hasPending ? "stat-meta font-semibold text-red-600 dark:text-red-300" : "stat-meta"}>
+											{getLeadershipVoteRoleStatus(selectedTeacher).pendingText}
 										</div>
 										{leadershipStatus && <div className="notice">{leadershipStatus}</div>}
 										{userDoc?.role === "superadmin" &&

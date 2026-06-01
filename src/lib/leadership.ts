@@ -2,6 +2,7 @@ import type {
 	CampusLeadershipDoc,
 	CampusLeadershipRole,
 	LeadershipCoverageType,
+	LeadershipCompletionDoc,
 	LeadershipEvaluationDoc,
 	TeacherDoc,
 } from "./types";
@@ -35,6 +36,59 @@ export const leadershipCriteria = [
 		label: "Məktəbdaxili elektron platformadan düzgün istifadə",
 	},
 ] as const;
+
+const scoringLeadershipRoles = new Set<CampusLeadershipRole>([
+	"BRANCH_MANAGER",
+	"DEPUTY_DIRECTOR",
+	"DEPARTMENT_HEAD",
+]);
+
+type LeadershipRoleSummary = Pick<
+	LeadershipCompletionDoc,
+	| "branchManagerSubmitted"
+	| "deputySubmitted"
+	| "departmentHeadSubmitted"
+	| "branchManagerEligible"
+	| "deputyEligible"
+	| "departmentHeadEligible"
+>;
+
+const leadershipVoteRoles = [
+	{
+		label: "İcraçı direktor",
+		submittedKey: "branchManagerSubmitted",
+		eligibleKey: "branchManagerEligible",
+	},
+	{
+		label: "Tədris işləri üzrə direktor müavini",
+		submittedKey: "deputySubmitted",
+		eligibleKey: "deputyEligible",
+	},
+	{
+		label: "Kafedra rəhbəri",
+		submittedKey: "departmentHeadSubmitted",
+		eligibleKey: "departmentHeadEligible",
+	},
+] as const;
+
+export const getLeadershipVoteRoleStatus = (summary: LeadershipRoleSummary) => {
+	const submitted = leadershipVoteRoles
+		.filter((role) => summary[role.submittedKey])
+		.map((role) => role.label);
+	const pending = leadershipVoteRoles
+		.filter((role) => summary[role.eligibleKey] && !summary[role.submittedKey])
+		.map((role) => role.label);
+
+	return {
+		hasPending: pending.length > 0,
+		submittedText:
+			submitted.length > 0 ? `Səs verib: ${submitted.join(", ")}` : "Səs verən yoxdur",
+		pendingText:
+			pending.length > 0
+				? `Gözlənilir: ${pending.join(", ")}`
+				: "Bütün rəhbərlik səsləri verilib",
+	};
+};
 
 export type LeadershipCriterionKey = (typeof leadershipCriteria)[number]["key"];
 export type LeadershipCriterionScores = Record<LeadershipCriterionKey, number | null>;
@@ -138,6 +192,7 @@ export const eligibleLeadershipEvaluators = (
 			leadership.campusId !== teacher.branchId ||
 			!leadership.isActive ||
 			!leadership.canEvaluateTeachers ||
+			!scoringLeadershipRoles.has(leadership.role) ||
 			leadership.coverageType === "PENDING" ||
 			leadership.userId === teacher.uid ||
 			(targetIsActiveBranchManager && leadership.role !== "BRANCH_MANAGER") ||

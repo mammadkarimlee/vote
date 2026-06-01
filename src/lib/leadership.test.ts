@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	computeLeadershipVoteScore,
 	eligibleLeadershipEvaluators,
+	getLeadershipVoteRoleStatus,
 	summarizeLeadershipVotes,
 } from "./leadership";
 import type { CampusLeadershipDoc, LeadershipEvaluationDoc } from "./types";
@@ -126,6 +127,39 @@ describe("eligibleLeadershipEvaluators", () => {
 				entries,
 			),
 		).toEqual([]);
+	});
+
+	it("ignores leadership roles outside the three-role PKPD model", () => {
+		const entries = [
+			{
+				id: "subject",
+				data: leadership("u-subject", "SUBJECT_DEPUTY", "ALL_CAMPUS_TEACHERS"),
+			},
+		];
+
+		expect(
+			eligibleLeadershipEvaluators(
+				{ id: "teacher-1", branchId: "campus-1", uid: "u-teacher" },
+				entries,
+			),
+		).toEqual([]);
+	});
+});
+
+it("formats submitted and pending leadership roles", () => {
+	expect(
+		getLeadershipVoteRoleStatus({
+			branchManagerSubmitted: true,
+			deputySubmitted: false,
+			departmentHeadSubmitted: false,
+			branchManagerEligible: true,
+			deputyEligible: true,
+			departmentHeadEligible: true,
+		}),
+	).toEqual({
+		hasPending: true,
+		submittedText: "Səs verib: İcraçı direktor",
+		pendingText: "Gözlənilir: Tədris işləri üzrə direktor müavini, Kafedra rəhbəri",
 	});
 });
 

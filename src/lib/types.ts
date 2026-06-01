@@ -184,6 +184,9 @@ export type LeadershipCompletionDoc = {
 	branchManagerSubmitted: boolean;
 	deputySubmitted: boolean;
 	departmentHeadSubmitted: boolean;
+	branchManagerEligible: boolean;
+	deputyEligible: boolean;
+	departmentHeadEligible: boolean;
 };
 
 export type QuestionDoc = {

@@ -14,6 +14,7 @@ import {
 } from "../../components/DataTable";
 import { useFeedbackState } from "../../components/feedback/FeedbackProvider";
 import { PaginationControls } from "../../components/PaginationControls";
+import { getLeadershipVoteRoleStatus } from "../../lib/leadership";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
 	mapAnswerRow,
@@ -134,6 +135,12 @@ type SummaryRow = {
 	leadershipEligibleCount: number;
 	leadershipComplete: boolean;
 	leadershipOverridden: boolean;
+	branchManagerSubmitted: boolean;
+	deputySubmitted: boolean;
+	departmentHeadSubmitted: boolean;
+	branchManagerEligible: boolean;
+	deputyEligible: boolean;
+	departmentHeadEligible: boolean;
 	selfScore: number | null;
 	teacherCriteriaTotal: number | null;
 	hrSelfReviewScore: number | null;
@@ -199,6 +206,7 @@ const getSummaryStatusInfo = (row: SummaryRow) => {
 };
 
 const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
+	const leadershipRoleStatus = getLeadershipVoteRoleStatus(row);
 	const rows = row.isBiqTeacher
 		? [
 				{
@@ -225,7 +233,14 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 					label: "Rəhbərlik qiymətləndirməsi",
 					value: row.managementScore,
 					max: 10,
-					meta: `${row.leadershipSubmittedCount} / ${row.leadershipEligibleCount} səs`,
+					meta: (
+						<>
+							{row.leadershipSubmittedCount} / {row.leadershipEligibleCount} səs ·{" "}
+							<span className={leadershipRoleStatus.hasPending ? "font-semibold text-red-600 dark:text-red-300" : ""}>
+								{leadershipRoleStatus.pendingText}
+							</span>
+						</>
+					),
 				},
 				{
 					key: "exam",
@@ -258,7 +273,14 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 					label: "Rəhbərlik qiymətləndirməsi",
 					value: row.managementScore,
 					max: 10,
-					meta: `${row.leadershipSubmittedCount} / ${row.leadershipEligibleCount} səs`,
+					meta: (
+						<>
+							{row.leadershipSubmittedCount} / {row.leadershipEligibleCount} səs ·{" "}
+							<span className={leadershipRoleStatus.hasPending ? "font-semibold text-red-600 dark:text-red-300" : ""}>
+								{leadershipRoleStatus.pendingText}
+							</span>
+						</>
+					),
 				},
 				{
 					key: "portfolio",
@@ -1115,6 +1137,12 @@ export const BranchPkpdPage = () => {
 				leadershipEligibleCount: leadershipSummary?.eligibleCount ?? 0,
 				leadershipComplete: leadershipSummary?.isComplete ?? false,
 				leadershipOverridden: leadershipSummary?.isOverridden ?? false,
+				branchManagerSubmitted: leadershipSummary?.branchManagerSubmitted ?? false,
+				deputySubmitted: leadershipSummary?.deputySubmitted ?? false,
+				departmentHeadSubmitted: leadershipSummary?.departmentHeadSubmitted ?? false,
+				branchManagerEligible: leadershipSummary?.branchManagerEligible ?? false,
+				deputyEligible: leadershipSummary?.deputyEligible ?? false,
+				departmentHeadEligible: leadershipSummary?.departmentHeadEligible ?? false,
 				selfScore,
 				teacherCriteriaTotal,
 				hrSelfReviewScore,
@@ -1213,11 +1241,22 @@ export const BranchPkpdPage = () => {
 				key: "leadership",
 				header: "Rəhbərlik səsi",
 				sortValue: (row) => row.leadershipSubmittedCount,
-				render: (row) => (
-					<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
-						{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
-					</StatusBadge>
-				),
+				render: (row) => {
+					const roleStatus = getLeadershipVoteRoleStatus(row);
+					return (
+						<div className="grid gap-1">
+							<StatusBadge tone={row.leadershipComplete ? "success" : "warning"}>
+								{row.leadershipSubmittedCount} / {row.leadershipEligibleCount}
+							</StatusBadge>
+							<div className="hint">{roleStatus.submittedText}</div>
+							{!row.leadershipComplete && (
+								<div className="hint font-semibold text-red-600 dark:text-red-300">
+									{roleStatus.pendingText}
+								</div>
+							)}
+						</div>
+					);
+				},
 			},
 			{
 				key: "score",
@@ -3023,6 +3062,8 @@ export const BranchPkpdPage = () => {
 									<div className="stat-label">Rəhbərlik qiymətləndirməsi</div>
 									<div className="stat-value">{formatScoreValue(selectedSummaryRow.managementScore)} / 10</div>
 									<div className="stat-meta">{selectedSummaryRow.leadershipSubmittedCount} / {selectedSummaryRow.leadershipEligibleCount} səs verilib{selectedSummaryRow.leadershipComplete ? "" : " · tamamlanmayıb"}{selectedSummaryRow.leadershipOverridden ? " · admin yekunlaşdırıb" : ""}</div>
+									<div className="stat-meta">{getLeadershipVoteRoleStatus(selectedSummaryRow).submittedText}</div>
+									<div className={getLeadershipVoteRoleStatus(selectedSummaryRow).hasPending ? "stat-meta font-semibold text-red-600 dark:text-red-300" : "stat-meta"}>{getLeadershipVoteRoleStatus(selectedSummaryRow).pendingText}</div>
 									{(userDoc?.role === "branch_admin" || userDoc?.role === "superadmin") &&
 										selectedSummaryRow.leadershipSubmittedCount > 0 &&
 										selectedSummaryRow.leadershipSubmittedCount < selectedSummaryRow.leadershipEligibleCount && (

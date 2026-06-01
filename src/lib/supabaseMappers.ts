@@ -206,6 +206,9 @@ export const mapLeadershipCompletionRow = (
 	branchManagerSubmitted: row.branch_manager_submitted ?? false,
 	deputySubmitted: row.deputy_submitted ?? false,
 	departmentHeadSubmitted: row.department_head_submitted ?? false,
+	branchManagerEligible: row.branch_manager_eligible ?? false,
+	deputyEligible: row.deputy_eligible ?? false,
+	departmentHeadEligible: row.department_head_eligible ?? false,
 });
 
 export const mapQuestionRow = (row: Row): QuestionDoc => ({
