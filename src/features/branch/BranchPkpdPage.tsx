@@ -23,6 +23,7 @@ import {
 	mapPkpdAchievementRow,
 	mapPkpdDecisionRow,
 	mapPkpdExamRow,
+	mapPkpdFinalReviewRow,
 	mapPkpdPortfolioRow,
 	mapPkpdSelfReviewRow,
 	mapPkpdTeacherBiqAverageRow,
@@ -39,6 +40,10 @@ import {
 	buildPkpdSelfReviewNote,
 	isPkpdSelfReviewQuestionScoresError,
 } from "../../lib/pkpdSelfReview";
+import {
+	buildRuleBasedPkpdFinalReview,
+	type GeneratedPkpdFinalReview,
+} from "../../lib/pkpdFinalReview";
 import {
 	computePkpdCompletion,
 	computePkpdPortfolioScore,
@@ -58,6 +63,7 @@ import type {
 	PkpdDecisionDoc,
 	PkpdDecisionStatus,
 	PkpdExamDoc,
+	PkpdFinalReviewDoc,
 	PkpdPortfolioDoc,
 	PkpdSelfReviewDoc,
 	PkpdTeacherBiqAverageDoc,
@@ -297,6 +303,28 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 	}));
 };
 
+const getFinalReviewComponents = (row: SummaryRow) =>
+	row.isBiqTeacher
+		? [
+				{ key: "subjectMasteryScore", label: "Balabilgənin fənni mənimsəməsi", value: row.biqScore, max: 15 },
+				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: row.studentScore, max: 15 },
+				{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: row.selfScore, max: 10 },
+				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: row.managementScore, max: 10 },
+				{ key: "examScore", label: "Attestasiya imtahanı", value: row.examScore, max: 30 },
+				{ key: "portfolioScore", label: "Portfolio", value: row.portfolioScore, max: 20 },
+			]
+		: [
+				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: row.studentScore, max: 20 },
+				{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: row.selfScore, max: 10 },
+				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: row.managementScore, max: 10 },
+				{ key: "portfolioScore", label: "Portfolio", value: row.portfolioScore, max: 60 },
+			];
+
+const getMissingSummaryScoreLabels = (row: SummaryRow) =>
+	getFinalReviewComponents(row)
+		.filter((component) => isMissingScore(component.value))
+		.map((component) => component.label);
+
 const getIsBiqTeacher = (teacher: TeacherDoc) =>
 	teacher.isBiqTeacher !== false;
 
@@ -361,6 +389,9 @@ export const BranchPkpdPage = () => {
 	const [decisions, setDecisions] = useState<Array<DocEntry<PkpdDecisionDoc>>>(
 		[],
 	);
+	const [finalReviews, setFinalReviews] = useState<
+		Array<DocEntry<PkpdFinalReviewDoc>>
+	>([]);
 	const [leadershipCompletion, setLeadershipCompletion] = useState<
 		Record<string, LeadershipCompletionDoc>
 	>({});
@@ -413,6 +444,14 @@ export const BranchPkpdPage = () => {
 	const [decisionDrafts, setDecisionDrafts] = useState<
 		Record<string, { status: PkpdDecisionStatus; note: string }>
 	>({});
+	const [finalReviewDraft, setFinalReviewDraft] = useState("");
+	const [finalRecommendationDraft, setFinalRecommendationDraft] = useState("");
+	const [generatedFinalReviewDraft, setGeneratedFinalReviewDraft] =
+		useState<GeneratedPkpdFinalReview | null>(null);
+	const [finalReviewGeneratedAtDraft, setFinalReviewGeneratedAtDraft] = useState<
+		string | null
+	>(null);
+	const [finalReviewStatus, setFinalReviewStatus] = useFeedbackState();
 	const [selectedSummaryTeacherId, setSelectedSummaryTeacherId] = useState<
 		string | null
 	>(null);
@@ -516,6 +555,7 @@ export const BranchPkpdPage = () => {
 				selfReviewRows,
 				achievementRows,
 				decisionRows,
+				finalReviewResult,
 				leadershipSummaryResult,
 			] = await Promise.all([
 				fetchAllBatched<any>(async (from, to) =>
@@ -616,6 +656,12 @@ export const BranchPkpdPage = () => {
 						.order("id")
 						.range(from, to),
 				),
+				supabase
+					.from("pkpd_final_reviews")
+					.select("*")
+					.eq("org_id", ORG_ID)
+					.eq("cycle_id", selectedCycleId)
+					.eq("branch_id", branchId),
 				supabase.rpc("leadership_score_summary", {
 					p_cycle_id: selectedCycleId,
 					p_campus_id: branchId,
@@ -706,6 +752,15 @@ export const BranchPkpdPage = () => {
 					};
 					return acc;
 				}, {}),
+			);
+			if (finalReviewResult.error) {
+				console.warn("PKPD final reviews load skipped", finalReviewResult.error);
+			}
+			setFinalReviews(
+				(finalReviewResult.data ?? []).map((row) => ({
+					id: row.id,
+					data: mapPkpdFinalReviewRow(row),
+				})),
 			);
 			setLeadershipCompletion(
 				Object.fromEntries(
@@ -892,6 +947,13 @@ export const BranchPkpdPage = () => {
 				decisions.map((item) => [item.data.teacherId, item.data]),
 			),
 		[decisions],
+	);
+	const finalReviewMap = useMemo(
+		() =>
+			Object.fromEntries(
+				finalReviews.map((item) => [item.data.teacherId, item.data]),
+			),
+		[finalReviews],
 	);
 
 	const teacherSelfResponses = useMemo(() => {
@@ -1332,6 +1394,26 @@ export const BranchPkpdPage = () => {
 				: null,
 		[selectedSummaryTeacherId, summaryRows],
 	);
+	const selectedSummaryFinalReview = selectedSummaryRow
+		? (finalReviewMap[selectedSummaryRow.teacherId] ?? null)
+		: null;
+	useEffect(() => {
+		setFinalReviewDraft(selectedSummaryFinalReview?.reviewText ?? "");
+		setFinalRecommendationDraft(
+			selectedSummaryFinalReview?.recommendationText ?? "",
+		);
+		setGeneratedFinalReviewDraft(null);
+		setFinalReviewGeneratedAtDraft(
+			selectedSummaryFinalReview?.generatedAt
+				? String(selectedSummaryFinalReview.generatedAt)
+				: null,
+		);
+		setFinalReviewStatus(null);
+	}, [
+		selectedSummaryFinalReview,
+		selectedSummaryTeacherId,
+		setFinalReviewStatus,
+	]);
 	const summaryByTeacherId = useMemo(
 		() => Object.fromEntries(summaryRows.map((row) => [row.teacherId, row])),
 		[summaryRows],
@@ -2320,6 +2402,110 @@ export const BranchPkpdPage = () => {
 		setAchievements((prev) => prev.filter((item) => item.id !== id));
 	};
 
+	const handleGenerateFinalReview = async () => {
+		if (!selectedCycleId || !selectedSummaryRow) return;
+		if (
+			selectedSummaryFinalReview &&
+			!window.confirm(
+				"Mövcud rəy yenidən hazırlanacaq. Davam etmək istəyirsiniz?",
+			)
+		) {
+			return;
+		}
+
+		const generatedReview = buildRuleBasedPkpdFinalReview({
+			isComplete: selectedSummaryRow.isComplete,
+			baseTotalScore: selectedSummaryRow.baseTotalScore,
+			currentEnteredScore: selectedSummaryRow.currentEnteredScore,
+			leadershipComplete: selectedSummaryRow.leadershipComplete,
+			missingFields: getMissingSummaryScoreLabels(selectedSummaryRow),
+			components: getFinalReviewComponents(selectedSummaryRow),
+		});
+		const generatedAt = new Date().toISOString();
+		setFinalReviewDraft(generatedReview.reviewText);
+		setFinalRecommendationDraft(generatedReview.recommendationText);
+		setGeneratedFinalReviewDraft(generatedReview);
+		setFinalReviewGeneratedAtDraft(generatedAt);
+		setFinalReviewStatus(
+			"Rəy hazırlandı. Yoxlayıb redaktə etdikdən sonra Saxla düyməsinə klik edin.",
+		);
+
+		const { error } = await supabase.rpc("log_pkpd_final_review_generation", {
+			p_cycle_id: selectedCycleId,
+			p_teacher_id: selectedSummaryRow.teacherId,
+			p_action: selectedSummaryFinalReview ? "REGENERATED" : "GENERATED",
+			p_after: {
+				review_text: generatedReview.reviewText,
+				recommendation_text: generatedReview.recommendationText,
+			},
+		});
+		if (error) {
+			console.warn("PKPD final review generation audit failed", error);
+		}
+	};
+
+	const handleSaveFinalReview = async () => {
+		if (!branchId || !selectedCycleId || !selectedSummaryRow) return;
+		const reviewText = finalReviewDraft.trim();
+		const recommendationText = finalRecommendationDraft.trim();
+		if (!reviewText || !recommendationText) {
+			setFinalReviewStatus("Rəy və tövsiyə mətnlərini daxil edin.");
+			return;
+		}
+
+		const changedFromGenerated =
+			generatedFinalReviewDraft !== null &&
+			(generatedFinalReviewDraft.reviewText !== reviewText ||
+				generatedFinalReviewDraft.recommendationText !== recommendationText);
+		const changedFromSaved =
+			selectedSummaryFinalReview !== null &&
+			(selectedSummaryFinalReview.reviewText !== reviewText ||
+				selectedSummaryFinalReview.recommendationText !== recommendationText);
+		const payload = {
+			org_id: ORG_ID,
+			branch_id: branchId,
+			cycle_id: selectedCycleId,
+			teacher_id: selectedSummaryRow.teacherId,
+			review_text: reviewText,
+			recommendation_text: recommendationText,
+			generated_by: generatedFinalReviewDraft
+				? (user?.id ?? null)
+				: (selectedSummaryFinalReview?.generatedBy ?? null),
+			generated_at:
+				finalReviewGeneratedAtDraft ??
+				(selectedSummaryFinalReview?.generatedAt
+					? String(selectedSummaryFinalReview.generatedAt)
+					: null),
+			updated_by: user?.id ?? null,
+			updated_at: new Date().toISOString(),
+			is_manual_edited: generatedFinalReviewDraft
+				? changedFromGenerated
+				: selectedSummaryFinalReview
+					? Boolean(selectedSummaryFinalReview.isManualEdited) ||
+						changedFromSaved
+					: true,
+		};
+		const { data, error } = await supabase
+			.from("pkpd_final_reviews")
+			.upsert(payload, { onConflict: "org_id,cycle_id,teacher_id" })
+			.select("*")
+			.single();
+		if (error || !data) {
+			setFinalReviewStatus(
+				`Yekun rəy saxlanmadı: ${error?.message ?? "naməlum xəta"}`,
+			);
+			return;
+		}
+
+		const mappedReview = mapPkpdFinalReviewRow(data);
+		setFinalReviews((previous) => [
+			...previous.filter((item) => item.data.teacherId !== mappedReview.teacherId),
+			{ id: data.id, data: mappedReview },
+		]);
+		setGeneratedFinalReviewDraft(null);
+		setFinalReviewStatus("Yekun rəy və tövsiyə saxlanıldı.");
+	};
+
 	const handleSaveDecision = async (teacherId: string) => {
 		if (!branchId || !selectedCycleId) return;
 		const draft = decisionDrafts[teacherId] ?? { status: "PENDING", note: "" };
@@ -3138,6 +3324,42 @@ export const BranchPkpdPage = () => {
 										</div>
 									))}
 									{selectedSummaryAssignments.length === 0 && <div className="empty">Bu müəllim üçün cari ildə dərs təyinatı yoxdur.</div>}
+								</div>
+							</div>
+							<div className="card">
+								<div className="section-header">
+									<div>
+										<div className="section-kicker">Yekun sənəd</div>
+										<h3 className="section-title">Yekun rəy və tövsiyə</h3>
+										<div className="hint">Rule-based şablon nəticələrə əsasən ilkin mətn hazırlayır. Saxlamadan əvvəl mətni redaktə edə bilərsiniz.</div>
+									</div>
+									<button className="btn primary" type="button" onClick={() => void handleGenerateFinalReview()}>
+										{selectedSummaryFinalReview ? "Yenidən hazırla" : "Yekun rəyi hazırla"}
+									</button>
+								</div>
+								<div className="grid gap-4">
+									<label className="field">
+										<span className="label">Rəy</span>
+										<textarea className="input min-h-36" rows={6} value={finalReviewDraft} onChange={(event) => setFinalReviewDraft(event.target.value)} />
+									</label>
+									<label className="field">
+										<span className="label">Tövsiyə</span>
+										<textarea className="input min-h-28" rows={5} value={finalRecommendationDraft} onChange={(event) => setFinalRecommendationDraft(event.target.value)} />
+									</label>
+									<div className="form-row">
+										<button className="btn primary" type="button" onClick={() => void handleSaveFinalReview()} disabled={!finalReviewDraft.trim() || !finalRecommendationDraft.trim()}>Saxla</button>
+										{selectedSummaryFinalReview && (
+											<button className="btn ghost" type="button" onClick={() => void handleGenerateFinalReview()}>Yenidən hazırla</button>
+										)}
+									</div>
+									{selectedSummaryFinalReview && (
+										<div className="hint">
+											Son yenilənmə: {selectedSummaryFinalReview.updatedAt ? new Date(String(selectedSummaryFinalReview.updatedAt)).toLocaleString("az-AZ") : "—"}
+											{" · "}
+											Redaktə edən: {selectedSummaryFinalReview.updatedBy === user?.id ? (userDoc?.displayName ?? userDoc?.login ?? selectedSummaryFinalReview.updatedBy) : (selectedSummaryFinalReview.updatedBy ?? "—")}
+										</div>
+									)}
+									{finalReviewStatus && <div className="notice">{finalReviewStatus}</div>}
 								</div>
 							</div>
 							<div className="card">
