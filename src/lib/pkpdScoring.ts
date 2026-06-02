@@ -151,6 +151,8 @@ export const computePkpdCompletion = (
 	evaluationType: PkpdEvaluationType,
 	parts: PkpdScoreParts,
 ) => {
+	const hasWithoutBiqExam =
+		evaluationType === "WITHOUT_BIQ" && isEnteredPkpdScore(parts.examScore);
 	const requiredScores =
 		evaluationType === "WITH_BIQ"
 			? [
@@ -166,10 +168,14 @@ export const computePkpdCompletion = (
 					parts.selfScore,
 					parts.managementScore,
 					parts.portfolioScore,
+					...(hasWithoutBiqExam ? [parts.examScore] : []),
 				];
-	const currentEnteredScore = requiredScores
+	const rawCurrentEnteredScore = requiredScores
 		.filter(isEnteredPkpdScore)
 		.reduce((sum, value) => sum + value, 0);
+	const currentEnteredScore = hasWithoutBiqExam
+		? (rawCurrentEnteredScore * 100) / 130
+		: rawCurrentEnteredScore;
 	const isComplete = requiredScores.every(isEnteredPkpdScore);
 
 	return {

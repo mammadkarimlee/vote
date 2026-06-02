@@ -506,8 +506,8 @@ type PkpdReportOptions = {
 const isMissingScore = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value);
 
-const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] =>
-	teacher.isBiqTeacher
+const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] => {
+	const rows = teacher.isBiqTeacher
 		? [
 				{ key: "subjectMasteryScore", label: "Balabilgənin fənni mənimsəməsi", value: teacher.biqWeightedScore, max: 15 },
 				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: teacher.studentWeightedScore, max: 15 },
@@ -522,6 +522,18 @@ const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] =>
 				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: teacher.managementWeightedScore, max: 10 },
 				{ key: "portfolioScore", label: "Portfolio", value: teacher.portfolioScore, max: 60 },
 			];
+
+	if (!teacher.isBiqTeacher && !isMissingScore(teacher.examScore)) {
+		rows.splice(rows.length - 1, 0, {
+			key: "examScore",
+			label: "Attestasiya imtahanı",
+			value: teacher.examScore,
+			max: 30,
+		});
+	}
+
+	return rows;
+};
 
 const getTeacherStatusInfo = (row: TeacherRow) => {
 	if (!row.isComplete) {
@@ -627,6 +639,16 @@ const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
 					max: 60,
 				},
 			];
+
+	if (!teacher.isBiqTeacher && !isMissingScore(teacher.examScore)) {
+		rows.splice(rows.length - 1, 0, {
+			key: "exam",
+			label: "Attestasiya imtahanı",
+			value: teacher.examScore,
+			max: 30,
+			meta: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
+		});
+	}
 
 	return rows.map((row) => ({
 		...row,
@@ -1569,7 +1591,7 @@ export const AdminCycleDetailPage = () => {
 							? null
 							: (biqAvg * weights.biq) / 100
 						: null;
-				const examScore = isBiqTeacher ? examInputScore : null;
+				const examScore = examInputScore;
 				const portfolioScore = computePkpdPortfolioScore(
 					portfolioMap[teacher.id] ?? null,
 					category,
@@ -2826,7 +2848,6 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		const rawExamScore = miqScoreDraft.trim();
 		const parsedExamScore = rawExamScore ? Number(rawExamScore) : null;
 		if (
-			isBiqTeacher &&
 			rawExamScore &&
 			(parsedExamScore === null ||
 				Number.isNaN(parsedExamScore) ||
@@ -2879,7 +2900,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			}
 		}
 
-		if (isBiqTeacher && rawExamScore) {
+		if (rawExamScore) {
 			const { error: examError } = await supabase
 				.from("pkpd_exam_results")
 				.upsert(
@@ -2930,7 +2951,9 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		setAssessmentStatus(
 			isBiqTeacher
 				? "Müəllim BİQ müəllimi, BİQ ortalaması və attestasiya imtahanı ilə saxlanıldı"
-				: "Müəllim BİQ olmayan fənn müəllimi kimi saxlanıldı; əvvəlki imtahan qeydləri silinmədi və hesaba qatılmır",
+				: rawExamScore
+					? "Müəllim BİQ olmayan fənn müəllimi kimi attestasiya imtahanı ilə saxlanıldı; xam cəm 130 maksimumdan 100 şkalasına çevrilir"
+					: "Müəllim BİQ olmayan fənn müəllimi kimi saxlanıldı",
 		);
 		void refreshSummaryCache();
 	};
@@ -3738,6 +3761,18 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 											</div>
 										</>
 									)}
+									{!selectedTeacher.isBiqTeacher &&
+										!isMissingScore(selectedTeacher.examScore) && (
+											<div className="stat-card">
+												<div className="stat-label">Attestasiya imtahanı</div>
+												<div className="stat-value">
+													{formatScore(selectedTeacher.examScore)}
+												</div>
+												<div className="stat-meta">
+													Xam cəm 130 maksimumdan 100 şkalasına çevrilir
+												</div>
+											</div>
+										)}
 									<div className="stat-card">
 										<div className="stat-label">Portfolio</div>
 										<div className="stat-value">
@@ -3883,21 +3918,19 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 												/>
 											</label>
 										)}
-										{assessmentMode === "WITH_BIQ" && (
-											<label className="field">
-												<span className="label">Attestasiya imtahanı balı</span>
-												<input
-													className="input"
-													type="number"
-													min="0"
-													max="30"
-													step="0.01"
-													placeholder="0-30"
-													value={miqScoreDraft}
-													onChange={(event) => setMiqScoreDraft(event.target.value)}
-												/>
-											</label>
-										)}
+										<label className="field">
+											<span className="label">Attestasiya imtahanı balı</span>
+											<input
+												className="input"
+												type="number"
+												min="0"
+												max="30"
+												step="0.01"
+												placeholder="0-30"
+												value={miqScoreDraft}
+												onChange={(event) => setMiqScoreDraft(event.target.value)}
+											/>
+										</label>
 										<button
 											className="btn primary"
 											type="button"

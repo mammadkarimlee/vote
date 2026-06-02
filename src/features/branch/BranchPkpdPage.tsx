@@ -296,6 +296,16 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 				},
 			];
 
+	if (!row.isBiqTeacher && !isMissingScore(row.examScore)) {
+		rows.splice(rows.length - 1, 0, {
+			key: "exam",
+			label: "Attestasiya imtahanı",
+			value: row.examScore,
+			max: 30,
+			meta: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
+		});
+	}
+
 	return rows.map((item) => ({
 		...item,
 		value: formatScoreOrMissing(item.value),
@@ -303,8 +313,8 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 	}));
 };
 
-const getFinalReviewComponents = (row: SummaryRow) =>
-	row.isBiqTeacher
+const getFinalReviewComponents = (row: SummaryRow) => {
+	const components = row.isBiqTeacher
 		? [
 				{ key: "subjectMasteryScore", label: "Balabilgənin fənni mənimsəməsi", value: row.biqScore, max: 15 },
 				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: row.studentScore, max: 15 },
@@ -319,6 +329,18 @@ const getFinalReviewComponents = (row: SummaryRow) =>
 				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: row.managementScore, max: 10 },
 				{ key: "portfolioScore", label: "Portfolio", value: row.portfolioScore, max: 60 },
 			];
+
+	if (!row.isBiqTeacher && !isMissingScore(row.examScore)) {
+		components.splice(components.length - 1, 0, {
+			key: "examScore",
+			label: "Attestasiya imtahanı",
+			value: row.examScore,
+			max: 30,
+		});
+	}
+
+	return components;
+};
 
 const getMissingSummaryScoreLabels = (row: SummaryRow) =>
 	getFinalReviewComponents(row)
@@ -1093,10 +1115,11 @@ export const BranchPkpdPage = () => {
 		return stats;
 	}, [answers, questions, tasks]);
 
-	const examTeachers = useMemo(
+	const biqTeachers = useMemo(
 		() => teachers.filter((teacher) => getIsBiqTeacher(teacher.data)),
 		[teachers],
 	);
+	const examTeachers = teachers;
 
 	const summaryRows = useMemo<SummaryRow[]>(() => {
 		return teachers.map((teacher) => {
@@ -1159,7 +1182,7 @@ export const BranchPkpdPage = () => {
 						: (biqAvg * weights.biq) / 100
 					: null;
 
-			const examScore = isBiqTeacher ? examInputScore : null;
+			const examScore = examInputScore;
 			const portfolioScore = computePkpdPortfolioScore(
 				portfolioMap[teacher.id] ?? null,
 				category,
@@ -1238,7 +1261,7 @@ export const BranchPkpdPage = () => {
 
 	const biqPagination = usePagination(biqResults);
 	const teacherBiqPagination = usePagination(teacherBiqResults);
-	const teacherBiqAveragePagination = usePagination(examTeachers);
+	const teacherBiqAveragePagination = usePagination(biqTeachers);
 	const examPagination = usePagination(examTeachers);
 	const achievementPagination = usePagination(achievements);
 
@@ -2017,7 +2040,6 @@ export const BranchPkpdPage = () => {
 		}> = [];
 
 		let missingTeacher = 0;
-		let nonBiqTeacher = 0;
 		let invalidScore = 0;
 
 		rows.forEach((row) => {
@@ -2051,11 +2073,6 @@ export const BranchPkpdPage = () => {
 					: null);
 			if (!teacherId) {
 				missingTeacher += 1;
-				return;
-			}
-
-			if (!getIsBiqTeacher(teacherMap[teacherId])) {
-				nonBiqTeacher += 1;
 				return;
 			}
 
@@ -2117,7 +2134,7 @@ export const BranchPkpdPage = () => {
 		);
 
 		setExamImportStatus(
-			`Yükləndi: ${prepared.length}. Müəllim tapılmadı: ${missingTeacher}. BİQ olmayan müəllim: ${nonBiqTeacher}. Bal səhv: ${invalidScore}.`,
+			`Yükləndi: ${prepared.length}. Müəllim tapılmadı: ${missingTeacher}. Bal səhv: ${invalidScore}.`,
 		);
 	};
 
@@ -2889,7 +2906,7 @@ export const BranchPkpdPage = () => {
 									yekun hesablamada qrup/fənn ortalamasından üstün götürülür.
 								</p>
 							</div>
-							<div className="stat-pill">Cəmi: {examTeachers.length}</div>
+							<div className="stat-pill">Cəmi: {biqTeachers.length}</div>
 						</div>
 						<div className="data-table">
 							<div className="data-row header">
@@ -2949,11 +2966,11 @@ export const BranchPkpdPage = () => {
 									</div>
 								);
 							})}
-							{examTeachers.length === 0 && (
+							{biqTeachers.length === 0 && (
 								<div className="empty">BİQ ortalaması üçün müəllim yoxdur.</div>
 							)}
 						</div>
-						{examTeachers.length > 0 && (
+						{biqTeachers.length > 0 && (
 							<PaginationControls
 								totalItems={teacherBiqAveragePagination.totalItems}
 								page={teacherBiqAveragePagination.page}
@@ -2971,7 +2988,7 @@ export const BranchPkpdPage = () => {
 						<div className="section-header">
 							<div>
 								<h3>Attestasiya imtahanı (0-30)</h3>
-								<p className="hint">BİQ keçirilən fənn müəllimləri üçün attestasiya imtahanı balı.</p>
+								<p className="hint">Attestasiyada iştirak edən müəllimlər üçün imtahan balı.</p>
 							</div>
 							<div className="stat-pill">Cəmi: {examTeachers.length}</div>
 						</div>
@@ -3275,6 +3292,14 @@ export const BranchPkpdPage = () => {
 										<div className="stat-card"><div className="stat-label">Attestasiya imtahanı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
 									</>
 								)}
+								{!selectedSummaryRow.isBiqTeacher &&
+									!isMissingScore(selectedSummaryRow.examScore) && (
+										<div className="stat-card">
+											<div className="stat-label">Attestasiya imtahanı</div>
+											<div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div>
+											<div className="stat-meta">Xam cəm 130 maksimumdan 100 şkalasına çevrilir</div>
+										</div>
+									)}
 								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Əlavə bal</div><div className="stat-value">{selectedSummaryRow.extraScore.toFixed(1)}</div></div>
 								<div className="stat-card"><div className="stat-label">Daxil edilmiş balların cari cəmi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.teacherCriteriaTotal)}</div></div>

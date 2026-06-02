@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	computePkpdPortfolioScore,
+	computePkpdCompletion,
 	computePkpdScoreSummary,
 	computePkpdTotalScore,
 	getPkpdWeights,
@@ -139,6 +140,55 @@ describe("computePkpdTotalScore", () => {
 
 	it("returns null when no score data exists", () => {
 		expect(computePkpdTotalScore({})).toBeNull();
+	});
+});
+
+describe("computePkpdCompletion", () => {
+	it("normalizes BİQ-siz teacher score from 130 to 100 when exam is entered", () => {
+		expect(
+			computePkpdCompletion("WITHOUT_BIQ", {
+				studentScore: 20,
+				managementScore: 10,
+				selfScore: 10,
+				examScore: 30,
+				portfolioScore: 60,
+			}),
+		).toEqual({
+			isComplete: true,
+			currentEnteredScore: 100,
+			baseTotalScore: 100,
+		});
+	});
+
+	it("keeps the existing 100-point BİQ-siz model when exam is not entered", () => {
+		expect(
+			computePkpdCompletion("WITHOUT_BIQ", {
+				studentScore: 20,
+				managementScore: 10,
+				selfScore: 10,
+				portfolioScore: 60,
+			}),
+		).toEqual({
+			isComplete: true,
+			currentEnteredScore: 100,
+			baseTotalScore: 100,
+		});
+	});
+
+	it("normalizes a partial BİQ-siz exam model proportionally", () => {
+		expect(
+			computePkpdCompletion("WITHOUT_BIQ", {
+				studentScore: 10,
+				managementScore: 5,
+				selfScore: 5,
+				examScore: 15,
+				portfolioScore: 30,
+			}),
+		).toEqual({
+			isComplete: true,
+			currentEnteredScore: 50,
+			baseTotalScore: 50,
+		});
 	});
 });
 
