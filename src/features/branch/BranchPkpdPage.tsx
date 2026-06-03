@@ -102,11 +102,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 type DocEntry<T> = { id: string; data: T };
 const SUPABASE_BATCH_SIZE = 1000;
 
-const getTeachingAssignmentYear = (cycleYear: number) => {
-	const yearText = String(Math.trunc(cycleYear));
-	return yearText.length > 4 ? Number(yearText.slice(0, 4)) : cycleYear;
-};
-
 const fetchAllBatched = async <T,>(
 	fetchPage: (
 		from: number,
@@ -834,7 +829,6 @@ export const BranchPkpdPage = () => {
 		[cycles, selectedCycleId],
 	);
 	const cycleYear = cycle?.data.year ?? new Date().getFullYear();
-	const teachingAssignmentYear = getTeachingAssignmentYear(cycleYear);
 
 	const teacherMap = useMemo(
 		() => Object.fromEntries(teachers.map((t) => [t.id, t.data])),
@@ -1050,22 +1044,22 @@ export const BranchPkpdPage = () => {
 	const assignmentByTeacher = useMemo(() => {
 		const map: Record<string, TeachingAssignmentDoc[]> = {};
 		assignments.forEach((assignment) => {
-			if (assignment.data.year !== teachingAssignmentYear) return;
+			if (assignment.data.year !== cycleYear) return;
 			map[assignment.data.teacherId] = map[assignment.data.teacherId] || [];
 			map[assignment.data.teacherId].push(assignment.data);
 		});
 		return map;
-	}, [assignments, teachingAssignmentYear]);
+	}, [assignments, cycleYear]);
 	const assignmentKeySet = useMemo(() => {
 		const keys = new Set<string>();
 		assignments.forEach((assignment) => {
-			if (assignment.data.year !== teachingAssignmentYear) return;
+			if (assignment.data.year !== cycleYear) return;
 			keys.add(
 				`${assignment.data.teacherId}_${assignment.data.groupId}_${assignment.data.subjectId}`,
 			);
 		});
 		return keys;
-	}, [assignments, teachingAssignmentYear]);
+	}, [assignments, cycleYear]);
 
 	const flowStats = useMemo(() => {
 		const taskMap = Object.fromEntries(
