@@ -1610,9 +1610,8 @@ export const AdminCycleDetailPage = () => {
 				const currentEnteredScore = completion.currentEnteredScore;
 				const isComplete =
 					completion.isComplete && Boolean(leadershipSummary?.isComplete);
-				const baseTotalScore = isComplete ? currentEnteredScore : null;
-				const finalScoreWithExtra =
-					baseTotalScore === null ? null : baseTotalScore + bonusScore;
+				const baseTotalScore = completion.baseTotalScore;
+				const finalScoreWithExtra = baseTotalScore + bonusScore;
 				const finalScore = baseTotalScore;
 
 				const resolvedName = getTeacherDisplayName(teacher.data, teacher.id);
@@ -1851,9 +1850,9 @@ export const AdminCycleDetailPage = () => {
 		[teacherRows],
 	);
 	const formatPkpdCategory = (row: TeacherRow) =>
-		row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
+		row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
 	const formatPkpdDecision = (row: TeacherRow) =>
-		row.isComplete ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
+		row.baseTotalScore !== null ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
 
 	const visibleTeacherRows = useMemo(() => {
 		const query = teacherQuery.trim().toLowerCase();
@@ -1960,11 +1959,8 @@ export const AdminCycleDetailPage = () => {
 			{
 				key: "score",
 				header: "PKPD balı",
-				sortValue: (row) => (row.isComplete ? row.finalScore : row.currentEnteredScore),
-				render: (row) =>
-					row.isComplete
-						? formatScore(row.finalScore)
-						: `Cari: ${formatScore(row.currentEnteredScore)}`,
+				sortValue: (row) => row.finalScore ?? row.currentEnteredScore,
+				render: (row) => formatScore(row.finalScore ?? row.currentEnteredScore),
 			},
 			{
 				key: "bonus",
@@ -3327,9 +3323,10 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						tone="danger"
 						label="Risk qrupu"
 						value={
-							teacherRows.filter(
-								(row) => row.isComplete && (row.finalScore ?? row.baseTotalScore ?? 0) < 60,
-							).length
+							teacherRows.filter((row) => {
+								const score = row.finalScore ?? row.baseTotalScore;
+								return score !== null && score < 60;
+							}).length
 						}
 						meta="yekun balı 60-dan aşağı"
 					/>
@@ -3511,12 +3508,8 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 									<div className="grid three">
 										<StatCard
 											tone={selectedTeacher.isComplete ? "success" : "warning"}
-											label={selectedTeacher.isComplete ? "PKPD yekun balı" : "Daxil edilmiş cari bal"}
-											value={formatScore(
-												selectedTeacher.isComplete
-													? selectedTeacher.finalScore
-													: selectedTeacher.currentEnteredScore,
-											)}
+											label="PKPD yekun balı"
+											value={formatScore(selectedTeacher.finalScore ?? selectedTeacher.currentEnteredScore)}
 											meta={formatPkpdCategory(selectedTeacher)}
 										/>
 										<StatCard

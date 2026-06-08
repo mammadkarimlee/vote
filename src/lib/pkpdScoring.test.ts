@@ -190,6 +190,23 @@ describe("computePkpdCompletion", () => {
 			baseTotalScore: 50,
 		});
 	});
+
+	it("keeps a calculated score when required components are missing", () => {
+		expect(
+			computePkpdCompletion("WITH_BIQ", {
+				studentScore: 12,
+				managementScore: null,
+				selfScore: 8,
+				biqScore: 10,
+				examScore: 20,
+				portfolioScore: null,
+			}),
+		).toEqual({
+			isComplete: false,
+			currentEnteredScore: 50,
+			baseTotalScore: 50,
+		});
+	});
 });
 
 describe("computePkpdScoreSummary", () => {

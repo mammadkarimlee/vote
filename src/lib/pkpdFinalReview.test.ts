@@ -19,6 +19,21 @@ describe("buildRuleBasedPkpdFinalReview", () => {
 		expect(result.recommendationText).toContain("Rəhbərlik səslərinin tamamlanması");
 	});
 
+	it("uses the available score for review text even when evaluation is incomplete", () => {
+		const result = buildRuleBasedPkpdFinalReview({
+			isComplete: false,
+			baseTotalScore: 42.5,
+			currentEnteredScore: 42.5,
+			leadershipComplete: false,
+			missingFields: ["Portfolio"],
+			components: [],
+		});
+
+		expect(result.reviewText).toContain("42.50 / 100");
+		expect(result.reviewText).toContain("kateqoriyasına");
+		expect(result.reviewText).not.toContain("hələ tamamlanmayıb");
+	});
+
 	it("adds category and component insights for a final evaluation", () => {
 		const result = buildRuleBasedPkpdFinalReview({
 			isComplete: true,

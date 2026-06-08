@@ -99,7 +99,6 @@ const getComponentInsight = (
 };
 
 export const buildRuleBasedPkpdFinalReview = ({
-	isComplete,
 	baseTotalScore,
 	currentEnteredScore,
 	leadershipComplete,
@@ -113,7 +112,7 @@ export const buildRuleBasedPkpdFinalReview = ({
 		]),
 	);
 
-	if (!isComplete || baseTotalScore === null) {
+	if (baseTotalScore === null) {
 		return {
 			reviewText: `Müəllim üzrə PKPD qiymətləndirməsi hələ tamamlanmayıb. Hazırda daxil edilmiş göstəricilər əsasında cari bal ${formatScore(currentEnteredScore)} / 100 təşkil edir. Yekun nəticə və qərar bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra formalaşdırılacaq.`,
 			recommendationText: `Qiymətləndirmənin tamamlanması üçün çatışmayan sahələrin daxil edilməsi tövsiyə olunur: ${uniqueMissingFields.join(", ") || "tələb olunan qiymətləndirmə məlumatları"}. Yekun rəy və inkişaf istiqamətləri qiymətləndirmə tamamlandıqdan sonra yenilənməlidir.`,

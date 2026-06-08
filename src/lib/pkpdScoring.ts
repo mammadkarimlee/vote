@@ -181,7 +181,7 @@ export const computePkpdCompletion = (
 	return {
 		isComplete,
 		currentEnteredScore,
-		baseTotalScore: isComplete ? currentEnteredScore : null,
+		baseTotalScore: currentEnteredScore,
 	};
 };
 

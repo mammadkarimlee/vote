@@ -1204,10 +1204,9 @@ export const BranchPkpdPage = () => {
 			const isComplete =
 				completion.isComplete && Boolean(leadershipSummary?.isComplete);
 			const currentEnteredScore = completion.currentEnteredScore;
-			const baseTotalScore = isComplete ? currentEnteredScore : null;
+			const baseTotalScore = completion.baseTotalScore;
 			const extraScore = bonus;
-			const finalScoreWithExtra =
-				baseTotalScore === null ? null : baseTotalScore + extraScore;
+			const finalScoreWithExtra = baseTotalScore + extraScore;
 
 			return {
 				teacherId: teacher.id,
@@ -1266,10 +1265,10 @@ export const BranchPkpdPage = () => {
 	const achievementPagination = usePagination(achievements);
 
 	const formatPkpdCategory = (row: SummaryRow) =>
-		row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
+		row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
 
 	const formatPkpdDecision = (row: SummaryRow) =>
-		row.isComplete ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
+		row.baseTotalScore !== null ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
 
 	const filteredSummaryRows = useMemo(() => {
 		const query = summaryQuery.trim().toLocaleLowerCase("az");
@@ -1296,7 +1295,7 @@ export const BranchPkpdPage = () => {
 				row.name,
 				evaluationTypeLabel(row.isBiqTeacher),
 				statusInfo.label,
-				row.isComplete ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb",
+				row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb",
 			]
 				.join(" ")
 				.toLocaleLowerCase("az")
@@ -1346,11 +1345,8 @@ export const BranchPkpdPage = () => {
 			{
 				key: "score",
 				header: "PKPD yekun balı",
-				sortValue: (row) => (row.isComplete ? row.baseTotalScore : row.currentEnteredScore),
-				render: (row) =>
-					row.isComplete
-						? formatScoreValue(row.baseTotalScore)
-						: `Cari: ${formatScoreValue(row.currentEnteredScore)}`,
+				sortValue: (row) => row.baseTotalScore ?? row.currentEnteredScore,
+				render: (row) => formatScoreValue(row.baseTotalScore ?? row.currentEnteredScore),
 			},
 			{
 				key: "bonus",
@@ -2595,15 +2591,13 @@ export const BranchPkpdPage = () => {
 		setStatus(enabled ? "Rəhbərlik səsi yekunlaşdırıldı." : "Yekunlaşdırma ləğv edildi.");
 	};
 
-	const completedSummaryRows = summaryRows.filter(
-		(row) => row.isComplete && row.baseTotalScore !== null,
-	);
+	const scoredSummaryRows = summaryRows.filter((row) => row.baseTotalScore !== null);
 	const averageSummaryScore =
-		completedSummaryRows.length > 0
-			? completedSummaryRows.reduce(
+		scoredSummaryRows.length > 0
+			? scoredSummaryRows.reduce(
 					(sum, row) => sum + (row.baseTotalScore ?? 0),
 					0,
-				) / completedSummaryRows.length
+				) / scoredSummaryRows.length
 			: null;
 
 	return (
@@ -2680,7 +2674,7 @@ export const BranchPkpdPage = () => {
 					icon="PK"
 					label="Orta PKPD balı"
 					value={formatScoreValue(averageSummaryScore)}
-					meta="yalnız tamamlanmış nəticələr"
+					meta="daxil edilmiş nəticələr üzrə"
 				/>
 				<StatCard
 					tone="accent"
@@ -2694,7 +2688,7 @@ export const BranchPkpdPage = () => {
 					icon="RS"
 					label="Risk qrupu"
 					value={
-						summaryRows.filter((row) => row.isComplete && (row.baseTotalScore ?? 0) < 60)
+						summaryRows.filter((row) => row.baseTotalScore !== null && row.baseTotalScore < 60)
 							.length
 					}
 					meta="yekun balı 60-dan aşağı"
@@ -3304,7 +3298,7 @@ export const BranchPkpdPage = () => {
 								<div className="stat-card"><div className="stat-label">Əlavə bal</div><div className="stat-value">{selectedSummaryRow.extraScore.toFixed(1)}</div></div>
 								<div className="stat-card"><div className="stat-label">Daxil edilmiş balların cari cəmi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.teacherCriteriaTotal)}</div></div>
 								<div className="stat-card"><div className="stat-label">HR qeydi (hesaba daxil deyil)</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">{selectedSummaryRow.isComplete ? "PKPD yekun balı" : "Daxil edilmiş cari bal"}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.isComplete ? selectedSummaryRow.baseTotalScore : selectedSummaryRow.currentEnteredScore)}</div><div className="stat-meta">{formatPkpdCategory(selectedSummaryRow)}</div></div>
+								<div className="stat-card"><div className="stat-label">PKPD yekun balı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.baseTotalScore ?? selectedSummaryRow.currentEnteredScore)}</div><div className="stat-meta">{formatPkpdCategory(selectedSummaryRow)}</div></div>
 								<div className="stat-card"><div className="stat-label">Stimullaşdırıcı yekun</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.finalScoreWithExtra)}</div><div className="stat-meta">{formatPkpdDecision(selectedSummaryRow)}</div></div>
 							</div>
 							<div className="card">
