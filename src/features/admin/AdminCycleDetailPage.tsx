@@ -174,6 +174,18 @@ type TeacherSelfResponse = {
 	}>;
 };
 
+type MissingFilter =
+	| "all"
+	| "any"
+	| "student"
+	| "self"
+	| "open-answers"
+	| "leadership"
+	| "biq"
+	| "exam"
+	| "portfolio"
+	| "complete";
+
 const emptyFlowAggregate = (): TeacherFlowAggregate => ({
 	management: { sum: 0, count: 0 },
 	self: { sum: 0, count: 0 },
@@ -506,6 +518,19 @@ type PkpdReportOptions = {
 const isMissingScore = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value);
 
+const normalizeSearchText = (value: string) =>
+	value
+		.toLocaleLowerCase("az")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/ə/g, "e")
+		.replace(/ı/g, "i")
+		.replace(/ö/g, "o")
+		.replace(/ü/g, "u")
+		.replace(/ğ/g, "g")
+		.replace(/ş/g, "s")
+		.replace(/ç/g, "c");
+
 const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] => {
 	const rows = teacher.isBiqTeacher
 		? [
@@ -549,6 +574,32 @@ const getTeacherStatusInfo = (row: TeacherRow) => {
 		return { label: "Risk qrupu", tone: "danger" as const };
 	}
 	return { label: "Tamamlanıb", tone: "success" as const };
+};
+
+const matchesMissingFilter = (
+	row: TeacherRow,
+	filter: MissingFilter,
+	selfResponses: Record<string, TeacherSelfResponse>,
+) => {
+	const hasOpenAnswers =
+		(selfResponses[row.teacherId]?.textAnswers.length ?? 0) > 0;
+	const isMissingAny =
+		isMissingScore(row.studentWeightedScore) ||
+		isMissingScore(row.selfWeightedScore) ||
+		!row.leadershipComplete ||
+		isMissingScore(row.portfolioScore) ||
+		(row.isBiqTeacher && isMissingScore(row.biqWeightedScore));
+
+	if (filter === "all") return true;
+	if (filter === "any") return isMissingAny;
+	if (filter === "student") return isMissingScore(row.studentWeightedScore);
+	if (filter === "self") return isMissingScore(row.selfWeightedScore);
+	if (filter === "open-answers") return !hasOpenAnswers;
+	if (filter === "leadership") return !row.leadershipComplete;
+	if (filter === "biq") return row.isBiqTeacher && isMissingScore(row.biqWeightedScore);
+	if (filter === "exam") return isMissingScore(row.examScore);
+	if (filter === "portfolio") return isMissingScore(row.portfolioScore);
+	return row.isComplete;
 };
 
 const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
@@ -772,6 +823,7 @@ export const AdminCycleDetailPage = () => {
 	const [showAllTeachers, setShowAllTeachers] = useState(false);
 	const [teacherQuery, setTeacherQuery] = useState("");
 	const [leadershipFilter, setLeadershipFilter] = useState("all");
+	const [missingFilter, setMissingFilter] = useState<MissingFilter>("all");
 	const [showRaters, setShowRaters] = useState(false);
 	const [showComments, setShowComments] = useState(false);
 	const [selfReviewQuestionScores, setSelfReviewQuestionScores] = useState<
@@ -1726,10 +1778,6 @@ export const AdminCycleDetailPage = () => {
 		() => selectedTeacherSelfResponse?.textAnswers.map((item) => item.questionId) ?? [],
 		[selectedTeacherSelfResponse],
 	);
-	const selectedTeacherHasOpenAnswers = Boolean(
-		selectedTeacherSelfResponse &&
-			selectedTeacherSelfResponse.textAnswers.length > 0,
-	);
 	const selectedTeacherHasSavedOpenReview = Boolean(
 		selectedTeacherSelfReview &&
 			(typeof selectedTeacherSelfReview.score === "number" ||
@@ -1855,7 +1903,7 @@ export const AdminCycleDetailPage = () => {
 		row.baseTotalScore !== null ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
 
 	const visibleTeacherRows = useMemo(() => {
-		const query = teacherQuery.trim().toLowerCase();
+		const query = normalizeSearchText(teacherQuery.trim());
 		return teacherRows.filter((row) => {
 			const hasAnyData =
 				row.finalScore !== null ||
@@ -1878,15 +1926,30 @@ export const AdminCycleDetailPage = () => {
 				return false;
 			if (leadershipFilter === "department-head-missing" && row.departmentHeadSubmitted)
 				return false;
+			if (!matchesMissingFilter(row, missingFilter, teacherSelfResponses))
+				return false;
 			if (!query) return true;
 
-			return (
-				row.name.toLowerCase().includes(query) ||
-				row.departmentName.toLowerCase().includes(query) ||
-				row.branchName.toLowerCase().includes(query)
-			);
+			return normalizeSearchText(
+				[
+					row.name,
+					row.departmentName,
+					row.branchName,
+					evaluationTypeLabel(row.isBiqTeacher),
+					getTeacherStatusInfo(row).label,
+					getLeadershipVoteRoleStatus(row).submittedText,
+					getLeadershipVoteRoleStatus(row).pendingText,
+				].join(" "),
+			).includes(query);
 		});
-	}, [leadershipFilter, showAllTeachers, teacherQuery, teacherRows]);
+	}, [
+		leadershipFilter,
+		missingFilter,
+		showAllTeachers,
+		teacherQuery,
+		teacherRows,
+		teacherSelfResponses,
+	]);
 
 	const teacherTableColumns = useMemo<Array<DataTableColumn<TeacherRow>>>(
 		() => [
@@ -2842,7 +2905,9 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			return;
 		}
 		const rawExamScore = miqScoreDraft.trim();
-		const parsedExamScore = rawExamScore ? Number(rawExamScore) : null;
+		const parsedExamScore = rawExamScore
+			? Number(rawExamScore.replace(",", "."))
+			: null;
 		if (
 			rawExamScore &&
 			(parsedExamScore === null ||
@@ -2896,6 +2961,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			}
 		}
 
+		const examScoreCleared = !rawExamScore && selectedTeacher?.examScore !== null;
 		if (rawExamScore) {
 			const { error: examError } = await supabase
 				.from("pkpd_exam_results")
@@ -2911,6 +2977,17 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 				);
 			if (examError) {
 				setAssessmentStatus("Attestasiya imtahanı balı saxlanmadı");
+				return;
+			}
+		} else if (examScoreCleared) {
+			const { error: examDeleteError } = await supabase
+				.from("pkpd_exam_results")
+				.delete()
+				.eq("org_id", ORG_ID)
+				.eq("cycle_id", cycleId)
+				.eq("teacher_id", selectedTeacherId);
+			if (examDeleteError) {
+				setAssessmentStatus("Attestasiya imtahanı silinmədi");
 				return;
 			}
 		}
@@ -2945,11 +3022,15 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		);
 
 		setAssessmentStatus(
-			isBiqTeacher
-				? "Müəllim BİQ müəllimi, BİQ ortalaması və attestasiya imtahanı ilə saxlanıldı"
-				: rawExamScore
-					? "Müəllim BİQ olmayan fənn müəllimi kimi attestasiya imtahanı ilə saxlanıldı; xam cəm 130 maksimumdan 100 şkalasına çevrilir"
-					: "Müəllim BİQ olmayan fənn müəllimi kimi saxlanıldı",
+			rawExamScore
+				? isBiqTeacher
+					? "Müəllim BİQ müəllimi, BİQ ortalaması və attestasiya imtahanı ilə saxlanıldı"
+					: "Müəllim BİQ olmayan fənn müəllimi kimi attestasiya imtahanı ilə saxlanıldı; xam cəm 130 maksimumdan 100 şkalasına çevrilir"
+				: examScoreCleared
+					? "Attestasiya imtahanı balı silindi"
+					: isBiqTeacher
+						? "Müəllim BİQ müəllimi kimi saxlanıldı"
+						: "Müəllim BİQ olmayan fənn müəllimi kimi saxlanıldı",
 		);
 		void refreshSummaryCache();
 	};
@@ -2998,10 +3079,6 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 
 	const handleSaveSelfReview = async () => {
 		if (!cycleId || !selectedTeacherId) return;
-		if (!selectedTeacherHasOpenAnswers) {
-			setSelfReviewStatus("Açıq cavab olmadığı üçün bal verilə bilməz");
-			return;
-		}
 		if (selectedTeacherOpenReviewLocked) {
 			setSelfReviewStatus(
 				"Bu qiymətləndirmə kilidlənib. Düzəliş üçün hesab şifrəsi tələb olunur.",
@@ -3039,51 +3116,45 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 				selfReviewQuestionScores[questionId]?.trim() ?? "",
 			]),
 		);
-		const hasAnyScore = Object.values(questionScores).some((value) => value !== "");
-
-		if (!hasAnyScore) {
-			if (!noteValue) {
-				setSelfReviewStatus(
-					"Boş açıq sual/HR qiymətləndirməsi saxlanmadı; mövcud qeyd silinmədi",
-				);
-				return;
-			}
-
-			setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
-			return;
-		}
+		const hasOpenQuestions = selectedTeacherOpenQuestionIds.length > 0;
 
 		const normalizedQuestionScores: Record<string, number> = {};
 		const portfolioQuestionScores: Record<SelfReviewPortfolioField, number | null> = {
-			trainingScore: null,
-			olympiadScore: null,
-			eventsScore: null,
+			trainingScore: selectedTeacherPortfolio?.trainingScore ?? null,
+			olympiadScore: selectedTeacherPortfolio?.olympiadScore ?? null,
+			eventsScore: selectedTeacherPortfolio?.eventsScore ?? null,
 		};
-		for (const [questionId, rawValue] of Object.entries(questionScores)) {
-			if (rawValue === "") {
-				setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
-				return;
+		if (hasOpenQuestions) {
+			portfolioQuestionScores.trainingScore = null;
+			portfolioQuestionScores.olympiadScore = null;
+			portfolioQuestionScores.eventsScore = null;
+
+			for (const [questionId, rawValue] of Object.entries(questionScores)) {
+				if (rawValue === "") {
+					setSelfReviewStatus("Hər açıq sual üçün bal daxil edilməlidir");
+					return;
+				}
+				const scoreValue = Number(rawValue);
+				const questionText =
+					selectedTeacherSelfResponse?.textAnswers.find(
+						(item) => item.questionId === questionId,
+					)?.questionText ?? "";
+				const maxScore = selectedTeacherPortfolioLimits
+					? getSelfReviewQuestionLimit(
+							questionId,
+							questionText,
+							selectedTeacherPortfolioLimits,
+						)
+					: 10;
+				if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > maxScore) {
+					setSelfReviewStatus(`Hər sualın balı 0-${maxScore} arasında olmalıdır`);
+					return;
+				}
+				normalizedQuestionScores[questionId] = scoreValue;
+				const portfolioField = getSelfReviewPortfolioField(questionId, questionText);
+				portfolioQuestionScores[portfolioField] =
+					(portfolioQuestionScores[portfolioField] ?? 0) + scoreValue;
 			}
-			const scoreValue = Number(rawValue);
-			const questionText =
-				selectedTeacherSelfResponse?.textAnswers.find(
-					(item) => item.questionId === questionId,
-				)?.questionText ?? "";
-			const maxScore = selectedTeacherPortfolioLimits
-				? getSelfReviewQuestionLimit(
-						questionId,
-						questionText,
-						selectedTeacherPortfolioLimits,
-					)
-				: 10;
-			if (Number.isNaN(scoreValue) || scoreValue < 0 || scoreValue > maxScore) {
-				setSelfReviewStatus(`Hər sualın balı 0-${maxScore} arasında olmalıdır`);
-				return;
-			}
-			normalizedQuestionScores[questionId] = scoreValue;
-			const portfolioField = getSelfReviewPortfolioField(questionId, questionText);
-			portfolioQuestionScores[portfolioField] =
-				(portfolioQuestionScores[portfolioField] ?? 0) + scoreValue;
 		}
 
 		const portfolioLimits: Record<SelfReviewPortfolioField, number> = {
@@ -3101,78 +3172,92 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 		}
 
 		const teacherCriteriaTotal = sumQuestionScores(
-			Object.values(normalizedQuestionScores),
+			[
+				educationScore,
+				attendanceScore,
+				portfolioQuestionScores.trainingScore,
+				portfolioQuestionScores.olympiadScore,
+				portfolioQuestionScores.eventsScore,
+			],
 		);
-		if (teacherCriteriaTotal === null) {
-			setSelfReviewStatus("Bal hesablanmadı");
+		const shouldSaveSelfReview =
+			hasOpenQuestions || Boolean(noteValue) || selectedTeacherHasSavedOpenReview;
+		const shouldSavePortfolio =
+			teacherCriteriaTotal !== null || Boolean(selectedTeacherPortfolio);
+		if (!shouldSaveSelfReview && !shouldSavePortfolio) {
+			setSelfReviewStatus("Saxlamaq üçün ən azı bir bal və ya qeyd daxil edilməlidir");
 			return;
 		}
 		const editReason = selectedTeacherHasSavedOpenReview
 			? selfReviewUnlockReason.trim()
 			: null;
-		const payload = {
-			org_id: ORG_ID,
-			branch_id: teacherBranchId,
-			cycle_id: cycleId,
-			teacher_id: selectedTeacherId,
-			question_scores: normalizedQuestionScores,
-			note:
-				selectedTeacherHasSavedOpenReview && editReason
-					? buildPkpdSelfReviewNote(noteValue, null, editReason)
-					: noteValue,
-			reviewed_by: user?.id ?? null,
-			reviewed_at: new Date().toISOString(),
-		};
-
-		let { error } = await supabase.from("pkpd_self_reviews").upsert(payload, {
-			onConflict: "org_id,cycle_id,teacher_id",
-		});
-		if (error && isPkpdSelfReviewQuestionScoresError(error.message)) {
-			const fallbackPayload = {
-				...payload,
-				note: buildPkpdSelfReviewNote(
-					noteValue,
-					normalizedQuestionScores,
-					editReason,
-				),
-			};
-			delete (fallbackPayload as { question_scores?: Record<string, number> })
-				.question_scores;
-
-			const fallbackResult = await supabase
-				.from("pkpd_self_reviews")
-				.upsert(fallbackPayload, {
-					onConflict: "org_id,cycle_id,teacher_id",
-				});
-			error = fallbackResult.error;
-		}
-		if (error) {
-			setSelfReviewStatus(
-				`Açıq sual balı saxlanmadı: ${error.message ?? "naməlum xəta"}`,
-			);
-			return;
-		}
-
-		const { error: portfolioError } = await supabase.from("pkpd_portfolios").upsert(
-			{
+		if (shouldSaveSelfReview) {
+			const payload = {
 				org_id: ORG_ID,
 				branch_id: teacherBranchId,
 				cycle_id: cycleId,
 				teacher_id: selectedTeacherId,
-				education_score: educationScore,
-				attendance_score: attendanceScore,
-				training_score: portfolioQuestionScores.trainingScore,
-				olympiad_score: portfolioQuestionScores.olympiadScore,
-				events_score: portfolioQuestionScores.eventsScore,
-				note: selectedTeacherPortfolio?.note ?? null,
-			},
-			{ onConflict: "org_id,cycle_id,teacher_id" },
-		);
-		if (portfolioError) {
-			setSelfReviewStatus(
-				`Rəsmi portfolio balları saxlanmadı: ${portfolioError.message ?? "naməlum xəta"}`,
+				question_scores: normalizedQuestionScores,
+				note:
+					selectedTeacherHasSavedOpenReview && editReason
+						? buildPkpdSelfReviewNote(noteValue, null, editReason)
+						: noteValue,
+				reviewed_by: user?.id ?? null,
+				reviewed_at: new Date().toISOString(),
+			};
+
+			let { error } = await supabase.from("pkpd_self_reviews").upsert(payload, {
+				onConflict: "org_id,cycle_id,teacher_id",
+			});
+			if (error && isPkpdSelfReviewQuestionScoresError(error.message)) {
+				const fallbackPayload = {
+					...payload,
+					note: buildPkpdSelfReviewNote(
+						noteValue,
+						normalizedQuestionScores,
+						editReason,
+					),
+				};
+				delete (fallbackPayload as { question_scores?: Record<string, number> })
+					.question_scores;
+
+				const fallbackResult = await supabase
+					.from("pkpd_self_reviews")
+					.upsert(fallbackPayload, {
+						onConflict: "org_id,cycle_id,teacher_id",
+					});
+				error = fallbackResult.error;
+			}
+			if (error) {
+				setSelfReviewStatus(
+					`Açıq sual balı saxlanmadı: ${error.message ?? "naməlum xəta"}`,
+				);
+				return;
+			}
+		}
+
+		if (shouldSavePortfolio) {
+			const { error: portfolioError } = await supabase.from("pkpd_portfolios").upsert(
+				{
+					org_id: ORG_ID,
+					branch_id: teacherBranchId,
+					cycle_id: cycleId,
+					teacher_id: selectedTeacherId,
+					education_score: educationScore,
+					attendance_score: attendanceScore,
+					training_score: portfolioQuestionScores.trainingScore,
+					olympiad_score: portfolioQuestionScores.olympiadScore,
+					events_score: portfolioQuestionScores.eventsScore,
+					note: selectedTeacherPortfolio?.note ?? null,
+				},
+				{ onConflict: "org_id,cycle_id,teacher_id" },
 			);
-			return;
+			if (portfolioError) {
+				setSelfReviewStatus(
+					`Rəsmi portfolio balları saxlanmadı: ${portfolioError.message ?? "naməlum xəta"}`,
+				);
+				return;
+			}
 		}
 
 		const refreshedRows = await fetchAllBatched<any>(async (from, to) =>
@@ -3207,14 +3292,9 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			})),
 		);
 		setSelfReviewStatus(
-			`Portfolio balları (${[
-				educationScore,
-				attendanceScore,
-				teacherCriteriaTotal,
-			]
-				.filter((value): value is number => value !== null)
-				.reduce((sum, value) => sum + value, 0)
-				.toFixed(1)}) rəsmi PKPD cəminə daxil edildi; HR qeydi cəmə daxil edilmir`,
+			teacherCriteriaTotal === null
+				? "HR qeydi saxlanıldı; rəsmi PKPD cəminə daxil edilmir"
+				: `Portfolio balları (${teacherCriteriaTotal.toFixed(1)}) rəsmi PKPD cəminə daxil edildi; HR qeydi cəmə daxil edilmir`,
 		);
 		setSelfReviewEditUnlocked(false);
 		setSelfReviewUnlockReason("");
@@ -3357,7 +3437,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 
 			<FilterPanel
 				title="Filterlər"
-				description="Axtarış və rəhbərlik səsi statusuna görə siyahını daraldın."
+				description="Axtarış, rəhbərlik səsi və çatışmayan sahəyə görə siyahını daraldın."
 				actions={
 					<button
 						className="btn ghost"
@@ -3365,6 +3445,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						onClick={() => {
 							setTeacherQuery("");
 							setLeadershipFilter("all");
+							setMissingFilter("all");
 							setShowAllTeachers(false);
 							setTeacherPage(1);
 						}}
@@ -3404,6 +3485,28 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						<option value="deputy-missing">Direktor müavini səs verməyib</option>
 						<option value="department-head-given">Kafedra müdiri səs verib</option>
 						<option value="department-head-missing">Kafedra müdiri səs verməyib</option>
+					</select>
+				</label>
+				<label className="field">
+					<span className="label">Çatışmayan sahə</span>
+					<select
+						className="input"
+						value={missingFilter}
+						onChange={(event) => {
+							setMissingFilter(event.target.value as MissingFilter);
+							setTeacherPage(1);
+						}}
+					>
+						<option value="all">Hamısı</option>
+						<option value="any">Hər hansı əsas sahə çatışmır</option>
+						<option value="student">Balabilgə sorğusu yoxdur</option>
+						<option value="self">Özünüqiymətləndirmə yoxdur</option>
+						<option value="open-answers">Açıq cavab yazmayıb</option>
+						<option value="leadership">Rəhbərlik səsi tamamlanmayıb</option>
+						<option value="biq">BİQ/KİQ nəticəsi yoxdur</option>
+						<option value="exam">Attestasiya balı yoxdur</option>
+						<option value="portfolio">Portfolio yoxdur</option>
+						<option value="complete">Tamamlanmış nəticələr</option>
 					</select>
 				</label>
 				<label className="field">
@@ -3919,10 +4022,13 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 												min="0"
 												max="30"
 												step="0.01"
-												placeholder="0-30"
+												placeholder="Boş və ya 0-30"
 												value={miqScoreDraft}
 												onChange={(event) => setMiqScoreDraft(event.target.value)}
 											/>
+											<span className="stat-meta">
+												Optionaldır: boş saxlanılsa hesaba daxil edilməyəcək.
+											</span>
 										</label>
 										<button
 											className="btn primary"
@@ -4110,10 +4216,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 											className="btn primary"
 											type="button"
 											onClick={handleSaveSelfReview}
-											disabled={
-												!selectedTeacherHasOpenAnswers ||
-												selectedTeacherOpenReviewLocked
-											}
+											disabled={selectedTeacherOpenReviewLocked}
 										>
 											Saxla
 										</button>
