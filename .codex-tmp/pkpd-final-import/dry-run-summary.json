@@ -1,0 +1,417 @@
+{
+  "qurtulusCycle": {
+    "id": "44bf16c0-1702-4587-aff6-27762dee38fc",
+    "year": 20262,
+    "status": "CLOSED"
+  },
+  "azadliqCycle": {
+    "id": "6fdc40dc-aaa7-4ac1-9238-d8f6ea969877",
+    "year": 2026965874,
+    "status": "OPEN",
+    "assignmentYearUsed": 2026,
+    "warning": "Azadliq cycle year does not match assignment year 2026"
+  },
+  "preparedRows": 151,
+  "inserts": 85,
+  "updates": 0,
+  "unchanged": 66,
+  "byBranch": {
+    "AZA": 23,
+    "QUR": 128
+  },
+  "bySource": {
+    "Azadliq yekun.xlsx": 23,
+    "biq_full_ready_qurtulus-campusu.xlsx": 100,
+    "Qiymətlər-Qurtuluş korpusu -IX ..docx": 14,
+    "Qiymətlər-Qurtuluş korpusu -XI  ..docx": 14
+  },
+  "skipSummary": {
+    "no_assignment_target": 344,
+    "subject_ignored": 191
+  },
+  "qurtDocxRows": [
+    "9A3-I|Fizika|76.11|n=9",
+    "9A3-I|İnformatika|85.33|n=9",
+    "9A3-I|İngilis dili|73.44|n=9",
+    "9A3-I|Kimya|74.67|n=9",
+    "9A3-I|Riyaziyyat|76.33|n=9",
+    "9A3-II|Cografiya|63|n=1",
+    "9A3-II|İngilis dili|75|n=1",
+    "9A3-II|Riyaziyyat|79|n=1",
+    "9A3-II|Tarix|76|n=2",
+    "9A3-III|Azərbaycan dili|81.5|n=4",
+    "9A3-III|Edebiyyat|81|n=4",
+    "9A3-III|İngilis dili|75.25|n=4",
+    "9A3-III|Tarix|81.13|n=8",
+    "9A3|İngilis dili|74.38|n=16",
+    "11A3-I|Fizika|83.5|n=4",
+    "11A3-I|İnformatika|90.75|n=4",
+    "11A3-I|İngilis dili|82.5|n=4",
+    "11A3-I|Kimya|79.5|n=4",
+    "11A3-I|Riyaziyyat|86.5|n=4",
+    "11A3-II|Cografiya|81.14|n=7",
+    "11A3-II|İngilis dili|78.14|n=7",
+    "11A3-II|Riyaziyyat|77.86|n=7",
+    "11A3-II|Tarix|78.5|n=14",
+    "11A3-III|Azərbaycan dili|85.8|n=5",
+    "11A3-III|Edebiyyat|83.6|n=5",
+    "11A3-III|İngilis dili|75.6|n=5",
+    "11A3-III|Tarix|82.5|n=10",
+    "11A3|İngilis dili|78.17|n=18"
+  ],
+  "sampleSkips": [
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Abduləzizov Ələkbər Vahid",
+      "baseGroupName": "9A3",
+      "matched": "Abduləzizov Ələkbər",
+      "label": "İkinci xarici dil",
+      "aliases": [
+        "rus dili",
+        "alman dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Abduləzizov Ələkbər Vahid",
+      "baseGroupName": "9A3",
+      "matched": "Abduləzizov Ələkbər",
+      "label": "Biologiya",
+      "aliases": [
+        "biologiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Abduləzizov Ələkbər Vahid",
+      "baseGroupName": "9A3",
+      "matched": "Abduləzizov Ələkbər",
+      "label": "Coğrafiya",
+      "aliases": [
+        "cografiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Tədris dili",
+      "aliases": [
+        "azerb dili",
+        "azerbaycan dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Ədəbiyyat",
+      "aliases": [
+        "edebiyyat"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "İkinci xarici dil",
+      "aliases": [
+        "rus dili",
+        "alman dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Azərbaycan tarixi",
+      "aliases": [
+        "tarix",
+        "azerb t",
+        "umumi t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Ümumi tarix",
+      "aliases": [
+        "tarix",
+        "azerb t",
+        "umumi t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Biologiya",
+      "aliases": [
+        "biologiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Balakişiyev Tahir Ramin",
+      "baseGroupName": "9A3",
+      "matched": "Balakişiyev Tahir",
+      "label": "Coğrafiya",
+      "aliases": [
+        "cografiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "İkinci xarici dil",
+      "aliases": [
+        "rus dili",
+        "alman dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "Riyaziyyat",
+      "aliases": [
+        "riyaziyyat"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "İnformatika",
+      "aliases": [
+        "informatika",
+        "info kimya",
+        "info si"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "Fizika",
+      "aliases": [
+        "fizika",
+        "fizik t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "Kimya",
+      "aliases": [
+        "kimya",
+        "info kimya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "Biologiya",
+      "aliases": [
+        "biologiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Bayramova Nigar Ramil",
+      "baseGroupName": "9A3",
+      "matched": "Bayramova Nigar",
+      "label": "Coğrafiya",
+      "aliases": [
+        "cografiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Tədris dili",
+      "aliases": [
+        "azerb dili",
+        "azerbaycan dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Ədəbiyyat",
+      "aliases": [
+        "edebiyyat"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "İkinci xarici dil",
+      "aliases": [
+        "rus dili",
+        "alman dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Azərbaycan tarixi",
+      "aliases": [
+        "tarix",
+        "azerb t",
+        "umumi t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Ümumi tarix",
+      "aliases": [
+        "tarix",
+        "azerb t",
+        "umumi t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Biologiya",
+      "aliases": [
+        "biologiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Dadaşov Mirzağa Sübhan",
+      "baseGroupName": "9A3",
+      "matched": "Dadaşov Mirzağa",
+      "label": "Coğrafiya",
+      "aliases": [
+        "cografiya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "İkinci xarici dil",
+      "aliases": [
+        "rus dili",
+        "alman dili"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "Riyaziyyat",
+      "aliases": [
+        "riyaziyyat"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "İnformatika",
+      "aliases": [
+        "informatika",
+        "info kimya",
+        "info si"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "Fizika",
+      "aliases": [
+        "fizika",
+        "fizik t"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "Kimya",
+      "aliases": [
+        "kimya",
+        "info kimya"
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "reason": "no_assignment_target",
+      "student": "Əmiraslanlı Ayla Elvin",
+      "baseGroupName": "9A3",
+      "matched": "Əmiraslanlı Ayla",
+      "label": "Biologiya",
+      "aliases": [
+        "biologiya"
+      ]
+    }
+  ]
+}

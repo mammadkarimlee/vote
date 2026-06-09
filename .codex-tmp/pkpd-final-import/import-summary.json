@@ -1,0 +1,293 @@
+{
+  "mode": "apply",
+  "qurtulusCycle": {
+    "id": "44bf16c0-1702-4587-aff6-27762dee38fc",
+    "year": 20262,
+    "status": "CLOSED"
+  },
+  "azadliqCycle": {
+    "id": "6fdc40dc-aaa7-4ac1-9238-d8f6ea969877",
+    "year": 2026965874,
+    "status": "OPEN",
+    "assignmentYearUsed": 2026965874,
+    "warning": null
+  },
+  "preparedRows": 166,
+  "inserts": 0,
+  "updates": 0,
+  "unchanged": 166,
+  "byBranch": {
+    "AZA": 23,
+    "QUR": 143
+  },
+  "bySource": {
+    "Azadliq yekun.xlsx": 23,
+    "biq_full_ready_qurtulus-campusu.xlsx": 100,
+    "Qiymətlər-Qurtuluş korpusu -IX ..docx": 22,
+    "Qiymətlər-Qurtuluş korpusu -XI  ..docx": 21
+  },
+  "skipSummary": {
+    "no_assignment_target": 158,
+    "subject_ignored": 191
+  },
+  "qurtulusDocxRows": [
+    {
+      "group": "9A3-I",
+      "subject": "Fizika",
+      "score": 76.11,
+      "n": 9
+    },
+    {
+      "group": "9A3-I",
+      "subject": "İnformatika",
+      "score": 85.33,
+      "n": 9
+    },
+    {
+      "group": "9A3-I",
+      "subject": "İngilis dili",
+      "score": 73.44,
+      "n": 9
+    },
+    {
+      "group": "9A3-I",
+      "subject": "Kimya",
+      "score": 74.67,
+      "n": 9
+    },
+    {
+      "group": "9A3-I",
+      "subject": "Riyaziyyat",
+      "score": 76.33,
+      "n": 9
+    },
+    {
+      "group": "9A3-II",
+      "subject": "Cografiya",
+      "score": 63,
+      "n": 1
+    },
+    {
+      "group": "9A3-II",
+      "subject": "İngilis dili",
+      "score": 75,
+      "n": 1
+    },
+    {
+      "group": "9A3-II",
+      "subject": "Riyaziyyat",
+      "score": 79,
+      "n": 1
+    },
+    {
+      "group": "9A3-II",
+      "subject": "Tarix",
+      "score": 76,
+      "n": 2
+    },
+    {
+      "group": "9A3-III",
+      "subject": "Azərbaycan dili",
+      "score": 81.5,
+      "n": 4
+    },
+    {
+      "group": "9A3-III",
+      "subject": "Edebiyyat",
+      "score": 81,
+      "n": 4
+    },
+    {
+      "group": "9A3-III",
+      "subject": "İngilis dili",
+      "score": 75.25,
+      "n": 4
+    },
+    {
+      "group": "9A3-III",
+      "subject": "Tarix",
+      "score": 81.13,
+      "n": 8
+    },
+    {
+      "group": "9A3",
+      "subject": "Azerb. dili",
+      "score": 78.69,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Coğrafiya",
+      "score": 71.94,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Ədəbiyyat",
+      "score": 82.56,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Fizika",
+      "score": 77.06,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Grammar",
+      "score": 74.38,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Info/Kimya",
+      "score": 79.53,
+      "n": 32
+    },
+    {
+      "group": "9A3",
+      "subject": "İngilis dili",
+      "score": 74.38,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Riyaziyyat",
+      "score": 76.19,
+      "n": 16
+    },
+    {
+      "group": "9A3",
+      "subject": "Tarix",
+      "score": 76.81,
+      "n": 32
+    },
+    {
+      "group": "11A3-I",
+      "subject": "Fizika",
+      "score": 83.5,
+      "n": 4
+    },
+    {
+      "group": "11A3-I",
+      "subject": "İnformatika",
+      "score": 90.75,
+      "n": 4
+    },
+    {
+      "group": "11A3-I",
+      "subject": "İngilis dili",
+      "score": 82.5,
+      "n": 4
+    },
+    {
+      "group": "11A3-I",
+      "subject": "Kimya",
+      "score": 79.5,
+      "n": 4
+    },
+    {
+      "group": "11A3-I",
+      "subject": "Riyaziyyat",
+      "score": 86.5,
+      "n": 4
+    },
+    {
+      "group": "11A3-II",
+      "subject": "Cografiya",
+      "score": 81.14,
+      "n": 7
+    },
+    {
+      "group": "11A3-II",
+      "subject": "İngilis dili",
+      "score": 78.14,
+      "n": 7
+    },
+    {
+      "group": "11A3-II",
+      "subject": "Riyaziyyat",
+      "score": 77.86,
+      "n": 7
+    },
+    {
+      "group": "11A3-II",
+      "subject": "Tarix",
+      "score": 78.5,
+      "n": 14
+    },
+    {
+      "group": "11A3-III",
+      "subject": "Azərbaycan dili",
+      "score": 85.8,
+      "n": 5
+    },
+    {
+      "group": "11A3-III",
+      "subject": "Edebiyyat",
+      "score": 83.6,
+      "n": 5
+    },
+    {
+      "group": "11A3-III",
+      "subject": "İngilis dili",
+      "score": 75.6,
+      "n": 5
+    },
+    {
+      "group": "11A3-III",
+      "subject": "Tarix",
+      "score": 82.5,
+      "n": 10
+    },
+    {
+      "group": "11A3",
+      "subject": "Azerb. dili",
+      "score": 83.94,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Coğrafiya",
+      "score": 78.22,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Ədəbiyyat",
+      "score": 85.83,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Fizika",
+      "score": 72.72,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Info/Kimya",
+      "score": 78.08,
+      "n": 36
+    },
+    {
+      "group": "11A3",
+      "subject": "İngilis dili",
+      "score": 78.17,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Riyaziyyat",
+      "score": 78.72,
+      "n": 18
+    },
+    {
+      "group": "11A3",
+      "subject": "Tarix",
+      "score": 79.36,
+      "n": 36
+    }
+  ]
+}

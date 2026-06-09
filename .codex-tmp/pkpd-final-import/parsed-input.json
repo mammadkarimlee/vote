@@ -1,0 +1,6435 @@
+{
+  "qurt_ready_rows": [
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 74.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 88.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 77.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 95.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 85.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 64.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "stars-subject-musiqi",
+      "subject_name": "Musiqi",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 95.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 73.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 92.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "qurtulus-ta-subject-tesv-incs-eb6323",
+      "subject_name": "Tesv. incs",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 91.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "bb935db8-d6ca-4da7-9f48-88ca9d03fe5e",
+      "group_name": "5A2",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 72.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 75.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 85.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 79.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 93.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 90.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 69.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "stars-subject-musiqi",
+      "subject_name": "Musiqi",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 91.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 66.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 74.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 84.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "qurtulus-ta-subject-tesv-incs-eb6323",
+      "subject_name": "Tesv. incs",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 93.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "9f24258d-1369-4dc5-ba28-e59fa97cca21",
+      "group_name": "5A3",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 76.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 82.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 80.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 73.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 92.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 83.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 61.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "stars-subject-musiqi",
+      "subject_name": "Musiqi",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 88.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 55.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 89.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "qurtulus-ta-subject-tesv-incs-eb6323",
+      "subject_name": "Tesv. incs",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 90.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "09e0d78d-afc9-424c-93f0-2523815e5b11",
+      "group_name": "5R2",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 65.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 75.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "c1e6fa77-b3e5-4e96-a145-34e3bd81a76f",
+      "subject_name": "Coğrafiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 71.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 78.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 89.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 81.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 66.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 58.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 72.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 76.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 72.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "c6b0b637-3baa-4bc4-804d-d5b901afdecb",
+      "group_name": "6A2",
+      "subject_id": "qurtulus-ta-subject-umumi-t-a6cb4b",
+      "subject_name": "Ümumi.T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 79.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 73.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "c1e6fa77-b3e5-4e96-a145-34e3bd81a76f",
+      "subject_name": "Coğrafiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 73.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 79.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 91.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 81.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 69.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 54.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 78.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 79.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 69.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "f95954e9-ef50-4c16-ad61-8b8eb6f7592e",
+      "group_name": "6A3",
+      "subject_id": "qurtulus-ta-subject-umumi-t-a6cb4b",
+      "subject_name": "Ümumi.T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 77.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 86.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 72.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "c1e6fa77-b3e5-4e96-a145-34e3bd81a76f",
+      "subject_name": "Coğrafiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 79.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 75.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 92.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 84.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 81.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 65.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 64.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 89.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "stars-subject-tebiet",
+      "subject_name": "Təbiət",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 68.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "475c177a-a96c-4a1e-a93b-34a66438b21f",
+      "group_name": "6R2",
+      "subject_id": "qurtulus-ta-subject-umumi-t-a6cb4b",
+      "subject_name": "Ümumi.T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 78.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 77.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 68.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "stars-subject-biologiya",
+      "subject_name": "Biologiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "c1e6fa77-b3e5-4e96-a145-34e3bd81a76f",
+      "subject_name": "Coğrafiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 56.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 81.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 95.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "7f7bbb1e-1c04-4db6-ac8b-39afeb521e6c",
+      "subject_name": "Fizika",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 64.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 86.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "nesimi-ta-subject-kimya-175xx3",
+      "subject_name": "Kimya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 61.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "qurtulus-ta-subject-l-a-664211",
+      "subject_name": "L/A",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 74.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 75.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 76.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "7c6eec28-f463-44d2-9da6-49e4e8cdfef6",
+      "group_name": "7A2",
+      "subject_id": "qurtulus-ta-subject-umumi-t-a6cb4b",
+      "subject_name": "Ümumi.T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 69.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "nesimi-ta-subject-azerb-dili-12jllg0",
+      "subject_name": "Azerb. dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 65.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "qurtulus-ta-subject-azerb-t-28717f",
+      "subject_name": "Azerb. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 75.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "stars-subject-biologiya",
+      "subject_name": "Biologiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 65.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "c1e6fa77-b3e5-4e96-a145-34e3bd81a76f",
+      "subject_name": "Coğrafiya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 46.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "stars-subject-edebiyyat",
+      "subject_name": "Ədəbiyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 66.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "qurtulus-ta-subject-fizik-t-c30bfa",
+      "subject_name": "Fizik. T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 91.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "7f7bbb1e-1c04-4db6-ac8b-39afeb521e6c",
+      "subject_name": "Fizika",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 56.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "nesimi-ta-subject-grammar-w5y7if",
+      "subject_name": "Grammar",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 63.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "qurtulus-ta-subject-info-si-ef11a5",
+      "subject_name": "Info/SI",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 85.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "nesimi-ta-subject-kimya-175xx3",
+      "subject_name": "Kimya",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 60.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "stars-subject-riyaziyyat",
+      "subject_name": "Riyaziyyat",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 61.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "nesimi-ta-subject-rus-dili-fyoy2a",
+      "subject_name": "Rus dili",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "nesimi-ta-subject-texno-steam-pvqakn",
+      "subject_name": "Texno./STEAM",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 70.0,
+      "note": ""
+    },
+    {
+      "source": "biq_full_ready_qurtulus-campusu.xlsx",
+      "sheet": "biq_sinif_fenn",
+      "branch_id": "65ba598b-fe8d-41da-aeaa-10ce5dbe9023",
+      "group_id": "819aafb2-93ce-424e-b090-a60e4936b48c",
+      "group_name": "8A2",
+      "subject_id": "qurtulus-ta-subject-umumi-t-a6cb4b",
+      "subject_name": "Ümumi.T",
+      "teacher_id": "",
+      "teacher_name": "",
+      "score": 76.0,
+      "note": ""
+    }
+  ],
+  "qurt_docx_students": [
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Abduləzizov Ələkbər Vahid",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 66.0,
+          "raw": "66/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 61.0,
+          "raw": "61/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 76.0,
+          "raw": "76/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 64.0,
+          "raw": "64/4"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Balakişiyev Tahir Ramin",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Bayramova Nigar Ramil",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 100.0,
+          "raw": "100/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Dadaşov Mirzağa Sübhan",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 58.0,
+          "raw": "58/3"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 64.0,
+          "raw": "64/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Əmiraslanlı Ayla Elvin",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 100.0,
+          "raw": "100/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Əsgərli Əkbərəli Vahid",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 85.0,
+          "raw": "85/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Hacı Sərdar Bəhruz",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 85.0,
+          "raw": "85/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Hümbətli Umud Samir",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 84.0,
+          "raw": "84/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 63.0,
+          "raw": "63/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 81.0,
+          "raw": "81/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Məmmədli Arzu Kənan",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 45.0,
+          "raw": "45/3"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Məmmədli Yadigar Kamran",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 81.0,
+          "raw": "81/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Mehdizadə Uğur Natiq",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 64.0,
+          "raw": "64/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 100.0,
+          "raw": "100/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 90.0,
+          "raw": "90/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Rzalı Rza Elvin",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 98.0,
+          "raw": "98/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 90.0,
+          "raw": "90/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Rəsulzadə Rəsul Bəxtiyar",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 60.0,
+          "raw": "60/3"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 90.0,
+          "raw": "90/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Tağıyeva Aydan Eldar",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Talıbov Fateh Adil",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 98.0,
+          "raw": "98/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 90.0,
+          "raw": "90/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -IX ..docx",
+      "student_name": "Zülfəliyev Zülfüqar Cavid",
+      "class_level": "9",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "İkinci xarici dil",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 80.0,
+          "raw": "80/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Həyat Bilgisi",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Texnologiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Musiqi",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Təsviri  İncə sənət",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Əsədli Nilufər  Rəşid",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 94.0,
+          "raw": "94/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 97.0,
+          "raw": "97/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 94.0,
+          "raw": "94/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 85.0,
+          "raw": "85/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Hüseynli Fidan  Azər",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 63.0,
+          "raw": "63/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 92.0,
+          "raw": "92/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "İsmayılov Əli Ruslan",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 97.0,
+          "raw": "97/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Məmmədli Fidan Şahin",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 96.0,
+          "raw": "96/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Məmmədli Ömər  Musa",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 97.0,
+          "raw": "97/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 100.0,
+          "raw": "100/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 97.0,
+          "raw": "97/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Rəhimli İnci Fmil",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 84.0,
+          "raw": "84/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Məmmədli Sveta  Kənan",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 80.0,
+          "raw": "80/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 92.0,
+          "raw": "92/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Qasımov Saleh Vüqar",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 66.0,
+          "raw": "66/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 69.0,
+          "raw": "69/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 98.0,
+          "raw": "98/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Rəsulzadə Zəhra Bəxtiyar",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 97.0,
+          "raw": "97/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 87.0,
+          "raw": "87/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Sadıqova Səma Emin",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 92.0,
+          "raw": "92/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Sadıqova Sona  Emin",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 92.0,
+          "raw": "92/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 90.0,
+          "raw": "90/5"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 89.0,
+          "raw": "89/5"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 81.0,
+          "raw": "81/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Yusifov Hüseyn  Abdul",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 88.0,
+          "raw": "88/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 91.0,
+          "raw": "91/5"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 61.0,
+          "raw": "61/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 78.0,
+          "raw": "78/4"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Hüseynzadə Rəşidə  Rəşad",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 76.0,
+          "raw": "76/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 63.0,
+          "raw": "63/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Əliyeva Nübarxanım Ruslan",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 87.0,
+          "raw": "87/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 69.0,
+          "raw": "69/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 65.0,
+          "raw": "65/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 89.0,
+          "raw": "89/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Həsənli Fərhad  Ədalət",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 63.0,
+          "raw": "63/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 74.0,
+          "raw": "74/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 69.0,
+          "raw": "69/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Səlimzadə  Uğur  Hafiz",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 64.0,
+          "raw": "64/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 85.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 83.0,
+          "raw": "83/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 72.0,
+          "raw": "72/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 71.0,
+          "raw": "71/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 93.0,
+          "raw": "93/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "İsmayılov Ömər  İlham",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 79.0,
+          "raw": "79/4"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 73.0,
+          "raw": "73/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 77.0,
+          "raw": "77/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 62.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 67.0,
+          "raw": "67/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 69.0,
+          "raw": "69/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "81/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 89.0,
+          "raw": "89/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    },
+    {
+      "source": "Qiymətlər-Qurtuluş korpusu -XI  ..docx",
+      "student_name": "Məmmədli Nuray Rəşad",
+      "class_level": "11",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 95.0,
+          "raw": "95/5"
+        },
+        {
+          "subject_label": "Xarici dil (İng.)",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 86.0,
+          "raw": "86/5"
+        },
+        {
+          "subject_label": "Azərbaycan tarixi",
+          "score": 78.0,
+          "raw": "78/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 70.0,
+          "raw": "70/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 69.0,
+          "raw": "69/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 68.0,
+          "raw": "68/4"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 75.0,
+          "raw": "75/4"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 82.0,
+          "raw": "82/5"
+        },
+        {
+          "subject_label": "Çağıraşa qədərki Hazırlıq",
+          "score": 95.0,
+          "raw": "95/5"
+        }
+      ]
+    }
+  ],
+  "azad_students": [
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Abbasova Əsma",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 100.0,
+          "raw": "5/100"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 81.0,
+          "raw": "5/81"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Abdurəhimli Ziya",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "5/90"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Cəfərzadə Hikmət",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 98.0,
+          "raw": "5/98"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 88.0,
+          "raw": "5/88"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Əliyeva Rəşidə",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 97.0,
+          "raw": "5/97"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 87.0,
+          "raw": "5/87"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 88.0,
+          "raw": "5/88"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Xəlilzadə Həmid",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Quliyeva Ləman",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 78.0,
+          "raw": "5/78"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 96.0,
+          "raw": "5/96"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 94.0,
+          "raw": "5/94"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Mehdizadə Turqay",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 48.0,
+          "raw": "4/48"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 50.0,
+          "raw": "4/50"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 69.0,
+          "raw": "4/69"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 64.0,
+          "raw": "4/64"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "5/90"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Məhərrəmli İbrahim",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Kuçkaryova Fidan",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 89.0,
+          "raw": "5/89"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 88.0,
+          "raw": "5/88"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Bayramlı Loğman",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 88.0,
+          "raw": "5/88"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A1",
+      "student_name": "Quliyev Həmid",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 58.0,
+          "raw": "4/58"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "İmanlı Leyla",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 87.0,
+          "raw": "5/87"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 73.0,
+          "raw": "5/73"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 96.0,
+          "raw": "5/96"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 94.0,
+          "raw": "5/94"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Mirzəliyeva Nərmin",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 73.0,
+          "raw": "4/73"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 79.0,
+          "raw": "5/79"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 46.0,
+          "raw": "4/46"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 66.0,
+          "raw": "4/66"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Tarquliyev Cəfər",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 93.0,
+          "raw": "5/93"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 94.0,
+          "raw": "5/94"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "5/90"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Tarquliyeva Fatimə",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 65.0,
+          "raw": "4/65"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 72.0,
+          "raw": "4/72"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 73.0,
+          "raw": "4/73"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Əliyeva Aysu",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 84.0,
+          "raw": "5/84"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Babayev Əli",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 65.0,
+          "raw": "4/65"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 65.0,
+          "raw": "4/65"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 66.0,
+          "raw": "4/66"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.0,
+          "raw": "5/80"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Rəhimzadə Elmir",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 69.0,
+          "raw": "4/69"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 52.0,
+          "raw": "4/52"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 51.0,
+          "raw": "4/51"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 4.0,
+          "raw": "64/4"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 4.0,
+          "raw": "61/4"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 4.0,
+          "raw": "61/4"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 4.0,
+          "raw": "62/4"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 55.0,
+          "raw": "4/55"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 4.0,
+          "raw": "63/4"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 5.0,
+          "raw": "85/5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 5.0,
+          "raw": "86/5"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Mirzəyev Uğur",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "İbrahimli Tunar",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 73.0,
+          "raw": "4/73"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 54.0,
+          "raw": "3/54"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 49.0,
+          "raw": "3/49"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 6.0,
+          "raw": "2/6"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11A2",
+      "student_name": "Həsənov Saməddin",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 58.0,
+          "raw": "4/58"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 27.0,
+          "raw": "3/27"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 44.0,
+          "raw": "3/44"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 45.0,
+          "raw": "3/45"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 62.0,
+          "raw": "4/62"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 52.0,
+          "raw": "3/52"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 43.0,
+          "raw": "3/43"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 51.0,
+          "raw": "4/51"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.0,
+          "raw": "5/90"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "ƏLİYEV MƏHƏRRƏMƏLİ İLHAM",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 86.5,
+          "raw": "5/86.5"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 91.0,
+          "raw": "5/91"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 94.0,
+          "raw": "5/94"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 74.0,
+          "raw": "4/74"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 87.5,
+          "raw": "5/87.5"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.5,
+          "raw": "5/81.5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 83.5,
+          "raw": "5/83.5"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.0,
+          "raw": "5/91"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "UMUDOVA NUR RƏŞAD",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 86.5,
+          "raw": "5/86.5"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 90.5,
+          "raw": "5/90.5"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "5/85"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "MƏMMƏDLİ DƏNİZ VÜSAL",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.5,
+          "raw": "5/81.5"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 85.5,
+          "raw": "5/85.5"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 73.0,
+          "raw": "4/73"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.5,
+          "raw": "4/80.5"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "5/85"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "CƏLALOV RƏŞAD MAARİF",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 86.0,
+          "raw": "5/86"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.0,
+          "raw": "5/90"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 86.0,
+          "raw": "5/86"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "SÜLEYMANLI RAUF AZƏR",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 95.0,
+          "raw": "5/95"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 86.0,
+          "raw": "5/86"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 90.5,
+          "raw": "5/90.5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 90.5,
+          "raw": "5/90.5"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "ABBASLI AYBƏNİZ TALE",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 87.0,
+          "raw": "5/87"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 77.0,
+          "raw": "4/77"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.5,
+          "raw": "5/81.5"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "5/85"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "MƏMMƏDZADƏ ƏSMƏR NAİL",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.5,
+          "raw": "5/81.5"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 86.0,
+          "raw": "5/86"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 69.0,
+          "raw": "4/69"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 77.0,
+          "raw": "4/77"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 86.0,
+          "raw": "5/86"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "5/85"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "ABDULLAYEVA AİŞA ZAUR",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.5,
+          "raw": "5/81.5"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 84.0,
+          "raw": "5/84"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 80.0,
+          "raw": "5/80"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 69.0,
+          "raw": "4/69"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 85.5,
+          "raw": "5/85.5"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.5,
+          "raw": "5/85.5"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "ƏLİZADƏ MURAD AQİL",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 75.0,
+          "raw": "4/75"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 76.0,
+          "raw": "4/76"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 92.0,
+          "raw": "5/92"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 92.0,
+          "raw": "5/92"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "HÜMBƏTLİ HÜMBƏTƏLİ İLHAM",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 63.0,
+          "raw": "4/63"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 59.0,
+          "raw": "4/59"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 78.0,
+          "raw": "4/78"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 79.0,
+          "raw": "4/79"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 93.0,
+          "raw": "5/93"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 91.5,
+          "raw": "5/91.5"
+        }
+      ]
+    },
+    {
+      "source": "Azadliq yekun.xlsx",
+      "sheet": "11R",
+      "student_name": "ƏHMƏDOVA MƏLEYKƏ ÜLFƏT",
+      "scores": [
+        {
+          "subject_label": "Tədris dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Ədəbiyyat",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Az-dili (Dövlət dili kimi)",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "İngilis dili",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Riyaziyyat",
+          "score": 61.0,
+          "raw": "4/61"
+        },
+        {
+          "subject_label": "İnformatika",
+          "score": 71.0,
+          "raw": "4/71"
+        },
+        {
+          "subject_label": "Az-tarixi",
+          "score": 80.0,
+          "raw": "4/80"
+        },
+        {
+          "subject_label": "Ümumi tarix",
+          "score": 77.0,
+          "raw": "4/77"
+        },
+        {
+          "subject_label": "Fizika",
+          "score": 77.0,
+          "raw": "4/77"
+        },
+        {
+          "subject_label": "Kimya",
+          "score": 81.0,
+          "raw": "5/81"
+        },
+        {
+          "subject_label": "Biologiya",
+          "score": 82.0,
+          "raw": "5/82"
+        },
+        {
+          "subject_label": "Coğrafiya",
+          "score": 83.0,
+          "raw": "5/83"
+        },
+        {
+          "subject_label": "Ç/Q hazırlıq",
+          "score": 85.0,
+          "raw": "5/85"
+        },
+        {
+          "subject_label": "Fiziki tərbiyə",
+          "score": 85.0,
+          "raw": "5/85"
+        }
+      ]
+    }
+  ]
+}
