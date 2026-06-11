@@ -469,6 +469,15 @@ export const mapPkpdTeacherSummaryRow = (row: Row): PkpdTeacherSummaryDoc => ({
 	baseTotalScore: nullableNumber(row.base_total_score),
 	finalScoreWithExtra: nullableNumber(row.final_score_with_extra),
 	finalScore: nullableNumber(row.final_score),
+	finalMaxScore: Number(row.final_max_score ?? 100),
+	finalScoreLabel:
+		row.final_score_label ??
+		(nullableNumber(row.final_score) === null
+			? "-"
+			: `${Number(row.final_score).toFixed(2)} / ${Number(row.final_max_score ?? 100)}`),
+	finalPercentage: nullableNumber(row.final_percentage),
+	isPkpdNonParticipant: row.is_pkpd_non_participant ?? false,
+	isExamExempt: row.is_exam_exempt ?? false,
 	surveySubmissionCount: Number(row.survey_submission_count ?? 0),
 	studentCount: Number(row.student_count ?? 0),
 	studentClassCount: Number(row.student_class_count ?? 0),

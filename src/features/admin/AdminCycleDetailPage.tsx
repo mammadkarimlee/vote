@@ -36,14 +36,19 @@ import {
 } from "../../lib/pkpdFinalReview";
 import { getLeadershipVoteRoleStatus } from "../../lib/leadership";
 import {
+	PKPD_EXAM_EXEMPT_LABEL,
+	PKPD_EXAM_EXEMPT_NOTE,
 	computePkpdCompletion,
 	computePkpdPortfolioScore,
+	getPkpdFinalScoreLabel,
 	getPkpdEvaluationTypeFromBiq,
 	getPkpdPortfolioLimits,
 	getPkpdWeights,
+	isEnteredPkpdExamScore,
 	pkpdBucket,
 	pkpdDecision,
 } from "../../lib/pkpdScoring";
+import { isPkpdNonParticipant as matchPkpdNonParticipant } from "../../lib/pkpdNonParticipants";
 import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -156,6 +161,11 @@ type TeacherRow = {
 	baseTotalScore: number | null;
 	finalScoreWithExtra: number | null;
 	finalScore: number | null;
+	finalMaxScore: number;
+	finalScoreLabel: string;
+	finalPercentage: number | null;
+	isPkpdNonParticipant: boolean;
+	isExamExempt: boolean;
 	surveySubmissionCount: number;
 	studentCount: number;
 	studentClassCount: number;
@@ -317,7 +327,22 @@ const formatScoreOrMissing = (value: number | null | undefined) =>
 		? "Daxil edilməyib"
 		: value.toFixed(2);
 
+const formatPercentage = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value)
+		? "â€”"
+		: `${value.toFixed(2)}%`;
+
+const formatFinalScoreLabel = (
+	value: number | null | undefined,
+	maxScore: number,
+) => getPkpdFinalScoreLabel(value, maxScore);
+
 const toExportScore = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value)
+		? null
+		: Number(value.toFixed(2));
+
+const toExportPercentage = (value: number | null | undefined) =>
 	value === null || value === undefined || Number.isNaN(value)
 		? null
 		: Number(value.toFixed(2));
@@ -355,13 +380,18 @@ const assessmentResultLabel = (isBiqTeacher: boolean) =>
 		? "Balabilgənin fənni mənimsəməsi"
 		: "BİQ/KİQ tətbiq edilmir";
 
+const getComparablePkpdScore = (row: TeacherRow) =>
+	row.finalPercentage ?? row.finalScore ?? row.baseTotalScore;
+
 const compareTeacherRows = (a: TeacherRow, b: TeacherRow) => {
-	if (a.finalScore === null && b.finalScore === null) {
+	const scoreA = getComparablePkpdScore(a);
+	const scoreB = getComparablePkpdScore(b);
+	if (scoreA === null && scoreB === null) {
 		return a.name.localeCompare(b.name, "az");
 	}
-	if (a.finalScore === null) return 1;
-	if (b.finalScore === null) return -1;
-	if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+	if (scoreA === null) return 1;
+	if (scoreB === null) return -1;
+	if (scoreB !== scoreA) return scoreB - scoreA;
 	return a.name.localeCompare(b.name, "az");
 };
 
@@ -502,6 +532,7 @@ type PdfScoreRow = {
 	label: string;
 	value: number | null | undefined;
 	max: number;
+	displayValue?: string;
 };
 
 type GeneratedFinalReview = GeneratedPkpdFinalReview;
@@ -515,8 +546,10 @@ type PkpdReportOptions = {
 	includeAudit?: boolean;
 };
 
-const isMissingScore = (value: number | null | undefined) =>
-	value === null || value === undefined || Number.isNaN(value);
+const isMissingScore = (value: unknown) =>
+	value === null ||
+	value === undefined ||
+	(typeof value === "number" && Number.isNaN(value));
 
 const normalizeSearchText = (value: string) =>
 	value
@@ -538,7 +571,13 @@ const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] => {
 				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: teacher.studentWeightedScore, max: 15 },
 				{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: teacher.selfWeightedScore, max: 10 },
 				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: teacher.managementWeightedScore, max: 10 },
-				{ key: "examScore", label: "Attestasiya imtahanı", value: teacher.examScore, max: 30 },
+				{
+					key: "examScore",
+					label: "Attestasiya imtahanı",
+					value: teacher.isExamExempt ? null : teacher.examScore,
+					max: 30,
+					displayValue: teacher.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : undefined,
+				},
 				{ key: "portfolioScore", label: "Portfolio", value: teacher.portfolioScore, max: 20 },
 			]
 		: [
@@ -548,12 +587,13 @@ const getPdfScoreRows = (teacher: TeacherRow): PdfScoreRow[] => {
 				{ key: "portfolioScore", label: "Portfolio", value: teacher.portfolioScore, max: 60 },
 			];
 
-	if (!teacher.isBiqTeacher && !isMissingScore(teacher.examScore)) {
+	if (!teacher.isBiqTeacher && (teacher.isExamExempt || !isMissingScore(teacher.examScore))) {
 		rows.splice(rows.length - 1, 0, {
 			key: "examScore",
 			label: "Attestasiya imtahanı",
-			value: teacher.examScore,
+			value: teacher.isExamExempt ? null : teacher.examScore,
 			max: 30,
+			displayValue: teacher.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : undefined,
 		});
 	}
 
@@ -570,7 +610,7 @@ const getTeacherStatusInfo = (row: TeacherRow) => {
 		}
 		return { label: "Hesablama tamamlanmayıb", tone: "warning" as const };
 	}
-	if ((row.finalScore ?? row.baseTotalScore ?? 0) < 60) {
+	if ((getComparablePkpdScore(row) ?? 0) < 60) {
 		return { label: "Risk qrupu", tone: "danger" as const };
 	}
 	return { label: "Tamamlanıb", tone: "success" as const };
@@ -597,7 +637,7 @@ const matchesMissingFilter = (
 	if (filter === "open-answers") return !hasOpenAnswers;
 	if (filter === "leadership") return !row.leadershipComplete;
 	if (filter === "biq") return row.isBiqTeacher && isMissingScore(row.biqWeightedScore);
-	if (filter === "exam") return isMissingScore(row.examScore);
+	if (filter === "exam") return !row.isExamExempt && isMissingScore(row.examScore);
 	if (filter === "portfolio") return isMissingScore(row.portfolioScore);
 	return row.isComplete;
 };
@@ -644,8 +684,11 @@ const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
 				{
 					key: "exam",
 					label: "Attestasiya imtahanı",
-					value: teacher.examScore,
+					value: teacher.isExamExempt
+						? PKPD_EXAM_EXEMPT_LABEL
+						: teacher.examScore,
 					max: 30,
+					meta: teacher.isExamExempt ? PKPD_EXAM_EXEMPT_NOTE : undefined,
 				},
 				{
 					key: "portfolio",
@@ -691,19 +734,24 @@ const buildScoreBreakdownRows = (teacher: TeacherRow): ScoreBreakdownRow[] => {
 				},
 			];
 
-	if (!teacher.isBiqTeacher && !isMissingScore(teacher.examScore)) {
+	if (!teacher.isBiqTeacher && (teacher.isExamExempt || !isMissingScore(teacher.examScore))) {
 		rows.splice(rows.length - 1, 0, {
 			key: "exam",
 			label: "Attestasiya imtahanı",
-			value: teacher.examScore,
+			value: teacher.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : teacher.examScore,
 			max: 30,
-			meta: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
+			meta: teacher.isExamExempt
+				? PKPD_EXAM_EXEMPT_NOTE
+				: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
 		});
 	}
 
 	return rows.map((row) => ({
 		...row,
-		value: formatScoreOrMissing(row.value),
+		value:
+			typeof row.value === "string"
+				? row.value
+				: formatScoreOrMissing(row.value),
 		tone: isMissingScore(row.value) ? "warning" : "success",
 	}));
 };
@@ -717,6 +765,7 @@ const buildRuleBasedFinalReview = (teacher: TeacherRow): GeneratedFinalReview =>
 	buildRuleBasedPkpdFinalReview({
 		isComplete: teacher.isComplete,
 		baseTotalScore: teacher.baseTotalScore,
+		finalMaxScore: teacher.finalMaxScore,
 		currentEnteredScore: teacher.currentEnteredScore,
 		leadershipComplete: teacher.leadershipComplete,
 		missingFields: getMissingScoreLabels(teacher),
@@ -1575,6 +1624,18 @@ export const AdminCycleDetailPage = () => {
 				const evaluationType = getPkpdEvaluationTypeFromBiq(isBiqTeacher);
 				const weights = getPkpdWeights(category, isBiqTeacher);
 				const teacherAssessmentResultLabel = assessmentResultLabel(isBiqTeacher);
+				const resolvedName = getTeacherDisplayName(teacher.data, teacher.id);
+				const nameParts = splitFullName(resolvedName);
+				const firstName = teacher.data.firstName?.trim() || nameParts.firstName;
+				const lastName = teacher.data.lastName?.trim() || nameParts.lastName;
+				const departmentName = teacher.data.departmentId
+					? (departmentMap[teacher.data.departmentId]?.name ?? "-")
+					: "-";
+				const branchName = teacher.data.branchId
+					? (branchMap[teacher.data.branchId]?.name ?? "-")
+					: "-";
+				const branchMatchName =
+					branchName === "-" ? (teacher.data.branchId ?? "") : branchName;
 				const flow = flowStats[teacher.id] ?? emptyFlowAggregate();
 				const classScores = studentClassScoresByTeacher[teacher.id] ?? [];
 				const studentStats = studentSubmissionStatsByTeacher[teacher.id] ?? {
@@ -1640,13 +1701,21 @@ export const AdminCycleDetailPage = () => {
 						? null
 						: (selfDeclaredScore * weights.self) / 10;
 				const examInputScore = clampExamScore(examMap[teacher.id]?.score);
+				const isListedPkpdNonParticipant = matchPkpdNonParticipant(
+					branchMatchName,
+					resolvedName,
+				);
+				const isExamExempt =
+					isListedPkpdNonParticipant ||
+					(isBiqTeacher && !isEnteredPkpdExamScore(examInputScore));
+				const isPkpdNonParticipant = isExamExempt;
 				const biqWeightedScore =
 					isBiqTeacher
 						? weights.biq === 0 || biqAvg === null
 							? null
 							: (biqAvg * weights.biq) / 100
 						: null;
-				const examScore = examInputScore;
+				const examScore = isExamExempt ? null : examInputScore;
 				const portfolioScore = computePkpdPortfolioScore(
 					portfolioMap[teacher.id] ?? null,
 					category,
@@ -1661,6 +1730,8 @@ export const AdminCycleDetailPage = () => {
 					biqScore: biqWeightedScore,
 					examScore,
 					portfolioScore,
+				}, {
+					examExempt: isExamExempt,
 				});
 				const currentEnteredScore = completion.currentEnteredScore;
 				const isComplete =
@@ -1668,17 +1739,9 @@ export const AdminCycleDetailPage = () => {
 				const baseTotalScore = completion.baseTotalScore;
 				const finalScoreWithExtra = baseTotalScore + bonusScore;
 				const finalScore = baseTotalScore;
-
-				const resolvedName = getTeacherDisplayName(teacher.data, teacher.id);
-				const nameParts = splitFullName(resolvedName);
-				const firstName = teacher.data.firstName?.trim() || nameParts.firstName;
-				const lastName = teacher.data.lastName?.trim() || nameParts.lastName;
-				const departmentName = teacher.data.departmentId
-					? (departmentMap[teacher.data.departmentId]?.name ?? "-")
-					: "-";
-				const branchName = teacher.data.branchId
-					? (branchMap[teacher.data.branchId]?.name ?? "-")
-					: "-";
+				const finalMaxScore = completion.finalMaxScore;
+				const finalScoreLabel = completion.finalScoreLabel;
+				const finalPercentage = completion.percentage;
 
 				return {
 					teacherId: teacher.id,
@@ -1724,6 +1787,11 @@ export const AdminCycleDetailPage = () => {
 					baseTotalScore,
 					finalScoreWithExtra,
 					finalScore,
+					finalMaxScore,
+					finalScoreLabel,
+					finalPercentage,
+					isPkpdNonParticipant,
+					isExamExempt,
 					surveySubmissionCount: submissionCountByTeacher[teacher.id] ?? 0,
 					studentCount,
 					studentClassCount: classScores.length,
@@ -1897,13 +1965,17 @@ export const AdminCycleDetailPage = () => {
 	]);
 
 	const validTeacherScores = useMemo(
-		() => teacherRows.filter((row) => row.finalScore !== null),
+		() => teacherRows.filter((row) => getComparablePkpdScore(row) !== null),
 		[teacherRows],
 	);
 	const formatPkpdCategory = (row: TeacherRow) =>
-		row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
+		getComparablePkpdScore(row) !== null
+			? pkpdBucket(getComparablePkpdScore(row))
+			: "Hesablama tamamlanmayıb";
 	const formatPkpdDecision = (row: TeacherRow) =>
-		row.baseTotalScore !== null ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
+		getComparablePkpdScore(row) !== null
+			? pkpdDecision(getComparablePkpdScore(row))
+			: "Qərar verilməyib";
 
 	const visibleTeacherRows = useMemo(() => {
 		const query = normalizeSearchText(teacherQuery.trim());
@@ -1940,6 +2012,7 @@ export const AdminCycleDetailPage = () => {
 					row.branchName,
 					evaluationTypeLabel(row.isBiqTeacher),
 					getTeacherStatusInfo(row).label,
+					row.finalScoreLabel,
 					getLeadershipVoteRoleStatus(row).submittedText,
 					getLeadershipVoteRoleStatus(row).pendingText,
 				].join(" "),
@@ -2025,8 +2098,12 @@ export const AdminCycleDetailPage = () => {
 			{
 				key: "score",
 				header: "PKPD balı",
-				sortValue: (row) => row.finalScore ?? row.currentEnteredScore,
-				render: (row) => formatScore(row.finalScore ?? row.currentEnteredScore),
+				sortValue: (row) => getComparablePkpdScore(row) ?? row.currentEnteredScore,
+				render: (row) =>
+					formatFinalScoreLabel(
+						row.finalScore ?? row.currentEnteredScore,
+						row.finalMaxScore,
+					),
 			},
 			{
 				key: "bonus",
@@ -2076,7 +2153,7 @@ export const AdminCycleDetailPage = () => {
 
 	const overallSummary = useMemo(() => {
 		const total = validTeacherScores.reduce(
-			(acc, row) => acc + (row.finalScore ?? 0),
+			(acc, row) => acc + (getComparablePkpdScore(row) ?? 0),
 			0,
 		);
 		return {
@@ -2222,6 +2299,9 @@ export const AdminCycleDetailPage = () => {
 			getTeacherStatusInfo(item).label,
 			toExportScore(item.currentEnteredScore),
 			toExportScore(item.baseTotalScore),
+			item.finalMaxScore,
+			item.finalScoreLabel,
+			toExportPercentage(item.finalPercentage),
 			toExportScore(item.bonusScore),
 			toExportScore(item.finalScoreWithExtra),
 			toExportScore(item.studentWeightedScore),
@@ -2234,10 +2314,11 @@ export const AdminCycleDetailPage = () => {
 			item.leadershipComplete ? "Tamamlanıb" : "Gözləyir",
 			toExportScore(item.biqAvg),
 			toExportScore(item.biqWeightedScore),
-			toExportScore(item.examScore),
+			item.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : toExportScore(item.examScore),
 			toExportScore(item.portfolioScore),
 			toExportScore(item.teacherCriteriaTotal),
 			toExportScore(item.hrEvaluationScore),
+			item.isPkpdNonParticipant ? "Bəli" : "Xeyr",
 			item.surveySubmissionCount,
 		]);
 
@@ -2254,6 +2335,9 @@ export const AdminCycleDetailPage = () => {
 					"status",
 					"cari_daxil_edilmis_bal",
 					"yekun_pkpd_bali",
+					"yekun_maksimum_bal",
+					"yekun_bal_label",
+					"yekun_faiz",
 					"elave_bal",
 					"stimullasdirici_yekun",
 					"sagird_sorgusu_bali",
@@ -2270,6 +2354,7 @@ export const AdminCycleDetailPage = () => {
 					"portfolio",
 					"akademik_meyarlar_cemi",
 					"hr_qiymetlendirmesi",
+					"pkpd_70_uzre_hesablanib",
 					"umumi_sorgu_yazisi_sayi",
 				],
 				rows,
@@ -2404,12 +2489,15 @@ export const AdminCycleDetailPage = () => {
 					? "qrup/fənn üzrə hesablanıb"
 					: "məlumat yoxdur";
 		const biqWeightedScoreText = formatScore(selectedTeacher.biqWeightedScore);
-		const examScoreText = formatScore(selectedTeacher.examScore);
+		const examScoreText = selectedTeacher.isExamExempt
+			? PKPD_EXAM_EXEMPT_LABEL
+			: formatScore(selectedTeacher.examScore);
 		const portfolioScoreText = formatScore(selectedTeacher.portfolioScore);
 		const bonusScoreText = selectedTeacher.bonusScore.toFixed(2);
-		const baseTotalScoreText = formatScore(selectedTeacher.baseTotalScore);
+		const baseTotalScoreText = selectedTeacher.finalScoreLabel;
+		const finalPercentageText = formatPercentage(selectedTeacher.finalPercentage);
 		const finalScoreText = formatScore(selectedTeacher.finalScoreWithExtra);
-		const decisionText = pkpdDecision(selectedTeacher.baseTotalScore);
+		const decisionText = pkpdDecision(getComparablePkpdScore(selectedTeacher));
 		const assessmentResultLabel = escapeHtml(selectedTeacher.assessmentResultLabel);
 		const academicReviewedAtText = selectedTeacherSelfReview?.reviewedAt
 			? new Date(String(selectedTeacherSelfReview.reviewedAt)).toLocaleString("az-AZ")
@@ -2632,7 +2720,8 @@ export const AdminCycleDetailPage = () => {
 							<div class="card"><div class="label">Şagird sorğusu (${studentScoreMax} bal üzrə)</div><div class="value">${studentWeightedScoreText}</div></div>
 							<div class="card"><div class="label">Attestasiya imtahanı (30 bal üzrə)</div><div class="value">${examScoreText}</div></div>
 							<div class="card"><div class="label">Portfolio</div><div class="value">${portfolioScoreText}</div></div>
-							<div class="card"><div class="label">PKPD yekun balı</div><div class="value">${baseTotalScoreText}</div></div>
+							<div class="card"><div class="label">PKPD yekun balı</div><div class="value">${baseTotalScoreText}</div><div class="meta">${selectedTeacher.isExamExempt ? PKPD_EXAM_EXEMPT_NOTE : ""}</div></div>
+							<div class="card"><div class="label">Faiz</div><div class="value">${finalPercentageText}</div></div>
 							<div class="card"><div class="label">Əlavə bal</div><div class="value">${bonusScoreText}</div></div>
 							<div class="card"><div class="label">Stimullaşdırıcı yekun</div><div class="value">${finalScoreText}</div><div class="meta">${escapeHtml(decisionText)}</div></div>
 						</div>
@@ -2763,7 +2852,12 @@ export const AdminCycleDetailPage = () => {
 		const now = new Date();
 		const generatedDate = now.toLocaleDateString("az-AZ", { day: "2-digit", month: "2-digit", year: "numeric" });
 		const generatedTime = now.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit", hour12: false });
-		const scoreText = (value: number | null | undefined) => isMissingScore(value) ? "Daxil edilməyib" : formatScore(value ?? null);
+		const scoreText = (value: number | string | null | undefined) =>
+			typeof value === "string"
+				? escapeHtml(value)
+				: isMissingScore(value)
+					? "Daxil edilməyib"
+					: formatScore(value ?? null);
 		const scoreWithMax = (value: number | null | undefined, max: number) => `${scoreText(value)} / ${max}`;
 		const leadershipVoteStatus = `${selectedTeacher.leadershipSubmittedCount} / ${selectedTeacher.leadershipEligibleCount}`;
 		const leadershipRoleStatus = getLeadershipVoteRoleStatus(selectedTeacher);
@@ -2781,7 +2875,9 @@ export const AdminCycleDetailPage = () => {
 			{ key: "projectsAwardsScore", label: "Layihə / tədbir / təltif", value: selectedTeacherPortfolio?.eventsScore, max: selectedTeacherPortfolioLimits.events },
 		] : [];
 
-		const missingRows = breakdownRows.filter((row) => isMissingScore(row.value));
+		const missingRows = breakdownRows.filter(
+			(row) => !row.displayValue && isMissingScore(row.value),
+		);
 		const isFinalReport = selectedTeacher.isComplete && missingRows.length === 0;
 		if (
 			isTeacherAudience &&
@@ -2806,20 +2902,24 @@ export const AdminCycleDetailPage = () => {
 		const statusText = isFinalReport ? "Yekun qiymətləndirmə tamamlanıb" : "Hesablama tamamlanmayıb";
 		const baseTotalScore = isFinalReport ? selectedTeacher.baseTotalScore : null;
 		const finalScoreWithExtra = isFinalReport ? selectedTeacher.finalScoreWithExtra : null;
-		const categoryText = isFinalReport && baseTotalScore !== null ? pkpdBucket(baseTotalScore) : null;
-		const decisionText = isFinalReport && baseTotalScore !== null ? pkpdDecision(baseTotalScore) : "Qərar verilməyib";
+		const comparableScore = isFinalReport ? getComparablePkpdScore(selectedTeacher) : null;
+		const categoryText = comparableScore !== null ? pkpdBucket(comparableScore) : null;
+		const decisionText = comparableScore !== null ? pkpdDecision(comparableScore) : "Qərar verilməyib";
 		const uniqueMissingLabels = Array.from(new Set(missingRows.map((row) => row.key === "portfolioScore" ? "Portfolio alt meyarları" : row.label)));
 		const hasAnyPortfolioScore = portfolioRows.some((row) => !isMissingScore(row.value));
+		const maxScoreNote = selectedTeacher.isExamExempt
+			? `<p class="note">Qeyd: ${escapeHtml(PKPD_EXAM_EXEMPT_NOTE)} Faiz: ${formatPercentage(selectedTeacher.finalPercentage)}</p>`
+			: "";
 		const teacherSummaryHtml = isFinalReport
-			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, 100)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>`
-			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, 100)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><p class="note">Qeyd: Bu cari hesabatdır. Yekun nəticə və qərar bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra formalaşdırılacaq.</p>`;
+			? `<div class="summary-item"><span>PKPD yekun balı</span><strong>${scoreWithMax(baseTotalScore, selectedTeacher.finalMaxScore)}</strong></div><div class="summary-item"><span>Faiz</span><strong>${formatPercentage(selectedTeacher.finalPercentage)}</strong></div><div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Stimullaşdırıcı yekun</span><strong>${scoreText(finalScoreWithExtra)}</strong></div><div class="summary-item"><span>Kateqoriya</span><strong>${escapeHtml(categoryText ?? "Daxil edilməyib")}</strong></div><div class="summary-item"><span>Qərar</span><strong>${escapeHtml(decisionText)}</strong></div>${maxScoreNote}`
+			: `<div class="summary-item"><span>Daxil edilmiş cari bal</span><strong>${scoreWithMax(selectedTeacher.currentEnteredScore, selectedTeacher.finalMaxScore)}</strong></div><div class="summary-item"><span>Faiz</span><strong>${formatPercentage(selectedTeacher.finalPercentage)}</strong></div><div class="summary-item"><span>Status</span><strong>Hesablama tamamlanmayıb</strong></div><p class="note">Qeyd: Bu cari hesabatdır. Yekun nəticə və qərar bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra formalaşdırılacaq.</p>${maxScoreNote}`;
 		const leadershipSummaryHtml = isFinalReport
 			? `${teacherSummaryHtml}<div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik rolları</span><strong>${escapeHtml(leadershipRoleStatus.submittedText)}</strong></div>`
 			: `${teacherSummaryHtml}<div class="summary-item"><span>Əlavə bal</span><strong>${formatScore(selectedTeacher.bonusScore)}</strong></div><div class="summary-item"><span>Verilmiş rəhbərlik səsi</span><strong>${leadershipVoteStatus}</strong></div><div class="summary-item"><span>Rəhbərlik statusu</span><strong>${leadershipCompletionText}</strong></div><div class="summary-item"><span>Rəhbərlik rolları</span><strong>${escapeHtml(leadershipRoleStatus.submittedText)}</strong></div><div class="summary-item"><span>Gözlənilən rəhbərlik səsi</span><strong>${escapeHtml(leadershipRoleStatus.pendingText)}</strong></div>`;
 		const summaryHtml = isTeacherAudience ? teacherSummaryHtml : leadershipSummaryHtml;
 		const totalLabel = isFinalReport ? "PKPD yekun balı" : "Daxil edilmiş cari cəm";
 		const totalValue = isFinalReport ? baseTotalScore : selectedTeacher.currentEnteredScore;
-		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>100</td></tr>`].join("");
+		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.displayValue ?? row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>${selectedTeacher.finalMaxScore}</td></tr>`].join("");
 		const missingHtml = !isTeacherAudience && !isFinalReport && uniqueMissingLabels.length > 0 ? `<section><h2>Çatışmayan sahələr</h2><ul class="missing-list">${uniqueMissingLabels.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>` : "";
 		const portfolioHtml = hasAnyPortfolioScore ? `<table><thead><tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr></thead><tbody>${[...portfolioRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>Portfolio cəmi</td><td>${scoreText(selectedTeacher.portfolioScore)}</td><td>${portfolioMax}</td></tr>`].join("")}</tbody></table>` : `<p class="empty-note">Portfolio alt meyarları üzrə bal hələ daxil edilməyib.</p><p class="empty-note">Maksimum portfolio balı: ${portfolioMax}</p>`;
 		const leadershipRoleRows = [
@@ -3407,7 +3507,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						label="Risk qrupu"
 						value={
 							teacherRows.filter((row) => {
-								const score = row.finalScore ?? row.baseTotalScore;
+								const score = getComparablePkpdScore(row);
 								return score !== null && score < 60;
 							}).length
 						}
@@ -3426,13 +3526,13 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					<StatCard
 						tone="success"
 						label="Ən yaxşı nəticə"
-						value={topTeacher ? formatScore(topTeacher.finalScore) : "—"}
+						value={topTeacher ? topTeacher.finalScoreLabel : "—"}
 						meta={topTeacher ? topTeacher.name : "Məlumat yoxdur"}
 					/>
 					<StatCard
 						tone="warning"
 						label="Ən aşağı nəticə"
-						value={bottomTeacher ? formatScore(bottomTeacher.finalScore) : "—"}
+						value={bottomTeacher ? bottomTeacher.finalScoreLabel : "—"}
 						meta={bottomTeacher ? bottomTeacher.name : "Məlumat yoxdur"}
 					/>
 				</div>
@@ -3615,8 +3715,21 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 										<StatCard
 											tone={selectedTeacher.isComplete ? "success" : "warning"}
 											label="PKPD yekun balı"
-											value={formatScore(selectedTeacher.finalScore ?? selectedTeacher.currentEnteredScore)}
-											meta={formatPkpdCategory(selectedTeacher)}
+											value={formatFinalScoreLabel(
+												selectedTeacher.finalScore ?? selectedTeacher.currentEnteredScore,
+												selectedTeacher.finalMaxScore,
+											)}
+											meta={
+												selectedTeacher.isExamExempt
+													? `${formatPkpdCategory(selectedTeacher)} · ${PKPD_EXAM_EXEMPT_NOTE}`
+													: formatPkpdCategory(selectedTeacher)
+											}
+										/>
+										<StatCard
+											tone="neutral"
+											label="Faiz"
+											value={formatPercentage(selectedTeacher.finalPercentage)}
+											meta="yekun maksimum bala görə"
 										/>
 										<StatCard
 											tone="accent"
@@ -3854,21 +3967,29 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 											<div className="stat-card">
 												<div className="stat-label">Attestasiya imtahanı</div>
 												<div className="stat-value">
-													{formatScore(selectedTeacher.examScore)}
+													{selectedTeacher.isExamExempt
+														? PKPD_EXAM_EXEMPT_LABEL
+														: formatScore(selectedTeacher.examScore)}
 												</div>
-												<div className="stat-meta">0-30</div>
+												<div className="stat-meta">
+													{selectedTeacher.isExamExempt ? PKPD_EXAM_EXEMPT_NOTE : "0-30"}
+												</div>
 											</div>
 										</>
 									)}
 									{!selectedTeacher.isBiqTeacher &&
-										!isMissingScore(selectedTeacher.examScore) && (
+										(selectedTeacher.isExamExempt || !isMissingScore(selectedTeacher.examScore)) && (
 											<div className="stat-card">
 												<div className="stat-label">Attestasiya imtahanı</div>
 												<div className="stat-value">
-													{formatScore(selectedTeacher.examScore)}
+													{selectedTeacher.isExamExempt
+														? PKPD_EXAM_EXEMPT_LABEL
+														: formatScore(selectedTeacher.examScore)}
 												</div>
 												<div className="stat-meta">
-													Xam cəm 130 maksimumdan 100 şkalasına çevrilir
+													{selectedTeacher.isExamExempt
+														? PKPD_EXAM_EXEMPT_NOTE
+														: "Xam cəm 130 maksimumdan 100 şkalasına çevrilir"}
 												</div>
 											</div>
 										)}
@@ -3923,15 +4044,25 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 									<div className="stat-card">
 										<div className="stat-label">PKPD yekun balı</div>
 										<div className="stat-value">
-											{formatScore(
+											{formatFinalScoreLabel(
 												selectedTeacher.isComplete
 													? selectedTeacher.finalScore
 													: selectedTeacher.currentEnteredScore,
+												selectedTeacher.finalMaxScore,
 											)}
 										</div>
 										<div className="stat-meta">
-											{formatPkpdCategory(selectedTeacher)}
+											{selectedTeacher.isExamExempt
+												? `${formatPkpdCategory(selectedTeacher)} · ${PKPD_EXAM_EXEMPT_NOTE}`
+												: formatPkpdCategory(selectedTeacher)}
 										</div>
+									</div>
+									<div className="stat-card">
+										<div className="stat-label">Faiz</div>
+										<div className="stat-value">
+											{formatPercentage(selectedTeacher.finalPercentage)}
+										</div>
+										<div className="stat-meta">yekun maksimum bala görə</div>
 									</div>
 									<div className="stat-card">
 										<div className="stat-label">Stimullaşdırıcı yekun</div>

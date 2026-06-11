@@ -5,6 +5,7 @@ import {
 	computePkpdScoreSummary,
 	computePkpdTotalScore,
 	getPkpdWeights,
+	isEnteredPkpdExamScore,
 	normalizePkpdScale,
 	pkpdDecision,
 	pkpdBucket,
@@ -157,6 +158,10 @@ describe("computePkpdCompletion", () => {
 			isComplete: true,
 			currentEnteredScore: 100,
 			baseTotalScore: 100,
+			finalScore: 100,
+			finalMaxScore: 100,
+			finalScoreLabel: "100.00 / 100",
+			percentage: 100,
 		});
 	});
 
@@ -172,6 +177,10 @@ describe("computePkpdCompletion", () => {
 			isComplete: true,
 			currentEnteredScore: 100,
 			baseTotalScore: 100,
+			finalScore: 100,
+			finalMaxScore: 100,
+			finalScoreLabel: "100.00 / 100",
+			percentage: 100,
 		});
 	});
 
@@ -188,6 +197,10 @@ describe("computePkpdCompletion", () => {
 			isComplete: true,
 			currentEnteredScore: 50,
 			baseTotalScore: 50,
+			finalScore: 50,
+			finalMaxScore: 100,
+			finalScoreLabel: "50.00 / 100",
+			percentage: 50,
 		});
 	});
 
@@ -205,7 +218,45 @@ describe("computePkpdCompletion", () => {
 			isComplete: false,
 			currentEnteredScore: 50,
 			baseTotalScore: 50,
+			finalScore: 50,
+			finalMaxScore: 100,
+			finalScoreLabel: "50.00 / 100",
+			percentage: 50,
 		});
+	});
+
+	it("uses 70 max score when exam is exempt", () => {
+		const result = computePkpdCompletion(
+			"WITH_BIQ",
+			{
+				studentScore: 12,
+				managementScore: 9,
+				selfScore: 8,
+				biqScore: 15,
+				examScore: 0,
+				portfolioScore: 8,
+			},
+			{ examExempt: true },
+		);
+
+		expect(result).toMatchObject({
+			isComplete: true,
+			currentEnteredScore: 52,
+			baseTotalScore: 52,
+			finalScore: 52,
+			finalMaxScore: 70,
+			finalScoreLabel: "52.00 / 70",
+		});
+		expect(result.percentage).toBeCloseTo(74.2857, 4);
+	});
+});
+
+describe("isEnteredPkpdExamScore", () => {
+	it("treats zero and missing exam scores as not entered", () => {
+		expect(isEnteredPkpdExamScore(0)).toBe(false);
+		expect(isEnteredPkpdExamScore(null)).toBe(false);
+		expect(isEnteredPkpdExamScore(undefined)).toBe(false);
+		expect(isEnteredPkpdExamScore(12)).toBe(true);
 	});
 });
 

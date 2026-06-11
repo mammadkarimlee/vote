@@ -45,15 +45,20 @@ import {
 	type GeneratedPkpdFinalReview,
 } from "../../lib/pkpdFinalReview";
 import {
+	PKPD_EXAM_EXEMPT_LABEL,
+	PKPD_EXAM_EXEMPT_NOTE,
 	computePkpdCompletion,
 	computePkpdPortfolioScore,
+	getPkpdFinalScoreLabel,
 	getPkpdEvaluationTypeFromBiq,
 	getPkpdPortfolioLimits,
 	getPkpdWeights,
+	isEnteredPkpdExamScore,
 	normalizePkpdScale,
 	pkpdDecision,
 	pkpdBucket,
 } from "../../lib/pkpdScoring";
+import { isPkpdNonParticipant as matchPkpdNonParticipant } from "../../lib/pkpdNonParticipants";
 import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import type {
 	AnswerDoc,
@@ -162,6 +167,12 @@ type SummaryRow = {
 	isComplete: boolean;
 	baseTotalScore: number | null;
 	finalScoreWithExtra: number | null;
+	finalScore: number | null;
+	finalMaxScore: number;
+	finalScoreLabel: string;
+	finalPercentage: number | null;
+	isPkpdNonParticipant: boolean;
+	isExamExempt: boolean;
 };
 
 const teacherCategoryLabel = (category?: TeacherCategory) => {
@@ -184,8 +195,20 @@ const decisionLabel: Record<PkpdDecisionStatus, string> = {
 const formatScoreValue = (value: number | null) =>
 	value === null ? "-" : value.toFixed(1);
 
-const isMissingScore = (value: number | null | undefined) =>
-	value === null || value === undefined || Number.isNaN(value);
+const formatPercentage = (value: number | null | undefined) =>
+	value === null || value === undefined || Number.isNaN(value)
+		? "-"
+		: `${value.toFixed(2)}%`;
+
+const formatFinalScoreLabel = (
+	value: number | null | undefined,
+	maxScore: number,
+) => getPkpdFinalScoreLabel(value, maxScore);
+
+const isMissingScore = (value: unknown) =>
+	value === null ||
+	value === undefined ||
+	(typeof value === "number" && Number.isNaN(value));
 
 const formatScoreOrMissing = (value: number | null | undefined) =>
 	isMissingScore(value) ? "Daxil edilməyib" : Number(value).toFixed(1);
@@ -194,6 +217,9 @@ const evaluationTypeLabel = (isWithBiq: boolean) =>
 	isWithBiq
 		? "BİQ/KİQ nəticəsi olan müəllim"
 		: "BİQ/KİQ nəticəsi olmayan müəllim";
+
+const getComparablePkpdScore = (row: SummaryRow) =>
+	row.finalPercentage ?? row.finalScore ?? row.baseTotalScore;
 
 const getSummaryStatusInfo = (row: SummaryRow) => {
 	if (!row.isComplete) {
@@ -205,7 +231,7 @@ const getSummaryStatusInfo = (row: SummaryRow) => {
 		}
 		return { label: "Hesablama tamamlanmayıb", tone: "warning" as const };
 	}
-	if ((row.baseTotalScore ?? 0) < 60) {
+	if ((getComparablePkpdScore(row) ?? 0) < 60) {
 		return { label: "Risk qrupu", tone: "danger" as const };
 	}
 	return { label: "Tamamlanıb", tone: "success" as const };
@@ -251,8 +277,9 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 				{
 					key: "exam",
 					label: "Attestasiya imtahanı",
-					value: row.examScore,
+					value: row.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : row.examScore,
 					max: 30,
+					meta: row.isExamExempt ? PKPD_EXAM_EXEMPT_NOTE : undefined,
 				},
 				{
 					key: "portfolio",
@@ -296,19 +323,24 @@ const buildSummaryBreakdownRows = (row: SummaryRow): ScoreBreakdownRow[] => {
 				},
 			];
 
-	if (!row.isBiqTeacher && !isMissingScore(row.examScore)) {
+	if (!row.isBiqTeacher && (row.isExamExempt || !isMissingScore(row.examScore))) {
 		rows.splice(rows.length - 1, 0, {
 			key: "exam",
 			label: "Attestasiya imtahanı",
-			value: row.examScore,
+			value: row.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : row.examScore,
 			max: 30,
-			meta: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
+			meta: row.isExamExempt
+				? PKPD_EXAM_EXEMPT_NOTE
+				: "Xam cəm 130 maksimumdan 100 şkalasına normallaşdırılır",
 		});
 	}
 
 	return rows.map((item) => ({
 		...item,
-		value: formatScoreOrMissing(item.value),
+		value:
+			typeof item.value === "string"
+				? item.value
+				: formatScoreOrMissing(item.value),
 		tone: isMissingScore(item.value) ? "warning" : "success",
 	}));
 };
@@ -320,7 +352,9 @@ const getFinalReviewComponents = (row: SummaryRow) => {
 				{ key: "studentSurveyScore", label: "Balabilgə sorğusu", value: row.studentScore, max: 15 },
 				{ key: "selfEvaluationScore", label: "Özünü qiymətləndirmə", value: row.selfScore, max: 10 },
 				{ key: "leadershipEvaluationScore", label: "Rəhbərlik qiymətləndirməsi", value: row.managementScore, max: 10 },
-				{ key: "examScore", label: "Attestasiya imtahanı", value: row.examScore, max: 30 },
+				...(row.isExamExempt
+					? []
+					: [{ key: "examScore", label: "Attestasiya imtahanı", value: row.examScore, max: 30 }]),
 				{ key: "portfolioScore", label: "Portfolio", value: row.portfolioScore, max: 20 },
 			]
 		: [
@@ -330,7 +364,7 @@ const getFinalReviewComponents = (row: SummaryRow) => {
 				{ key: "portfolioScore", label: "Portfolio", value: row.portfolioScore, max: 60 },
 			];
 
-	if (!row.isBiqTeacher && !isMissingScore(row.examScore)) {
+	if (!row.isBiqTeacher && !row.isExamExempt && !isMissingScore(row.examScore)) {
 		components.splice(components.length - 1, 0, {
 			key: "examScore",
 			label: "Attestasiya imtahanı",
@@ -375,7 +409,7 @@ const getTeacherCriteriaTotal = (review?: PkpdSelfReviewDoc | null) => {
 
 export const BranchPkpdPage = () => {
 	const { user, userDoc } = useAuth();
-	const { branchId, setBranchId, branches, isSuperAdmin } = useBranchScope();
+	const { branchId, setBranchId, branches, branchName, isSuperAdmin } = useBranchScope();
 	const [cycles, setCycles] = useState<Array<DocEntry<SurveyCycleDoc>>>([]);
 	const [selectedCycleId, setSelectedCycleId] = useState("");
 	const [teachers, setTeachers] = useState<Array<DocEntry<TeacherDoc>>>([]);
@@ -1190,6 +1224,14 @@ export const BranchPkpdPage = () => {
 						? "computed"
 						: "none";
 			const examInputScore = clampExamScore(examMap[teacher.id]?.score);
+			const isListedPkpdNonParticipant = matchPkpdNonParticipant(
+				branchName || branchId,
+				teacher.data.name,
+			);
+			const isExamExempt =
+				isListedPkpdNonParticipant ||
+				(isBiqTeacher && !isEnteredPkpdExamScore(examInputScore));
+			const isPkpdNonParticipant = isExamExempt;
 			const biqScore =
 				isBiqTeacher
 					? weights.biq === 0 || biqAvg === null
@@ -1197,7 +1239,7 @@ export const BranchPkpdPage = () => {
 						: (biqAvg * weights.biq) / 100
 					: null;
 
-			const examScore = examInputScore;
+			const examScore = isExamExempt ? null : examInputScore;
 			const portfolioScore = computePkpdPortfolioScore(
 				portfolioMap[teacher.id] ?? null,
 				category,
@@ -1215,6 +1257,8 @@ export const BranchPkpdPage = () => {
 					biqScore,
 					examScore,
 					portfolioScore,
+				}, {
+					examExempt: isExamExempt,
 				});
 			const isComplete =
 				completion.isComplete && Boolean(leadershipSummary?.isComplete);
@@ -1222,6 +1266,10 @@ export const BranchPkpdPage = () => {
 			const baseTotalScore = completion.baseTotalScore;
 			const extraScore = bonus;
 			const finalScoreWithExtra = baseTotalScore + extraScore;
+			const finalScore = baseTotalScore;
+			const finalMaxScore = completion.finalMaxScore;
+			const finalScoreLabel = completion.finalScoreLabel;
+			const finalPercentage = completion.percentage;
 
 			return {
 				teacherId: teacher.id,
@@ -1257,11 +1305,19 @@ export const BranchPkpdPage = () => {
 				isComplete,
 				baseTotalScore,
 				finalScoreWithExtra,
+				finalScore,
+				finalMaxScore,
+				finalScoreLabel,
+				finalPercentage,
+				isPkpdNonParticipant,
+				isExamExempt,
 			};
 		});
 	}, [
 		achievementTotals,
 		assignmentByTeacher,
+		branchId,
+		branchName,
 		biqMap,
 		examMap,
 		flowStats,
@@ -1281,10 +1337,14 @@ export const BranchPkpdPage = () => {
 	const achievementPagination = usePagination(achievements);
 
 	const formatPkpdCategory = (row: SummaryRow) =>
-		row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb";
+		getComparablePkpdScore(row) !== null
+			? pkpdBucket(getComparablePkpdScore(row))
+			: "Hesablama tamamlanmayıb";
 
 	const formatPkpdDecision = (row: SummaryRow) =>
-		row.baseTotalScore !== null ? pkpdDecision(row.baseTotalScore) : "Qərar verilməyib";
+		getComparablePkpdScore(row) !== null
+			? pkpdDecision(getComparablePkpdScore(row))
+			: "Qərar verilməyib";
 
 	const filteredSummaryRows = useMemo(() => {
 		const query = summaryQuery.trim().toLocaleLowerCase("az");
@@ -1311,7 +1371,8 @@ export const BranchPkpdPage = () => {
 				row.name,
 				evaluationTypeLabel(row.isBiqTeacher),
 				statusInfo.label,
-				row.baseTotalScore !== null ? pkpdBucket(row.baseTotalScore) : "Hesablama tamamlanmayıb",
+				row.finalScoreLabel,
+				formatPkpdCategory(row),
 			]
 				.join(" ")
 				.toLocaleLowerCase("az")
@@ -1361,8 +1422,12 @@ export const BranchPkpdPage = () => {
 			{
 				key: "score",
 				header: "PKPD yekun balı",
-				sortValue: (row) => row.baseTotalScore ?? row.currentEnteredScore,
-				render: (row) => formatScoreValue(row.baseTotalScore ?? row.currentEnteredScore),
+				sortValue: (row) => getComparablePkpdScore(row) ?? row.currentEnteredScore,
+				render: (row) =>
+					formatFinalScoreLabel(
+						row.baseTotalScore ?? row.currentEnteredScore,
+						row.finalMaxScore,
+					),
 			},
 			{
 				key: "bonus",
@@ -2445,6 +2510,7 @@ export const BranchPkpdPage = () => {
 		const generatedReview = buildRuleBasedPkpdFinalReview({
 			isComplete: selectedSummaryRow.isComplete,
 			baseTotalScore: selectedSummaryRow.baseTotalScore,
+			finalMaxScore: selectedSummaryRow.finalMaxScore,
 			currentEnteredScore: selectedSummaryRow.currentEnteredScore,
 			leadershipComplete: selectedSummaryRow.leadershipComplete,
 			missingFields: getMissingSummaryScoreLabels(selectedSummaryRow),
@@ -2539,6 +2605,7 @@ export const BranchPkpdPage = () => {
 		if (!branchId || !selectedCycleId) return;
 		const draft = decisionDrafts[teacherId] ?? { status: "PENDING", note: "" };
 		const summary = summaryRows.find((row) => row.teacherId === teacherId);
+		const comparableScore = summary ? getComparablePkpdScore(summary) : null;
 		const payload = {
 			org_id: ORG_ID,
 			branch_id: branchId,
@@ -2548,9 +2615,9 @@ export const BranchPkpdPage = () => {
 			note: draft.note.trim() || null,
 			total_score: summary?.baseTotalScore ?? null,
 			category:
-				summary?.baseTotalScore === null || summary?.baseTotalScore === undefined
+				comparableScore === null || comparableScore === undefined
 					? null
-					: pkpdBucket(summary.baseTotalScore),
+					: pkpdBucket(comparableScore),
 			decided_by: user?.id ?? null,
 			decided_at: new Date().toISOString(),
 		};
@@ -2607,11 +2674,13 @@ export const BranchPkpdPage = () => {
 		setStatus(enabled ? "Rəhbərlik səsi yekunlaşdırıldı." : "Yekunlaşdırma ləğv edildi.");
 	};
 
-	const scoredSummaryRows = summaryRows.filter((row) => row.baseTotalScore !== null);
+	const scoredSummaryRows = summaryRows.filter(
+		(row) => getComparablePkpdScore(row) !== null,
+	);
 	const averageSummaryScore =
 		scoredSummaryRows.length > 0
 			? scoredSummaryRows.reduce(
-					(sum, row) => sum + (row.baseTotalScore ?? 0),
+					(sum, row) => sum + (getComparablePkpdScore(row) ?? 0),
 					0,
 				) / scoredSummaryRows.length
 			: null;
@@ -2704,7 +2773,10 @@ export const BranchPkpdPage = () => {
 					icon="RS"
 					label="Risk qrupu"
 					value={
-						summaryRows.filter((row) => row.baseTotalScore !== null && row.baseTotalScore < 60)
+						summaryRows.filter((row) => {
+							const score = getComparablePkpdScore(row);
+							return score !== null && score < 60;
+						})
 							.length
 					}
 					meta="yekun balı 60-dan aşağı"
@@ -3299,22 +3371,54 @@ export const BranchPkpdPage = () => {
 									<>
 										<div className="stat-card"><div className="stat-label">BİQ ortalaması</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqAvg)}</div><div className="stat-meta">{selectedSummaryRow.biqAverageSource === "manual" ? "manual daxil edilib" : selectedSummaryRow.biqAverageSource === "computed" ? "qrup/fənn üzrə hesablanıb" : "məlumat yoxdur"}</div></div>
 										<div className="stat-card"><div className="stat-label">{selectedSummaryRow.assessmentResultLabel}</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.biqScore)}</div></div>
-										<div className="stat-card"><div className="stat-label">Attestasiya imtahanı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div></div>
+										<div className="stat-card">
+											<div className="stat-label">Attestasiya imtahanı</div>
+											<div className="stat-value">
+												{selectedSummaryRow.isExamExempt
+													? PKPD_EXAM_EXEMPT_LABEL
+													: formatScoreValue(selectedSummaryRow.examScore)}
+											</div>
+											<div className="stat-meta">
+												{selectedSummaryRow.isExamExempt ? PKPD_EXAM_EXEMPT_NOTE : "0-30"}
+											</div>
+										</div>
 									</>
 								)}
 								{!selectedSummaryRow.isBiqTeacher &&
-									!isMissingScore(selectedSummaryRow.examScore) && (
+									(selectedSummaryRow.isExamExempt || !isMissingScore(selectedSummaryRow.examScore)) && (
 										<div className="stat-card">
 											<div className="stat-label">Attestasiya imtahanı</div>
-											<div className="stat-value">{formatScoreValue(selectedSummaryRow.examScore)}</div>
-											<div className="stat-meta">Xam cəm 130 maksimumdan 100 şkalasına çevrilir</div>
+											<div className="stat-value">
+												{selectedSummaryRow.isExamExempt
+													? PKPD_EXAM_EXEMPT_LABEL
+													: formatScoreValue(selectedSummaryRow.examScore)}
+											</div>
+											<div className="stat-meta">
+												{selectedSummaryRow.isExamExempt
+													? PKPD_EXAM_EXEMPT_NOTE
+													: "Xam cəm 130 maksimumdan 100 şkalasına çevrilir"}
+											</div>
 										</div>
 									)}
 								<div className="stat-card"><div className="stat-label">Portfolio</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.portfolioScore)}</div></div>
 								<div className="stat-card"><div className="stat-label">Əlavə bal</div><div className="stat-value">{selectedSummaryRow.extraScore.toFixed(1)}</div></div>
 								<div className="stat-card"><div className="stat-label">Daxil edilmiş balların cari cəmi</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.teacherCriteriaTotal)}</div></div>
 								<div className="stat-card"><div className="stat-label">HR qeydi (hesaba daxil deyil)</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.hrSelfReviewScore)}</div></div>
-								<div className="stat-card"><div className="stat-label">PKPD yekun balı</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.baseTotalScore ?? selectedSummaryRow.currentEnteredScore)}</div><div className="stat-meta">{formatPkpdCategory(selectedSummaryRow)}</div></div>
+								<div className="stat-card">
+									<div className="stat-label">PKPD yekun balı</div>
+									<div className="stat-value">
+										{formatFinalScoreLabel(
+											selectedSummaryRow.baseTotalScore ?? selectedSummaryRow.currentEnteredScore,
+											selectedSummaryRow.finalMaxScore,
+										)}
+									</div>
+									<div className="stat-meta">
+										{selectedSummaryRow.isExamExempt
+											? `${formatPkpdCategory(selectedSummaryRow)} · ${PKPD_EXAM_EXEMPT_NOTE}`
+											: formatPkpdCategory(selectedSummaryRow)}
+									</div>
+								</div>
+								<div className="stat-card"><div className="stat-label">Faiz</div><div className="stat-value">{formatPercentage(selectedSummaryRow.finalPercentage)}</div><div className="stat-meta">yekun maksimum bala görə</div></div>
 								<div className="stat-card"><div className="stat-label">Stimullaşdırıcı yekun</div><div className="stat-value">{formatScoreValue(selectedSummaryRow.finalScoreWithExtra)}</div><div className="stat-meta">{formatPkpdDecision(selectedSummaryRow)}</div></div>
 							</div>
 							<div className="card">

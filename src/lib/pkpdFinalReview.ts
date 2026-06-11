@@ -8,6 +8,7 @@ export type PkpdFinalReviewComponent = {
 export type PkpdFinalReviewInput = {
 	isComplete: boolean;
 	baseTotalScore: number | null;
+	finalMaxScore?: number;
 	currentEnteredScore: number;
 	leadershipComplete: boolean;
 	missingFields: string[];
@@ -30,24 +31,29 @@ const getCategory = (score: number) => {
 	return "İnkişafı çox aşağı olan / tutduğu vəzifəyə uyğun deyil";
 };
 
-const getReviewBaseText = (score: number, category: string) => {
-	const scoreText = formatScore(score);
-	if (score >= 90) {
-		return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Qiymətləndirmə dövrü üzrə göstəricilər müəllimin vəzifə funksiyalarını yüksək səviyyədə icra etdiyini, pedaqoji fəaliyyətində sabit və nümunəvi nəticələr nümayiş etdirdiyini göstərir.`;
+const getReviewBaseText = (
+	score: number,
+	categoryScore: number,
+	category: string,
+	finalMaxScore: number,
+) => {
+	const scoreText = `${formatScore(score)} / ${finalMaxScore}`;
+	if (categoryScore >= 90) {
+		return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Qiymətləndirmə dövrü üzrə göstəricilər müəllimin vəzifə funksiyalarını yüksək səviyyədə icra etdiyini, pedaqoji fəaliyyətində sabit və nümunəvi nəticələr nümayiş etdirdiyini göstərir.`;
 	}
-	if (score >= 80) {
-		return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Müəllim qiymətləndirmə dövrü üzrə əsas vəzifə funksiyalarını tələb olunan səviyyədə yerinə yetirmişdir.`;
+	if (categoryScore >= 80) {
+		return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Müəllim qiymətləndirmə dövrü üzrə əsas vəzifə funksiyalarını tələb olunan səviyyədə yerinə yetirmişdir.`;
 	}
-	if (score >= 60) {
-		return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin ümumi fəaliyyətinin qənaətbəxş olduğunu göstərsə də, bəzi istiqamətlər üzrə inkişaf ehtiyacı mövcuddur.`;
+	if (categoryScore >= 60) {
+		return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin ümumi fəaliyyətinin qənaətbəxş olduğunu göstərsə də, bəzi istiqamətlər üzrə inkişaf ehtiyacı mövcuddur.`;
 	}
-	if (score >= 50) {
-		return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Qiymətləndirmə nəticələri göstərir ki, müəllimin bir sıra fəaliyyət istiqamətlərində inkişaf ehtiyacı var.`;
+	if (categoryScore >= 50) {
+		return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Qiymətləndirmə nəticələri göstərir ki, müəllimin bir sıra fəaliyyət istiqamətlərində inkişaf ehtiyacı var.`;
 	}
-	if (score >= 30) {
-		return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin vəzifə funksiyalarının icrasında ciddi inkişaf ehtiyacının olduğunu göstərir.`;
+	if (categoryScore >= 30) {
+		return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin vəzifə funksiyalarının icrasında ciddi inkişaf ehtiyacının olduğunu göstərir.`;
 	}
-	return `Müəllimin PKPD yekun nəticəsi ${scoreText} / 100 bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin mövcud vəzifə tələblərini ödəmədiyini göstərir.`;
+	return `Müəllimin PKPD yekun nəticəsi ${scoreText} bal təşkil edir və "${category}" kateqoriyasına uyğundur. Nəticələr müəllimin mövcud vəzifə tələblərini ödəmədiyini göstərir.`;
 };
 
 const getRecommendationBaseText = (score: number) => {
@@ -100,6 +106,7 @@ const getComponentInsight = (
 
 export const buildRuleBasedPkpdFinalReview = ({
 	baseTotalScore,
+	finalMaxScore = 100,
 	currentEnteredScore,
 	leadershipComplete,
 	missingFields,
@@ -114,7 +121,7 @@ export const buildRuleBasedPkpdFinalReview = ({
 
 	if (baseTotalScore === null) {
 		return {
-			reviewText: `Müəllim üzrə PKPD qiymətləndirməsi hələ tamamlanmayıb. Hazırda daxil edilmiş göstəricilər əsasında cari bal ${formatScore(currentEnteredScore)} / 100 təşkil edir. Yekun nəticə və qərar bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra formalaşdırılacaq.`,
+			reviewText: `Müəllim üzrə PKPD qiymətləndirməsi hələ tamamlanmayıb. Hazırda daxil edilmiş göstəricilər əsasında cari bal ${formatScore(currentEnteredScore)} / ${finalMaxScore} təşkil edir. Yekun nəticə və qərar bütün tələb olunan qiymətləndirmə sahələri daxil edildikdən sonra formalaşdırılacaq.`,
 			recommendationText: `Qiymətləndirmənin tamamlanması üçün çatışmayan sahələrin daxil edilməsi tövsiyə olunur: ${uniqueMissingFields.join(", ") || "tələb olunan qiymətləndirmə məlumatları"}. Yekun rəy və inkişaf istiqamətləri qiymətləndirmə tamamlandıqdan sonra yenilənməlidir.`,
 		};
 	}
@@ -132,9 +139,13 @@ export const buildRuleBasedPkpdFinalReview = ({
 	const weakInsights = availableComponents
 		.filter((component) => ((component.value ?? 0) / component.max) * 100 < 60)
 		.map((component) => getComponentInsight(component, false));
-	const category = getCategory(baseTotalScore);
-	const reviewParts = [getReviewBaseText(baseTotalScore, category)];
-	const recommendationParts = [getRecommendationBaseText(baseTotalScore)];
+	const comparableScore =
+		finalMaxScore === 70 ? (baseTotalScore / 70) * 100 : baseTotalScore;
+	const category = getCategory(comparableScore);
+	const reviewParts = [
+		getReviewBaseText(baseTotalScore, comparableScore, category, finalMaxScore),
+	];
+	const recommendationParts = [getRecommendationBaseText(comparableScore)];
 
 	if (strongInsights.length > 0) {
 		reviewParts.push(strongInsights.join(" "));

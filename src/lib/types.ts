@@ -420,6 +420,11 @@ export type PkpdTeacherSummaryDoc = {
 	baseTotalScore: number | null;
 	finalScoreWithExtra: number | null;
 	finalScore: number | null;
+	finalMaxScore: number;
+	finalScoreLabel: string;
+	finalPercentage: number | null;
+	isPkpdNonParticipant: boolean;
+	isExamExempt: boolean;
 	surveySubmissionCount: number;
 	studentCount: number;
 	studentClassCount: number;

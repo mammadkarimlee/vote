@@ -2,6 +2,12 @@ import type { PkpdPortfolioDoc, TeacherCategory } from "./types";
 
 export type PkpdEvaluationType = "WITH_BIQ" | "WITHOUT_BIQ";
 
+export const PKPD_DEFAULT_FINAL_MAX_SCORE = 100;
+export const PKPD_EXAM_EXEMPT_FINAL_MAX_SCORE = 70;
+export const PKPD_EXAM_EXEMPT_LABEL = "İmtahandan azad olunub";
+export const PKPD_EXAM_EXEMPT_NOTE =
+	"Yekun nəticə 70 bal üzərindən hesablanıb";
+
 export const isEnteredPkpdScore = (
 	value: number | null | undefined,
 ): value is number =>
@@ -9,6 +15,23 @@ export const isEnteredPkpdScore = (
 	value !== undefined &&
 	typeof value === "number" &&
 	!Number.isNaN(value);
+
+export const isEnteredPkpdExamScore = (
+	value: number | null | undefined,
+): value is number => isEnteredPkpdScore(value) && value > 0;
+
+export const getPkpdScorePercentage = (
+	score: number | null | undefined,
+	maxScore: number,
+) =>
+	isEnteredPkpdScore(score) && maxScore > 0
+		? (score / maxScore) * 100
+		: null;
+
+export const getPkpdFinalScoreLabel = (
+	score: number | null | undefined,
+	maxScore = PKPD_DEFAULT_FINAL_MAX_SCORE,
+) => (isEnteredPkpdScore(score) ? `${score.toFixed(2)} / ${maxScore}` : "-");
 
 const sumScores = (values: Array<number | null | undefined>) => {
 	const numericValues = values.filter(isEnteredPkpdScore);
@@ -144,15 +167,29 @@ type PkpdScoreParts = {
 	bonusScore?: number | null;
 };
 
+type PkpdCompletionOptions = {
+	examExempt?: boolean;
+	isPkpdNonParticipant?: boolean;
+};
+
 const getExtraScore = (score?: number | null) =>
 	isEnteredPkpdScore(score) ? score : null;
 
 export const computePkpdCompletion = (
 	evaluationType: PkpdEvaluationType,
 	parts: PkpdScoreParts,
+	options: PkpdCompletionOptions = {},
 ) => {
+	const examExempt = Boolean(
+		options.examExempt || options.isPkpdNonParticipant,
+	);
+	const finalMaxScore = examExempt
+		? PKPD_EXAM_EXEMPT_FINAL_MAX_SCORE
+		: PKPD_DEFAULT_FINAL_MAX_SCORE;
 	const hasWithoutBiqExam =
-		evaluationType === "WITHOUT_BIQ" && isEnteredPkpdScore(parts.examScore);
+		!examExempt &&
+		evaluationType === "WITHOUT_BIQ" &&
+		isEnteredPkpdExamScore(parts.examScore);
 	const requiredScores =
 		evaluationType === "WITH_BIQ"
 			? [
@@ -160,7 +197,7 @@ export const computePkpdCompletion = (
 					parts.studentScore,
 					parts.selfScore,
 					parts.managementScore,
-					parts.examScore,
+					...(examExempt ? [] : [parts.examScore]),
 					parts.portfolioScore,
 				]
 			: [
@@ -175,13 +212,18 @@ export const computePkpdCompletion = (
 		.reduce((sum, value) => sum + value, 0);
 	const currentEnteredScore = hasWithoutBiqExam
 		? (rawCurrentEnteredScore * 100) / 130
-		: rawCurrentEnteredScore;
+		: Math.min(rawCurrentEnteredScore, finalMaxScore);
 	const isComplete = requiredScores.every(isEnteredPkpdScore);
+	const baseTotalScore = currentEnteredScore;
 
 	return {
 		isComplete,
 		currentEnteredScore,
-		baseTotalScore: currentEnteredScore,
+		baseTotalScore,
+		finalScore: baseTotalScore,
+		finalMaxScore,
+		finalScoreLabel: getPkpdFinalScoreLabel(baseTotalScore, finalMaxScore),
+		percentage: getPkpdScorePercentage(baseTotalScore, finalMaxScore),
 	};
 };
 
