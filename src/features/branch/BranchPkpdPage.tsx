@@ -891,6 +891,16 @@ export const BranchPkpdPage = () => {
 			),
 		[teacherBiqResults],
 	);
+	const teacherBiqScoresByTeacher = useMemo(() => {
+		const map: Record<string, Record<string, number>> = {};
+		teacherBiqResults.forEach((item) => {
+			if (typeof item.data.score !== "number") return;
+			map[item.data.teacherId] = map[item.data.teacherId] ?? {};
+			map[item.data.teacherId][`${item.data.groupId}_${item.data.subjectId}`] =
+				item.data.score;
+		});
+		return map;
+	}, [teacherBiqResults]);
 	const teacherBiqAverageMap = useMemo(
 		() =>
 			Object.fromEntries(
@@ -1149,14 +1159,19 @@ export const BranchPkpdPage = () => {
 				selfAvg === null ? null : (selfAvg * weights.self) / 100;
 
 			const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
-			const biqScores = assignmentsForTeacher
-				.map((assignment) => {
-					const teacherBiqKey = `${teacher.id}_${assignment.groupId}_${assignment.subjectId}`;
-					const teacherOverride = teacherBiqMap[teacherBiqKey]?.score;
-					if (typeof teacherOverride === "number") return teacherOverride;
-					return biqMap[`${assignment.groupId}_${assignment.subjectId}`]?.score;
-				})
-				.filter((value): value is number => typeof value === "number");
+			const biqScoreMap = new Map(
+				Object.entries(teacherBiqScoresByTeacher[teacher.id] ?? {}),
+			);
+			assignmentsForTeacher.forEach((assignment) => {
+				const resultKey = `${assignment.groupId}_${assignment.subjectId}`;
+				if (biqScoreMap.has(resultKey)) return;
+
+				const classScore = biqMap[`${assignment.groupId}_${assignment.subjectId}`]?.score;
+				if (typeof classScore === "number") {
+					biqScoreMap.set(resultKey, classScore);
+				}
+			});
+			const biqScores = Array.from(biqScoreMap.values());
 			const computedBiqAvg =
 				biqScores.length > 0
 					? biqScores.reduce((a, b) => a + b, 0) / biqScores.length
@@ -1255,6 +1270,7 @@ export const BranchPkpdPage = () => {
 		selfReviewMap,
 		teacherBiqAverageMap,
 		teacherBiqMap,
+		teacherBiqScoresByTeacher,
 		teachers,
 	]);
 

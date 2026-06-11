@@ -1468,16 +1468,16 @@ export const AdminCycleDetailPage = () => {
 		[biqResults],
 	);
 
-	const teacherBiqByKey = useMemo(
-		() =>
-			Object.fromEntries(
-				teacherBiqResults.map((item) => [
-					`${item.data.teacherId}_${item.data.groupId}_${item.data.subjectId}`,
-					item.data.score,
-				]),
-			),
-		[teacherBiqResults],
-	);
+	const teacherBiqScoresByTeacher = useMemo(() => {
+		const map: Record<string, Record<string, number>> = {};
+		teacherBiqResults.forEach((item) => {
+			if (typeof item.data.score !== "number") return;
+			map[item.data.teacherId] = map[item.data.teacherId] ?? {};
+			map[item.data.teacherId][`${item.data.groupId}_${item.data.subjectId}`] =
+				item.data.score;
+		});
+		return map;
+	}, [teacherBiqResults]);
 
 	const teacherBiqAverageMap = useMemo(
 		() =>
@@ -1601,17 +1601,20 @@ export const AdminCycleDetailPage = () => {
 					),
 				);
 				const assignmentsForTeacher = assignmentByTeacher[teacher.id] ?? [];
-				const biqValues = assignmentsForTeacher
-					.map((assignment) => {
-						const teacherKey = `${teacher.id}_${assignment.groupId}_${assignment.subjectId}`;
-						const teacherOverride = teacherBiqByKey[teacherKey];
-						if (typeof teacherOverride === "number") return teacherOverride;
+				const biqScoreMap = new Map(
+					Object.entries(teacherBiqScoresByTeacher[teacher.id] ?? {}),
+				);
+				assignmentsForTeacher.forEach((assignment) => {
+					const resultKey = `${assignment.groupId}_${assignment.subjectId}`;
+					if (biqScoreMap.has(resultKey)) return;
 
-						const classKey = `${assignment.branchId}_${assignment.groupId}_${assignment.subjectId}`;
-						const classScore = biqByKey[classKey];
-						return typeof classScore === "number" ? classScore : null;
-					})
-					.filter((value): value is number => typeof value === "number");
+					const classKey = `${assignment.branchId}_${assignment.groupId}_${assignment.subjectId}`;
+					const classScore = biqByKey[classKey];
+					if (typeof classScore === "number") {
+						biqScoreMap.set(resultKey, classScore);
+					}
+				});
+				const biqValues = Array.from(biqScoreMap.values());
 				const computedBiqAvg =
 					biqValues.length > 0
 						? biqValues.reduce((acc, value) => acc + value, 0) / biqValues.length
@@ -1746,11 +1749,11 @@ export const AdminCycleDetailPage = () => {
 		studentSubmissionStatsByTeacher,
 		studentClassScoresByTeacher,
 		teacherBiqAverageMap,
-		teacherBiqByKey,
+		teacherBiqScoresByTeacher,
 		teachers,
 	]);
 	const teacherRows =
-		cachedTeacherRows.length > 0 ? cachedTeacherRows : calculatedTeacherRows;
+		calculatedTeacherRows.length > 0 ? calculatedTeacherRows : cachedTeacherRows;
 
 	const selectedTeacher = useMemo(
 		() =>
