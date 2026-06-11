@@ -1,0 +1,315 @@
+{
+  "mode": "apply",
+  "cycle": {
+    "id": "44bf16c0-1702-4587-aff6-27762dee38fc",
+    "year": 20262,
+    "status": "CLOSED"
+  },
+  "files": {
+    "fullReady": "biq_full_ready_qurtulus-campusu (2).xlsx",
+    "tenthResults": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+    "primaryBlocks": "PKPD- İBTİDAİLƏR - Qurtuluş korpusu 2026 I,II BLOK.xlsx"
+  },
+  "classResults": {
+    "rows": 222,
+    "inserts": 0,
+    "updates": 0,
+    "unchanged": 222,
+    "changes": [],
+    "bySource": {
+      "PKPD- İBTİDAİLƏR - Qurtuluş korpusu 2026 I,II BLOK.xlsx": 99,
+      "biq_full_ready_qurtulus-campusu (2).xlsx": 100,
+      "Qurtuluş korpusu X nəticələr 2026.xlsx": 23
+    },
+    "byGroup": {
+      "2A2": 11,
+      "2A3": 11,
+      "2R2": 11,
+      "3A2": 11,
+      "3A3": 11,
+      "3R2": 11,
+      "4A2": 11,
+      "4A3": 11,
+      "4R3": 11,
+      "5A2": 12,
+      "5A3": 12,
+      "5R2": 12,
+      "6A2": 12,
+      "6A3": 12,
+      "6R2": 12,
+      "7A2": 14,
+      "8A2": 14,
+      "10A3-I": 4,
+      "10A3-II": 3,
+      "10A3-III": 3,
+      "10A3-IV": 3,
+      "10A3": 10
+    }
+  },
+  "teacherResults": {
+    "rows": 101,
+    "inserts": 0,
+    "updates": 0,
+    "unchanged": 101,
+    "changes": [],
+    "bySource": {
+      "PKPD- İBTİDAİLƏR - Qurtuluş korpusu 2026 I,II BLOK.xlsx": 101
+    },
+    "byGroup": {
+      "2A2": 11,
+      "2A3": 12,
+      "3A2": 11,
+      "3A3": 12,
+      "4A2": 11,
+      "4A3": 11,
+      "2R2": 11,
+      "4R3": 11,
+      "3R2": 11
+    }
+  },
+  "skipSummary": {
+    "no_assignment_target": 131
+  },
+  "skippedPreview": [
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Allahverdiyev Ömər Rusxan",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Atayev Elçin  Salman",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bədəlova Nərmin Oqtay",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Bəşirli Saleh Sübhan",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Cahangirli Nilay Zamiq",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Fiziki tərbiyə"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Musiqi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əhmədzadə Zinyət Təkin",
+      "label": "Təsviri İncəSənət"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əsgərov Cəfəri Sadiq Niyaməddin",
+      "label": "Rus dili"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əsgərov Cəfəri Sadiq Niyaməddin",
+      "label": "Həyat bilgisi"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əsgərov Cəfəri Sadiq Niyaməddin",
+      "label": "Texnologiya"
+    },
+    {
+      "source": "Qurtuluş korpusu X nəticələr 2026.xlsx",
+      "reason": "no_assignment_target",
+      "student": "Əsgərov Cəfəri Sadiq Niyaməddin",
+      "label": "Fiziki tərbiyə"
+    }
+  ]
+}
