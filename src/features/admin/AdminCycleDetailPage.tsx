@@ -49,6 +49,11 @@ import {
 	pkpdDecision,
 } from "../../lib/pkpdScoring";
 import { isPkpdNonParticipant as matchPkpdNonParticipant } from "../../lib/pkpdNonParticipants";
+import {
+	buildPkpdReportFileName,
+	buildPkpdReportHtml,
+	sanitizePkpdReportFileName,
+} from "../../lib/pkpdReportHtml";
 import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import { ORG_ID, supabase } from "../../lib/supabase";
 import {
@@ -67,6 +72,7 @@ import {
 	mapPkpdTeacherSummaryRow,
 	mapQuestionRow,
 	mapSubmissionRow,
+	mapSubjectRow,
 	mapSurveyCycleRow,
 	mapTaskRow,
 	mapTeacherRow,
@@ -89,6 +95,7 @@ import type {
 	PkpdTeacherSummaryDoc,
 	QuestionDoc,
 	SubmissionDoc,
+	SubjectDoc,
 	SurveyCycleDoc,
 	TaskDoc,
 	TeacherCategory,
@@ -98,6 +105,7 @@ import type {
 } from "../../lib/types";
 import { chunkValuesForInFilter, toNumber } from "../../lib/utils";
 import { downloadWorkbook } from "../../lib/xlsx";
+import { downloadZip, type ZipFile } from "../../lib/zip";
 import { useAuth } from "../auth/AuthProvider";
 
 type DocEntry<T> = { id: string; data: T };
@@ -119,9 +127,11 @@ type TeacherFlowAggregate = {
 
 type TeacherRow = {
 	teacherId: string;
+	branchId: string | null;
 	name: string;
 	firstName: string;
 	lastName: string;
+	departmentId: string | null;
 	departmentName: string;
 	branchName: string;
 	category: TeacherCategory;
@@ -195,6 +205,14 @@ type MissingFilter =
 	| "exam"
 	| "portfolio"
 	| "complete";
+
+type BulkFinalReviewSaveResult = {
+	review_id?: string | null;
+	teacher_id?: string | null;
+	result_teacher_id?: string | null;
+	success?: boolean | null;
+	error_message?: string | null;
+};
 
 const emptyFlowAggregate = (): TeacherFlowAggregate => ({
 	management: { sum: 0, count: 0 },
@@ -400,8 +418,10 @@ const mapCachedTeacherRow = (summary: PkpdTeacherSummaryDoc): TeacherRow => {
 	const isBiqTeacher = summary.isBiqTeacher;
 	return {
 		...summary,
+		branchId: summary.branchId ?? null,
 		firstName: summary.firstName?.trim() || nameParts.firstName,
 		lastName: summary.lastName?.trim() || nameParts.lastName,
+		departmentId: null,
 		departmentName: summary.departmentName ?? "-",
 		branchName: summary.branchName ?? "-",
 		evaluationType: getPkpdEvaluationTypeFromBiq(isBiqTeacher),
@@ -828,6 +848,7 @@ export const AdminCycleDetailPage = () => {
 	const [departments, setDepartments] = useState<Array<DocEntry<DepartmentDoc>>>(
 		[],
 	);
+	const [subjects, setSubjects] = useState<Array<DocEntry<SubjectDoc>>>([]);
 	const [questions, setQuestions] = useState<Record<string, QuestionDoc>>({});
 	const [tasks, setTasks] = useState<Array<DocEntry<TaskDoc>>>([]);
 	const [assignments, setAssignments] = useState<
@@ -867,6 +888,11 @@ export const AdminCycleDetailPage = () => {
 	const [summaryCacheLoading, setSummaryCacheLoading] = useState(true);
 	const [cycleDataLoading, setCycleDataLoading] = useState(true);
 	const [cycleDataError, setCycleDataError] = useState<string | null>(null);
+	const [teacherResultsVisible, setTeacherResultsVisible] = useState(false);
+	const [teacherResultsVisibilityLoading, setTeacherResultsVisibilityLoading] =
+		useState(false);
+	const [teacherResultsVisibilityStatus, setTeacherResultsVisibilityStatus] =
+		useFeedbackState();
 
 	const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 	const [showAllTeachers, setShowAllTeachers] = useState(false);
@@ -903,6 +929,19 @@ export const AdminCycleDetailPage = () => {
 		string | null
 	>(null);
 	const [finalReviewStatus, setFinalReviewStatus] = useFeedbackState();
+	const [bulkBranchFilter, setBulkBranchFilter] = useState("all");
+	const [bulkDepartmentFilter, setBulkDepartmentFilter] = useState("all");
+	const [bulkSubjectFilter, setBulkSubjectFilter] = useState("all");
+	const [bulkModelFilter, setBulkModelFilter] = useState("all");
+	const [bulkStatusFilter, setBulkStatusFilter] = useState("all");
+	const [bulkOverwriteFinalReviews, setBulkOverwriteFinalReviews] =
+		useState(false);
+	const [bulkFinalReviewConfirmOpen, setBulkFinalReviewConfirmOpen] =
+		useState(false);
+	const [bulkFinalReviewRunning, setBulkFinalReviewRunning] = useState(false);
+	const [bulkZipRunning, setBulkZipRunning] = useState(false);
+	const [bulkActionStatus, setBulkActionStatus] = useFeedbackState();
+	const [bulkActionFailures, setBulkActionFailures] = useState<string[]>([]);
 
 	const [teacherPage, setTeacherPage] = useState(1);
 	const [teacherPageSize, setTeacherPageSize] = useState(15);
@@ -957,6 +996,39 @@ export const AdminCycleDetailPage = () => {
 	}, [applySummaryRows, cycleId, refreshSummaryCache, scopedBranchId]);
 
 	useEffect(() => {
+		let cancelled = false;
+
+		const loadTeacherResultsVisibility = async () => {
+			if (!cycleId || isHr) {
+				setTeacherResultsVisible(false);
+				return;
+			}
+			setTeacherResultsVisibilityLoading(true);
+			const { data, error } = await supabase.rpc("get_pkpd_result_visibility", {
+				p_cycle_id: cycleId,
+			});
+			if (cancelled) return;
+			if (error) {
+				console.warn("PKPD result visibility setting load failed", error);
+				setTeacherResultsVisibilityStatus(
+					"Nəticələrim görünürlük ayarı yüklənmədi.",
+				);
+			} else {
+				const row = Array.isArray(data) ? data[0] : data;
+				setTeacherResultsVisible(
+					Boolean((row as { is_visible_to_teachers?: boolean } | null)?.is_visible_to_teachers),
+				);
+			}
+			setTeacherResultsVisibilityLoading(false);
+		};
+
+		void loadTeacherResultsVisibility();
+		return () => {
+			cancelled = true;
+		};
+	}, [cycleId, isHr, setTeacherResultsVisibilityStatus]);
+
+	useEffect(() => {
 		const loadLookups = async () => {
 			if (!cycleId) return;
 
@@ -988,6 +1060,11 @@ export const AdminCycleDetailPage = () => {
 				.select("*")
 				.eq("org_id", ORG_ID)
 				.is("deleted_at", null);
+			const subjectQuery = supabase
+				.from("subjects")
+				.select("*")
+				.eq("org_id", ORG_ID)
+				.is("deleted_at", null);
 
 			if (cycleBranchIds.length > 0) {
 				teacherQuery = teacherQuery.in("branch_id", cycleBranchIds);
@@ -1002,12 +1079,14 @@ export const AdminCycleDetailPage = () => {
 				raterRes,
 				branchRes,
 				departmentRes,
+				subjectRes,
 			] = await Promise.all([
 				teacherQuery,
 					supabase.from("questions").select("*").eq("org_id", ORG_ID),
 				raterQuery,
 				branchQuery,
 				departmentQuery,
+				subjectQuery,
 			]);
 
 			setCycle(mappedCycle);
@@ -1027,6 +1106,12 @@ export const AdminCycleDetailPage = () => {
 				(departmentRes.data ?? []).map((row) => ({
 					id: row.id,
 					data: mapDepartmentRow(row),
+				})),
+			);
+			setSubjects(
+				(subjectRes.data ?? []).map((row) => ({
+					id: row.id,
+					data: mapSubjectRow(row),
 				})),
 			);
 
@@ -1356,6 +1441,10 @@ export const AdminCycleDetailPage = () => {
 		() => Object.fromEntries(departments.map((item) => [item.id, item.data])),
 		[departments],
 	);
+	const subjectMap = useMemo(
+		() => Object.fromEntries(subjects.map((item) => [item.id, item.data])),
+		[subjects],
+	);
 	const taskMap = useMemo(
 		() => Object.fromEntries(tasks.map((item) => [item.id, item.data])),
 		[tasks],
@@ -1505,6 +1594,26 @@ export const AdminCycleDetailPage = () => {
 		});
 		return map;
 	}, [assignments]);
+
+	const teacherSubjectIdsByTeacher = useMemo(() => {
+		const map: Record<string, Set<string>> = {};
+		assignments.forEach((assignment) => {
+			map[assignment.data.teacherId] = map[assignment.data.teacherId] ?? new Set();
+			map[assignment.data.teacherId].add(assignment.data.subjectId);
+		});
+		return map;
+	}, [assignments]);
+
+	const teacherSubjectNamesByTeacher = useMemo(() => {
+		const map: Record<string, string[]> = {};
+		Object.entries(teacherSubjectIdsByTeacher).forEach(([teacherId, subjectIds]) => {
+			map[teacherId] = Array.from(subjectIds)
+				.map((subjectId) => subjectMap[subjectId]?.name)
+				.filter((name): name is string => Boolean(name))
+				.sort((a, b) => a.localeCompare(b, "az"));
+		});
+		return map;
+	}, [subjectMap, teacherSubjectIdsByTeacher]);
 
 	const biqByKey = useMemo(
 		() =>
@@ -1745,9 +1854,11 @@ export const AdminCycleDetailPage = () => {
 
 				return {
 					teacherId: teacher.id,
+					branchId: teacher.data.branchId ?? null,
 					name: resolvedName,
 					firstName,
 					lastName,
+					departmentId: teacher.data.departmentId ?? null,
 					departmentName,
 					branchName,
 					category,
@@ -2027,6 +2138,77 @@ export const AdminCycleDetailPage = () => {
 		teacherSelfResponses,
 	]);
 
+	const bulkFilteredTeacherRows = useMemo(() => {
+		return teacherRows.filter((row) => {
+			if (
+				bulkBranchFilter !== "all" &&
+				row.branchId !== bulkBranchFilter &&
+				row.branchName !== (branchMap[bulkBranchFilter]?.name ?? "")
+			) {
+				return false;
+			}
+			if (
+				bulkDepartmentFilter !== "all" &&
+				row.departmentId !== bulkDepartmentFilter &&
+				row.departmentName !== (departmentMap[bulkDepartmentFilter]?.name ?? "")
+			) {
+				return false;
+			}
+			if (
+				bulkSubjectFilter !== "all" &&
+				!teacherSubjectIdsByTeacher[row.teacherId]?.has(bulkSubjectFilter)
+			) {
+				return false;
+			}
+			if (bulkModelFilter === "with-biq" && !row.isBiqTeacher) return false;
+			if (bulkModelFilter === "without-biq" && row.isBiqTeacher) return false;
+
+			const comparableScore = getComparablePkpdScore(row);
+			if (bulkStatusFilter === "complete" && !row.isComplete) return false;
+			if (bulkStatusFilter === "incomplete" && row.isComplete) return false;
+			if (
+				bulkStatusFilter === "risk" &&
+				(comparableScore === null || comparableScore >= 60)
+			) {
+				return false;
+			}
+			if (bulkStatusFilter === "leadership-pending" && row.leadershipComplete) {
+				return false;
+			}
+			return true;
+		});
+	}, [
+		branchMap,
+		bulkBranchFilter,
+		bulkDepartmentFilter,
+		bulkModelFilter,
+		bulkStatusFilter,
+		bulkSubjectFilter,
+		departmentMap,
+		teacherRows,
+		teacherSubjectIdsByTeacher,
+	]);
+
+	const bulkFinalReviewCandidates = useMemo(
+		() =>
+			bulkFilteredTeacherRows.filter(
+				(row) =>
+					getComparablePkpdScore(row) !== null || row.currentEnteredScore > 0,
+			),
+		[bulkFilteredTeacherRows],
+	);
+	const bulkFinalReviewTargets = useMemo(
+		() =>
+			bulkFinalReviewCandidates.filter((row) => {
+				const existingReview = finalReviewMap[row.teacherId];
+				if (!existingReview) return true;
+				return bulkOverwriteFinalReviews;
+			}),
+		[bulkFinalReviewCandidates, bulkOverwriteFinalReviews, finalReviewMap],
+	);
+	const bulkSkippedExistingReviewCount =
+		bulkFinalReviewCandidates.length - bulkFinalReviewTargets.length;
+
 	const teacherTableColumns = useMemo<Array<DataTableColumn<TeacherRow>>>(
 		() => [
 			{
@@ -2252,6 +2434,241 @@ export const AdminCycleDetailPage = () => {
 			.map((branchId) => branchMap[branchId]?.name ?? branchId)
 			.join(", ");
 	}, [branchMap, cycle]);
+
+	const getBulkFilterLabel = () => {
+		const parts = [
+			bulkBranchFilter !== "all"
+				? (branchMap[bulkBranchFilter]?.name ?? bulkBranchFilter)
+				: null,
+			bulkDepartmentFilter !== "all"
+				? (departmentMap[bulkDepartmentFilter]?.name ?? bulkDepartmentFilter)
+				: null,
+			bulkSubjectFilter !== "all"
+				? (subjectMap[bulkSubjectFilter]?.name ?? bulkSubjectFilter)
+				: null,
+			bulkModelFilter === "with-biq"
+				? "BIQ"
+				: bulkModelFilter === "without-biq"
+					? "BIQ-siz"
+					: null,
+			bulkStatusFilter !== "all" ? bulkStatusFilter : null,
+		].filter((item): item is string => Boolean(item));
+		return parts.length > 0 ? parts.join("_") : "butun-muellimler";
+	};
+
+	const handleTeacherResultsVisibilityToggle = async () => {
+		if (!cycleId || isHr) return;
+		const nextValue = !teacherResultsVisible;
+		setTeacherResultsVisibilityLoading(true);
+		setTeacherResultsVisibilityStatus(null);
+		const { data, error } = await supabase.rpc("set_pkpd_result_visibility", {
+			p_cycle_id: cycleId,
+			p_is_visible: nextValue,
+		});
+		const row = Array.isArray(data) ? data[0] : data;
+		if (error || !row) {
+			setTeacherResultsVisibilityStatus(
+				`Görünürlük ayarı saxlanmadı: ${error?.message ?? "naməlum xəta"}`,
+			);
+			setTeacherResultsVisibilityLoading(false);
+			return;
+		}
+		setTeacherResultsVisible(
+			Boolean((row as { is_visible_to_teachers?: boolean }).is_visible_to_teachers),
+		);
+		setTeacherResultsVisibilityStatus(
+			nextValue
+				? "Müəllimlər üçün Nəticələrim bölməsi aktiv edildi."
+				: "Müəllimlər üçün Nəticələrim bölməsi bağlandı.",
+		);
+		setTeacherResultsVisibilityLoading(false);
+	};
+
+	const handleBulkGenerateFinalReviews = async () => {
+		if (!cycleId || userDoc?.role !== "superadmin") {
+			setBulkActionStatus("Bu əməliyyat yalnız superadmin üçün aktivdir.");
+			return;
+		}
+		const targets = bulkFinalReviewTargets.slice();
+		if (targets.length === 0) {
+			setBulkActionStatus("Rəy hazırlanacaq müəllim tapılmadı.");
+			return;
+		}
+
+		setBulkFinalReviewConfirmOpen(false);
+		setBulkFinalReviewRunning(true);
+		setBulkActionStatus(null);
+		setBulkActionFailures([]);
+
+		const payloadByTeacher: Record<
+			string,
+			{
+				row: TeacherRow;
+				branchId: string;
+				generatedReview: GeneratedFinalReview;
+				generatedAt: string;
+			}
+		> = {};
+		const payload: Array<Record<string, string>> = [];
+		const failures: string[] = [];
+
+		for (const row of targets) {
+			const teacherBranchId =
+				row.branchId ?? teacherMap[row.teacherId]?.branchId ?? null;
+			if (!teacherBranchId) {
+				failures.push(`${row.name}: kampus tapılmadı`);
+				continue;
+			}
+
+			try {
+				const generatedReview = buildRuleBasedFinalReview(row);
+				const generatedAt = new Date().toISOString();
+				payloadByTeacher[row.teacherId] = {
+					row,
+					branchId: teacherBranchId,
+					generatedReview,
+					generatedAt,
+				};
+				payload.push({
+					teacher_id: row.teacherId,
+					review_text: generatedReview.reviewText,
+					recommendation_text: generatedReview.recommendationText,
+					generated_at: generatedAt,
+				});
+			} catch (error) {
+				failures.push(
+					`${row.name}: ${error instanceof Error ? error.message : "naməlum xəta"}`,
+				);
+			}
+		}
+
+		if (payload.length === 0) {
+			setBulkActionFailures(failures);
+			setBulkActionStatus(
+				`Bulk rəy tamamlandı: 0 uğurlu, ${failures.length} xəta.`,
+			);
+			setBulkFinalReviewRunning(false);
+			return;
+		}
+
+		const { data, error } = await supabase.rpc("bulk_save_pkpd_final_reviews", {
+			p_cycle_id: cycleId,
+			p_reviews: payload,
+		});
+
+		if (error) {
+			setBulkActionFailures([error.message, ...failures]);
+			setBulkActionStatus(`Bulk rəy saxlanmadı: ${error.message}`);
+			setBulkFinalReviewRunning(false);
+			return;
+		}
+
+		const saveResults = (data ?? []) as BulkFinalReviewSaveResult[];
+		const savedReviews: Array<DocEntry<PkpdFinalReviewDoc>> = [];
+		for (const result of saveResults) {
+			const teacherId = result.teacher_id ?? result.result_teacher_id ?? "";
+			const source = payloadByTeacher[teacherId];
+			if (!result.success || !source) {
+				const teacherName = (source?.row.name ?? teacherId) || "Müəllim";
+				failures.push(
+					`${teacherName}: ${result.error_message ?? "naməlum xəta"}`,
+				);
+				continue;
+			}
+			savedReviews.push({
+				id: result.review_id ?? `${cycleId}_${teacherId}`,
+				data: {
+					cycleId,
+					branchId: source.branchId,
+					teacherId,
+					reviewText: source.generatedReview.reviewText,
+					recommendationText: source.generatedReview.recommendationText,
+					generatedBy: user?.id ?? null,
+					generatedAt: source.generatedAt,
+					updatedBy: user?.id ?? null,
+					updatedAt: source.generatedAt,
+					isManualEdited: false,
+					createdAt: null,
+				},
+			});
+		}
+
+		if (savedReviews.length > 0) {
+			const savedIds = new Set(savedReviews.map((item) => item.data.teacherId));
+			setFinalReviews((previous) => [
+				...previous.filter((item) => !savedIds.has(item.data.teacherId)),
+				...savedReviews,
+			]);
+		}
+
+		setBulkActionFailures(failures);
+		setBulkActionStatus(
+			`Bulk rəy tamamlandı: ${savedReviews.length} uğurlu, ${failures.length} xəta.`,
+		);
+		setBulkFinalReviewRunning(false);
+	};
+
+	const handleBulkZipExport = async () => {
+		if (userDoc?.role !== "superadmin") {
+			setBulkActionStatus("ZIP export yalnız superadmin üçün aktivdir.");
+			return;
+		}
+		const rows = bulkFilteredTeacherRows.slice();
+		if (rows.length === 0) {
+			setBulkActionStatus("ZIP export üçün uyğun müəllim tapılmadı.");
+			return;
+		}
+
+		setBulkZipRunning(true);
+		setBulkActionStatus(null);
+		setBulkActionFailures([]);
+
+		const files: ZipFile[] = [];
+		const failures: string[] = [];
+		for (const row of rows) {
+			try {
+				const summary = row as PkpdTeacherSummaryDoc;
+				files.push({
+					name: buildPkpdReportFileName(summary, "html"),
+					content: buildPkpdReportHtml({
+						summary,
+						finalReview: finalReviewMap[row.teacherId] ?? null,
+						subjectNames: teacherSubjectNamesByTeacher[row.teacherId] ?? [],
+						titleSuffix: cycle?.year
+							? `PKPD Yekun Nəticə Hesabatı — ${cycle.year}`
+							: "PKPD Yekun Nəticə Hesabatı",
+					}),
+				});
+			} catch (error) {
+				failures.push(
+					`${row.name}: ${error instanceof Error ? error.message : "naməlum xəta"}`,
+				);
+			}
+		}
+
+		if (failures.length > 0) {
+			files.push({
+				name: "EXPORT_XETALARI.txt",
+				content: failures.join("\n"),
+			});
+		}
+		if (files.length === 0) {
+			setBulkActionStatus("ZIP export hazırlanmadı.");
+			setBulkZipRunning(false);
+			return;
+		}
+
+		const dateStamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+		const zipName = `${sanitizePkpdReportFileName(
+			`pkpd_${cycle?.year ?? "cycle"}_${getBulkFilterLabel()}_${dateStamp}`,
+		)}.zip`;
+		downloadZip(zipName, files);
+		setBulkActionFailures(failures);
+		setBulkActionStatus(
+			`ZIP export hazırlandı: ${files.length - (failures.length > 0 ? 1 : 0)} hesabat, ${failures.length} xəta.`,
+		);
+		setBulkZipRunning(false);
+	};
 
 	useEffect(() => {
 		const totalPages = Math.max(
@@ -2879,25 +3296,6 @@ export const AdminCycleDetailPage = () => {
 			(row) => !row.displayValue && isMissingScore(row.value),
 		);
 		const isFinalReport = selectedTeacher.isComplete && missingRows.length === 0;
-		if (
-			isTeacherAudience &&
-			!isFinalReport &&
-			!window.confirm(
-				"Qiymətləndirmə tamamlanmayıb. Müəllim üçün yekun PDF yalnız bütün tələb olunan sahələr daxil edildikdən sonra hazırlanmalıdır. Cari hesabat kimi yükləməyə davam edilsin?",
-			)
-		) {
-			return;
-		}
-		if (
-			isTeacherAudience &&
-			isFinalReport &&
-			!selectedTeacherFinalReview &&
-			!window.confirm(
-				"Yekun rəy hazırlanmayıb. PDF-ə davam etməzdən əvvəl yekun rəyi hazırlamaq tövsiyə olunur. Davam edilsin?",
-			)
-		) {
-			return;
-		}
 		const reportTitle = isFinalReport ? `PKPD Yekun Nəticə Hesabatı — ${year}` : `PKPD Cari Qiymətləndirmə Hesabatı — ${year}`;
 		const statusText = isFinalReport ? "Yekun qiymətləndirmə tamamlanıb" : "Hesablama tamamlanmayıb";
 		const baseTotalScore = isFinalReport ? selectedTeacher.baseTotalScore : null;
@@ -2920,7 +3318,7 @@ export const AdminCycleDetailPage = () => {
 		const totalLabel = isFinalReport ? "PKPD yekun balı" : "Daxil edilmiş cari cəm";
 		const totalValue = isFinalReport ? baseTotalScore : selectedTeacher.currentEnteredScore;
 		const breakdownHtml = [...breakdownRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.displayValue ?? row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>${totalLabel}</td><td>${scoreText(totalValue)}</td><td>${selectedTeacher.finalMaxScore}</td></tr>`].join("");
-		const missingHtml = !isTeacherAudience && !isFinalReport && uniqueMissingLabels.length > 0 ? `<section><h2>Çatışmayan sahələr</h2><ul class="missing-list">${uniqueMissingLabels.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>` : "";
+		const missingHtml = !isFinalReport && uniqueMissingLabels.length > 0 ? `<section><h2>Çatışmayan sahələr</h2><ul class="missing-list">${uniqueMissingLabels.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>` : "";
 		const portfolioHtml = hasAnyPortfolioScore ? `<table><thead><tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr></thead><tbody>${[...portfolioRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${scoreText(row.value)}</td><td>${row.max}</td></tr>`), `<tr class="total-row"><td>Portfolio cəmi</td><td>${scoreText(selectedTeacher.portfolioScore)}</td><td>${portfolioMax}</td></tr>`].join("")}</tbody></table>` : `<p class="empty-note">Portfolio alt meyarları üzrə bal hələ daxil edilməyib.</p><p class="empty-note">Maksimum portfolio balı: ${portfolioMax}</p>`;
 		const leadershipRoleRows = [
 			{ label: "İcraçı direktor", submitted: selectedTeacher.branchManagerSubmitted },
@@ -2950,9 +3348,9 @@ export const AdminCycleDetailPage = () => {
 			.join("");
 		const achievementHtml = isTeacherAudience ? "" : `<section><h2>Əlavə bal detalları</h2>${achievementRows ? `<ul>${achievementRows}</ul>` : "<p>Əlavə bal qeydə alınmayıb.</p>"}</section>`;
 		const finalReviewText = selectedTeacherFinalReview?.reviewText?.trim()
-			|| (isFinalReport ? "Yekun rəy hələ əlavə edilməyib." : "Rəy və tövsiyə yekun qiymətləndirmə tamamlandıqdan sonra formalaşdırılacaq.");
+			|| (isTeacherAudience ? "Yekun rəy hələ hazırlanmayıb." : isFinalReport ? "Yekun rəy hələ əlavə edilməyib." : "Rəy və tövsiyə yekun qiymətləndirmə tamamlandıqdan sonra formalaşdırılacaq.");
 		const finalRecommendationText = selectedTeacherFinalReview?.recommendationText?.trim()
-			|| (isFinalReport ? "Yekun tövsiyə hələ əlavə edilməyib." : "Qiymətləndirmənin tamamlanması gözlənilir.");
+			|| (isTeacherAudience ? "Yekun tövsiyə hələ hazırlanmayıb." : isFinalReport ? "Yekun tövsiyə hələ əlavə edilməyib." : "Qiymətləndirmənin tamamlanması gözlənilir.");
 		const finalReviewHtml = `<section><h2>Yekun rəy və tövsiyə</h2><h3>Rəy</h3><p>${escapeHtml(finalReviewText)}</p><h3>Tövsiyə</h3><p>${escapeHtml(finalRecommendationText)}</p></section>`;
 		const signaturesHtml = isTeacherAudience && isFinalReport ? `<section class="signatures"><h2>Təsdiq və imzalar</h2><div class="signature-line"><strong>Müəllim:</strong><span></span></div><div class="signature-line"><strong>Kafedra rəhbəri:</strong><span></span></div><div class="signature-line"><strong>Filial rəhbəri:</strong><span></span></div><div class="signature-line"><strong>Attestasiya komissiyasının sədri:</strong><span></span></div><div class="signature-line"><strong>Tarix:</strong><span>____ / ____ / ______</span></div><div class="signature-line"><strong>Möhür üçün yer:</strong><span></span></div></section>` : "";
 		const html = `<!doctype html><html lang="az"><head><meta charset="utf-8" /><title>${escapeHtml(selectedTeacher.name)} - ${reportTitle}</title><style>@page { size: A4; margin: 15mm; } body { font-family: Arial, Helvetica, sans-serif; color: #111827; margin: 0; font-size: 12px; line-height: 1.45; } header { border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 14px; } .org { font-size: 13px; font-weight: 700; text-transform: uppercase; } h1 { font-size: 18px; margin: 4px 0; } h3 { font-size: 13px; margin: 10px 0 4px; } .subtitle { font-size: 15px; font-weight: 700; } section { margin-top: 14px; break-inside: avoid; } h2 { font-size: 14px; margin: 0 0 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; } .info-grid, .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; } .info-item, .summary-item { border: 1px solid #d1d5db; padding: 7px 8px; min-height: 28px; } .info-item span, .summary-item span { display: block; color: #4b5563; font-size: 11px; } .info-item strong, .summary-item strong { font-size: 13px; } .note { grid-column: 1 / -1; margin: 2px 0 0; padding: 8px; border-left: 3px solid #92400e; background: #fffbeb; } table { width: 100%; border-collapse: collapse; margin-top: 6px; break-inside: avoid; } tr { break-inside: avoid; } th, td { border: 1px solid #d1d5db; padding: 7px 8px; text-align: left; vertical-align: top; } th { background: #f3f4f6; font-weight: 700; } .total-row td { font-weight: 700; background: #f9fafb; } .missing-list { margin: 6px 0 0; padding-left: 18px; } .empty-note { margin: 4px 0; } .student-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .student-summary div { border: 1px solid #d1d5db; padding: 7px 8px; } .student-summary span { display: block; color: #4b5563; font-size: 11px; } .signatures { margin-top: 20px; break-inside: avoid; } .signature-line { display: grid; grid-template-columns: 190px 1fr; gap: 12px; align-items: end; margin-top: 14px; } .signature-line span { display: block; min-height: 20px; border-bottom: 1px solid #111827; } .generated { margin-top: 18px; color: #4b5563; font-size: 11px; }</style></head><body><header><div class="org">Hədəf STEAM Liseyi MMC</div><h1>Pedaqoji Kadrların Performans Dəyərləndirilməsi</h1><div class="subtitle">${reportTitle}</div></header><section><h2>Müəllim məlumatları</h2><div class="info-grid"><div class="info-item"><span>Müəllim</span><strong>${escapeHtml(selectedTeacher.name)}</strong></div><div class="info-item"><span>Kampus</span><strong>${escapeHtml(selectedTeacher.branchName)}</strong></div><div class="info-item"><span>Kafedra</span><strong>${escapeHtml(selectedTeacher.departmentName)}</strong></div><div class="info-item"><span>Qiymətləndirmə modeli</span><strong>${escapeHtml(modelLabel)}</strong></div><div class="info-item"><span>Hesabat statusu</span><strong>${statusText}</strong></div></div></section><section><h2>Xülasə</h2><div class="summary-grid">${summaryHtml}</div></section><section><h2>Bal bölgüsü</h2><table><thead><tr><th>Meyar</th><th>Bal</th><th>Maksimum</th></tr></thead><tbody>${breakdownHtml}</tbody></table></section>${missingHtml}${leadershipDetailsHtml}${portfolioSectionHtml}${studentSummaryHtml}${detailedSurveyHtml}${openAnswersHtml}${achievementHtml}${finalReviewHtml}${signaturesHtml}<div class="generated"><div>Hazırlanma tarixi: ${generatedDate}</div><div>Hazırlanma saatı: ${generatedTime}</div></div></body></html>`;
@@ -3538,6 +3936,182 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 				</div>
 			</SectionCard>
 
+			{!isHr && (
+				<SectionCard
+					eyebrow="Admin əməliyyatları"
+					title="Kütləvi PKPD əməliyyatları"
+					description="Seçilən filterlər bütün müəllim siyahısına tətbiq olunur; pagination nəticəyə təsir etmir."
+					actions={
+						<StatusBadge tone="neutral">
+							Seçildi: {bulkFilteredTeacherRows.length}
+						</StatusBadge>
+					}
+				>
+					<div className="filters">
+						<label className="field">
+							<span className="label">Campus</span>
+							<select
+								className="input"
+								value={bulkBranchFilter}
+								onChange={(event) => setBulkBranchFilter(event.target.value)}
+							>
+								<option value="all">Bütün campuslar</option>
+								{branches.map((branch) => (
+									<option key={branch.id} value={branch.id}>
+										{branch.data.name}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">Kafedra</span>
+							<select
+								className="input"
+								value={bulkDepartmentFilter}
+								onChange={(event) => setBulkDepartmentFilter(event.target.value)}
+							>
+								<option value="all">Bütün kafedralar</option>
+								{departments.map((department) => (
+									<option key={department.id} value={department.id}>
+										{department.data.name}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">Fənn / ixtisas</span>
+							<select
+								className="input"
+								value={bulkSubjectFilter}
+								onChange={(event) => setBulkSubjectFilter(event.target.value)}
+							>
+								<option value="all">Bütün fənlər</option>
+								{subjects.map((subject) => (
+									<option key={subject.id} value={subject.id}>
+										{subject.data.name}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">Model</span>
+							<select
+								className="input"
+								value={bulkModelFilter}
+								onChange={(event) => setBulkModelFilter(event.target.value)}
+							>
+								<option value="all">Bütün modellər</option>
+								<option value="with-biq">BİQ/KİQ nəticəsi olan</option>
+								<option value="without-biq">BİQ/KİQ nəticəsi olmayan</option>
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">Status</span>
+							<select
+								className="input"
+								value={bulkStatusFilter}
+								onChange={(event) => setBulkStatusFilter(event.target.value)}
+							>
+								<option value="all">Bütün statuslar</option>
+								<option value="complete">Tamamlanıb</option>
+								<option value="incomplete">Hesablama tamamlanmayıb</option>
+								<option value="risk">Risk qrupu</option>
+								<option value="leadership-pending">Rəhbərlik səsi gözləyir</option>
+							</select>
+						</label>
+						<label className="field">
+							<span className="label">Mövcud rəylər</span>
+							<label className="inline-flex items-center gap-2 text-sm">
+								<input
+									type="checkbox"
+									checked={bulkOverwriteFinalReviews}
+									onChange={(event) =>
+										setBulkOverwriteFinalReviews(event.target.checked)
+									}
+								/>
+								Mövcud rəyləri yenilə
+							</label>
+						</label>
+					</div>
+					<div className="mt-4 flex flex-wrap gap-2">
+						<button
+							className="btn primary"
+							type="button"
+							onClick={() => setBulkFinalReviewConfirmOpen(true)}
+							disabled={
+								bulkFinalReviewRunning ||
+								bulkFinalReviewTargets.length === 0 ||
+								userDoc?.role !== "superadmin"
+							}
+						>
+							{bulkFinalReviewRunning ? "Hazırlanır..." : "Bulk rəy hazırla"}
+						</button>
+						<button
+							className="btn"
+							type="button"
+							onClick={() => void handleBulkZipExport()}
+							disabled={
+								bulkZipRunning ||
+								bulkFilteredTeacherRows.length === 0 ||
+								userDoc?.role !== "superadmin"
+							}
+						>
+							{bulkZipRunning ? "ZIP hazırlanır..." : "PDF ZIP export"}
+						</button>
+						<StatusBadge tone="info">
+							Rəy hədəfi: {bulkFinalReviewTargets.length}
+						</StatusBadge>
+						{bulkSkippedExistingReviewCount > 0 && (
+							<StatusBadge tone="warning">
+								Keçiləcək mövcud rəy: {bulkSkippedExistingReviewCount}
+							</StatusBadge>
+						)}
+					</div>
+					{teacherResultsVisibilityStatus && (
+						<div className="notice info mt-4">{teacherResultsVisibilityStatus}</div>
+					)}
+					{bulkActionStatus && (
+						<div className="notice info mt-4">{bulkActionStatus}</div>
+					)}
+					{bulkActionFailures.length > 0 && (
+						<div className="notice warning mt-4">
+							<div className="font-semibold">Xəta siyahısı</div>
+							<ul className="mt-2 list-disc pl-5">
+								{bulkActionFailures.slice(0, 10).map((failure) => (
+									<li key={failure}>{failure}</li>
+								))}
+							</ul>
+						</div>
+					)}
+				</SectionCard>
+			)}
+
+			{!isHr && (
+				<SectionCard
+					eyebrow="Görünürlük"
+					title="Müəllim nəticə səhifəsi"
+					description="Aktiv ediləndə müəllimlər yalnız öz PKPD nəticəsini və PDF hesabatını görə bilər."
+					actions={
+						<StatusBadge tone={teacherResultsVisible ? "success" : "neutral"}>
+							{teacherResultsVisible ? "Aktiv" : "Bağlı"}
+						</StatusBadge>
+					}
+				>
+					<button
+						className={teacherResultsVisible ? "btn" : "btn primary"}
+						type="button"
+						onClick={() => void handleTeacherResultsVisibilityToggle()}
+						disabled={teacherResultsVisibilityLoading || userDoc?.role !== "superadmin"}
+					>
+						{teacherResultsVisibilityLoading
+							? "Saxlanır..."
+							: teacherResultsVisible
+								? "Nəticələrim bölməsini bağla"
+								: "Nəticələrim bölməsini aktiv et"}
+					</button>
+				</SectionCard>
+			)}
+
 			<FilterPanel
 				title="Filterlər"
 				description="Axtarış, rəhbərlik səsi və çatışmayan sahəyə görə siyahını daraldın."
@@ -3658,6 +4232,47 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					/>
 				)}
 			</SectionCard>
+
+			<Dialog
+				open={bulkFinalReviewConfirmOpen}
+				onOpenChange={setBulkFinalReviewConfirmOpen}
+			>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Bulk rəy hazırlanmasını təsdiqlə</DialogTitle>
+						<DialogDescription>
+							Seçilən filterlər üzrə {bulkFinalReviewTargets.length} müəllim üçün
+							rəy və tövsiyə hazırlanacaq.
+							{bulkSkippedExistingReviewCount > 0
+								? ` ${bulkSkippedExistingReviewCount} mövcud rəy yenilənmədən saxlanılacaq.`
+								: ""}
+						</DialogDescription>
+					</DialogHeader>
+					{bulkOverwriteFinalReviews && (
+						<div className="notice warning">
+							Mövcud rəylər, o cümlədən manual redaktə edilmiş mətnlər yenidən
+							yazılacaq.
+						</div>
+					)}
+					<DialogFooter>
+						<button
+							className="btn"
+							type="button"
+							onClick={() => setBulkFinalReviewConfirmOpen(false)}
+						>
+							Ləğv et
+						</button>
+						<button
+							className="btn primary"
+							type="button"
+							onClick={() => void handleBulkGenerateFinalReviews()}
+							disabled={bulkFinalReviewRunning || bulkFinalReviewTargets.length === 0}
+						>
+							Təsdiqlə
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<Dialog
 				open={Boolean(selectedTeacher)}

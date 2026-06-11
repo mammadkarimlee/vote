@@ -7,6 +7,7 @@ import {
 	useNavigate,
 } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthProvider";
+import { supabase } from "../lib/supabase";
 import { cn } from "../lib/utils";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./theme/ThemeToggle";
@@ -71,6 +72,7 @@ const routeLabels: Array<[RegExp, string]> = [
 	[/^\/branch\/audit/, "Audit"],
 	[/^\/branch/, "Filial paneli"],
 	[/^\/leadership/, "Rəhbərlik qiymətləndirməsi"],
+	[/^\/my-results/, "Nəticələrim"],
 	[/^\/vote/, "Səsvermə"],
 	[/^\/pkpd\/doc/, "PKPD sənədi"],
 	[/^\/pkpd\/calculator/, "PKPD kalkulyatoru"],
@@ -215,7 +217,10 @@ const Icon = ({ name }: { name: IconName }) => {
 	}
 };
 
-const getSidebarGroups = (role?: string | null): SidebarGroupConfig[] => {
+const getSidebarGroups = (
+	role?: string | null,
+	teacherResultsVisible = false,
+): SidebarGroupConfig[] => {
 	const base: SidebarGroupConfig[] = [
 		{
 			id: "personal",
@@ -232,6 +237,15 @@ const getSidebarGroups = (role?: string | null): SidebarGroupConfig[] => {
 			id: "evaluation",
 			title: "Qiymətləndirmə",
 			items: [
+				...(role === "teacher" && teacherResultsVisible
+					? [
+							{
+								to: "/my-results",
+								label: "Nəticələrim",
+								icon: "reports" as const,
+							},
+						]
+					: []),
 				{
 					to: "/leadership",
 					label: "Rəhbərlik qiymətləndirməsi",
@@ -593,13 +607,51 @@ export const AppShell = () => {
 	const role = userDoc?.role;
 	const navigate = useNavigate();
 	const location = useLocation();
+	const [teacherResultsVisible, setTeacherResultsVisible] = useState<
+		boolean | null
+	>(null);
 	const [canGoBack, setCanGoBack] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [collapsed, setCollapsed] = useState(() => {
 		if (typeof localStorage === "undefined") return false;
 		return localStorage.getItem("app_sidebar_collapsed") === "true";
 	});
-	const groups = useMemo(() => getSidebarGroups(role), [role]);
+	const groups = useMemo(
+		() => getSidebarGroups(role, teacherResultsVisible !== false),
+		[role, teacherResultsVisible],
+	);
+
+	useEffect(() => {
+		let cancelled = false;
+		if (role !== "teacher") {
+			setTeacherResultsVisible(false);
+			return;
+		}
+
+		const loadTeacherResultsVisibility = async () => {
+			const { data, error } = await supabase.rpc("can_view_my_pkpd_results");
+			if (cancelled) return;
+			if (error) {
+				setTeacherResultsVisible(null);
+				return;
+			}
+			const row = Array.isArray(data) ? data[0] : data;
+			const result = row as {
+				visibility_enabled?: boolean;
+				disabled_reason?: string | null;
+			} | null;
+			const disabledReason = result?.disabled_reason ?? "";
+			setTeacherResultsVisible(
+				result?.visibility_enabled !== false ||
+					!disabledReason.includes("görünməsi"),
+			);
+		};
+
+		void loadTeacherResultsVisibility();
+		return () => {
+			cancelled = true;
+		};
+	}, [role]);
 
 	useEffect(() => {
 		if (!role) return;

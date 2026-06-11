@@ -31,6 +31,7 @@ import { HrCyclesPage } from "./features/hr/HrCyclesPage";
 import { LeadershipEvaluationPage } from "./features/leadership/LeadershipEvaluationPage";
 import { PkpdCalculatorPage } from "./features/pkpd/PkpdCalculatorPage";
 import { PkpdDocumentPage } from "./features/pkpd/PkpdDocumentPage";
+import { TeacherResultsPage } from "./features/teacher/TeacherResultsPage";
 import { TaskListPage } from "./features/tasks/TaskListPage";
 import { TaskVotePage } from "./features/tasks/TaskVotePage";
 
@@ -68,6 +69,14 @@ const App = () => (
 				element={
 					<RequireRole roles={["teacher", "manager"]}>
 						<LeadershipEvaluationPage />
+					</RequireRole>
+				}
+			/>
+			<Route
+				path="/my-results"
+				element={
+					<RequireRole roles={["teacher"]}>
+						<TeacherResultsPage />
 					</RequireRole>
 				}
 			/>

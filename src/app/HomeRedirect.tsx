@@ -26,6 +26,7 @@ const getLastPath = (role: string) => {
 	if (role === "student" || role === "teacher" || role === "manager") {
 		return stored.startsWith("/vote") ||
 			stored.startsWith("/leadership") ||
+			stored.startsWith("/my-results") ||
 			stored.startsWith("/me")
 			? stored
 			: null;
