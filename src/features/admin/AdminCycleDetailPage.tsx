@@ -19,6 +19,12 @@ import { Link, useParams } from "react-router-dom";
 import { InfoTip } from "../../components/InfoTip";
 import { PaginationControls } from "../../components/PaginationControls";
 import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "../../components/ui/accordion";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -262,6 +268,17 @@ type ExportColumnDefinition = {
 	value: (row: TeacherRow) => string | number | boolean | null;
 };
 
+type ExportSelectOption = {
+	value: string;
+	label: string;
+};
+
+type ExportColumnGroup = {
+	id: string;
+	title: string;
+	keys: string[];
+};
+
 const emptyExportFilters = (): ExportFilters => ({
 	branchIds: [],
 	departmentIds: [],
@@ -336,14 +353,80 @@ const exportStatusOptions = [
 ];
 
 const exportPresetOptions = [
-	{ value: "full", label: "Full PKPD report export" },
-	{ value: "summary", label: "Only summary columns" },
-	{ value: "missing", label: "Missing data report" },
-	{ value: "risk", label: "Risk group report" },
-	{ value: "portfolio", label: "Portfolio report" },
-	{ value: "exam-exempt", label: "Exam-exempt teachers" },
-	{ value: "leadership-missing", label: "Leadership vote missing report" },
-	{ value: "final-review-missing", label: "Final opinion missing report" },
+	{ value: "full", label: "Tam PKPD hesabatı" },
+	{ value: "summary", label: "Yalnız xülasə kolonları" },
+	{ value: "missing", label: "Çatışmayan məlumat hesabatı" },
+	{ value: "risk", label: "Risk qrupu hesabatı" },
+	{ value: "portfolio", label: "Portfolio hesabatı" },
+	{ value: "exam-exempt", label: "İmtahandan azad müəllimlər" },
+	{ value: "leadership-missing", label: "Rəhbərlik səsi çatışmayanlar" },
+	{ value: "final-review-missing", label: "Yekun rəyi olmayanlar" },
+];
+
+const exportScopeLabels: Record<ExportScope, string> = {
+	"current-filtered": "Cari filterlənmiş cədvəl",
+	"current-page": "Cari səhifə",
+	"selected-teachers": "Seçilmiş müəllimlər",
+	"all-matching": "Kriteriyaya uyğun hamısı",
+	"all-teachers": "Bütün müəllimlər",
+};
+
+const exportColumnGroups: ExportColumnGroup[] = [
+	{
+		id: "main",
+		title: "Əsas məlumatlar",
+		keys: ["teacher", "branch", "department", "subjects", "model", "status"],
+	},
+	{
+		id: "scores",
+		title: "Bal və nəticələr",
+		keys: [
+			"finalScore",
+			"finalMaxScore",
+			"percentage",
+			"bonusScore",
+			"incentiveFinalScore",
+			"finalDecision",
+			"examScore",
+			"examStatus",
+		],
+	},
+	{
+		id: "surveys",
+		title: "Sorğu nəticələri",
+		keys: [
+			"studentSurveyScore",
+			"studentSurveyCount",
+			"selfScore",
+			"selfDeclaredScore",
+			"leadershipScore",
+			"leadershipVotes",
+			"biqAverage",
+			"biqWeightedScore",
+		],
+	},
+	{
+		id: "portfolio",
+		title: "Portfolio",
+		keys: [
+			"portfolioScore",
+			"portfolioEducation",
+			"portfolioAttendance",
+			"portfolioTraining",
+			"portfolioOlympiad",
+			"portfolioEvents",
+		],
+	},
+	{
+		id: "review",
+		title: "Rəy və HR",
+		keys: ["finalReview", "recommendation", "hrNote"],
+	},
+	{
+		id: "system",
+		title: "Sistem məlumatları",
+		keys: ["lastUpdated", "editedBy"],
+	},
 ];
 
 const toggleArrayValue = (values: string[], value: string) =>
@@ -379,6 +462,113 @@ const toExportCell = (value: string | number | boolean | null | undefined) => {
 	}
 	if (typeof value === "string") return value.trim() || "Məlumat yoxdur";
 	return value ? "Bəli" : "Xeyr";
+};
+
+const ExportMultiSelect = ({
+	label,
+	placeholder,
+	options,
+	value,
+	onChange,
+	countLabel,
+}: {
+	label: string;
+	placeholder: string;
+	options: ExportSelectOption[];
+	value: string[];
+	onChange: (nextValue: string[]) => void;
+	countLabel: string;
+}) => {
+	const [query, setQuery] = useState("");
+	const selectedOptions = options.filter((option) => value.includes(option.value));
+	const visibleOptions = options.filter((option) =>
+		option.label.toLocaleLowerCase("az").includes(query.toLocaleLowerCase("az")),
+	);
+	const displayText =
+		value.length === 0
+			? "Hamısı"
+			: value.length === options.length
+				? `${value.length} ${countLabel} seçilib`
+				: `${value.length} ${countLabel} seçilib`;
+	const chips = selectedOptions.slice(0, 3);
+	const hiddenChipCount = Math.max(0, selectedOptions.length - chips.length);
+
+	return (
+		<div className="relative grid gap-2">
+			<label className="text-sm font-semibold">{label}</label>
+			<details className="group relative">
+				<summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left text-sm">
+					<div className="min-w-0 flex-1">
+						{value.length === 0 ? (
+							<span className="text-muted-foreground">{placeholder}</span>
+						) : (
+							<div className="flex min-w-0 flex-wrap gap-1">
+								{chips.map((option) => (
+									<span
+										key={option.value}
+										className="max-w-[180px] truncate rounded-full bg-muted px-2 py-0.5 text-xs"
+										title={option.label}
+									>
+										{option.label}
+									</span>
+								))}
+								{hiddenChipCount > 0 && (
+									<span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+										+{hiddenChipCount} əlavə
+									</span>
+								)}
+							</div>
+						)}
+						<div className="mt-1 text-xs text-muted-foreground">{displayText}</div>
+					</div>
+					<span className="text-muted-foreground">⌄</span>
+				</summary>
+				<div className="absolute left-0 right-0 z-50 mt-2 rounded-lg border border-border bg-card p-3 shadow-strong">
+					<input
+						className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+						value={query}
+						onChange={(event) => setQuery(event.target.value)}
+						placeholder="Axtar..."
+					/>
+					<div className="mt-2 flex items-center justify-between gap-2">
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => onChange(options.map((option) => option.value))}
+						>
+							Hamısını seç
+						</button>
+						<button className="btn ghost" type="button" onClick={() => onChange([])}>
+							Təmizlə
+						</button>
+					</div>
+					<div className="mt-2 max-h-[320px] overflow-y-auto pr-1">
+						{visibleOptions.length === 0 ? (
+							<div className="py-4 text-sm text-muted-foreground">Nəticə tapılmadı</div>
+						) : (
+							<div className="grid gap-1">
+								{visibleOptions.map((option) => (
+									<label
+										key={option.value}
+										className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+									>
+										<input
+											type="checkbox"
+											checked={value.includes(option.value)}
+											onChange={() => onChange(toggleArrayValue(value, option.value))}
+										/>
+										<span className="truncate" title={option.label}>
+											{option.label}
+										</span>
+									</label>
+								))}
+							</div>
+						)}
+					</div>
+				</div>
+			</details>
+		</div>
+	);
 };
 
 const emptyFlowAggregate = (): TeacherFlowAggregate => ({
@@ -2951,6 +3141,30 @@ export const AdminCycleDetailPage = () => {
 		() => Object.fromEntries(exportColumnDefinitions.map((column) => [column.key, column])),
 		[exportColumnDefinitions],
 	);
+	const branchExportOptions = useMemo<ExportSelectOption[]>(
+		() => branches.map((branch) => ({ value: branch.id, label: branch.data.name })),
+		[branches],
+	);
+	const departmentExportOptions = useMemo<ExportSelectOption[]>(
+		() =>
+			departments.map((department) => ({
+				value: department.id,
+				label: department.data.name,
+			})),
+		[departments],
+	);
+	const subjectExportOptions = useMemo<ExportSelectOption[]>(
+		() => subjects.map((subject) => ({ value: subject.id, label: subject.data.name })),
+		[subjects],
+	);
+	const teacherExportOptions = useMemo<ExportSelectOption[]>(
+		() =>
+			teacherRows.map((row) => ({
+				value: row.teacherId,
+				label: row.name,
+			})),
+		[teacherRows],
+	);
 
 	const applyExportPreset = (preset: string) => {
 		const nextFilters = emptyExportFilters();
@@ -3202,7 +3416,7 @@ export const AdminCycleDetailPage = () => {
 			.map((key) => exportColumnMap[key])
 			.filter(Boolean);
 		const filterSummary = [
-			`Scope: ${exportScope}`,
+			`Export əhatəsi: ${exportScopeLabels[exportScope]}`,
 			`Sətir sayı: ${rows.length}`,
 			exportFilters.branchIds.length
 				? `Campus: ${exportFilters.branchIds.map((id) => branchMap[id]?.name ?? id).join(", ")}`
@@ -4304,13 +4518,20 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 			<Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
 				<DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>PKPD Excel export</DialogTitle>
+						<DialogTitle>PKPD Excel ixracı</DialogTitle>
 						<DialogDescription>
 							Export olunacaq müəllimləri, kriteriyaları və Excel kolonlarını seçin.
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="grid gap-4">
+					<div className="grid gap-5 pb-20">
+						<section className="grid gap-3 rounded-xl border border-border bg-card p-4">
+							<div>
+								<h3 className="text-base font-semibold">Export ayarları</h3>
+								<p className="text-sm text-muted-foreground">
+									Preset, scope və sıralama seçin.
+								</p>
+							</div>
 						<div className="grid gap-3 md:grid-cols-3">
 							<label className="field">
 								<span>Preset</span>
@@ -4329,12 +4550,12 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 								</select>
 							</label>
 							<label className="field">
-								<span>Export scope</span>
+								<span>Export əhatəsi</span>
 								<select
 									value={exportScope}
 									onChange={(event) => setExportScope(event.target.value as ExportScope)}
 								>
-									<option value="current-filtered">Cari filterlənmiş table</option>
+									<option value="current-filtered">Cari filterlənmiş cədvəl</option>
 									<option value="current-page">Cari səhifə</option>
 									<option value="selected-teachers">Seçilmiş müəllimlər</option>
 									<option value="all-matching">Kriteriyaya uyğun hamısı</option>
@@ -4347,7 +4568,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 									value={exportSortKey}
 									onChange={(event) => setExportSortKey(event.target.value as ExportSortKey)}
 								>
-									<option value="current">Cari table sıralaması</option>
+									<option value="current">Cari cədvəl sıralaması</option>
 									<option value="teacher">Müəllim adı</option>
 									<option value="branch">Campus</option>
 									<option value="department">Kafedra</option>
@@ -4359,213 +4580,177 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 								</select>
 							</label>
 						</div>
+						</section>
 
-						<div className="grid gap-3 md:grid-cols-3">
-							<label className="field">
-								<span>Campus</span>
-								<select
-									multiple
-									value={exportFilters.branchIds}
-									onChange={(event) =>
-										updateExportFilter(
-											"branchIds",
-											Array.from(event.target.selectedOptions).map((option) => option.value),
-										)
-									}
-								>
-									{branches.map((branch) => (
-										<option key={branch.id} value={branch.id}>
-											{branch.data.name}
-										</option>
-									))}
-								</select>
-							</label>
-							<label className="field">
-								<span>Kafedra</span>
-								<select
-									multiple
-									value={exportFilters.departmentIds}
-									onChange={(event) =>
-										updateExportFilter(
-											"departmentIds",
-											Array.from(event.target.selectedOptions).map((option) => option.value),
-										)
-									}
-								>
-									{departments.map((department) => (
-										<option key={department.id} value={department.id}>
-											{department.data.name}
-										</option>
-									))}
-								</select>
-							</label>
-							<label className="field">
-								<span>Fənn / ixtisas</span>
-								<select
-									multiple
-									value={exportFilters.subjectIds}
-									onChange={(event) =>
-										updateExportFilter(
-											"subjectIds",
-											Array.from(event.target.selectedOptions).map((option) => option.value),
-										)
-									}
-								>
-									{subjects.map((subject) => (
-										<option key={subject.id} value={subject.id}>
-											{subject.data.name}
-										</option>
-									))}
-								</select>
-							</label>
-						</div>
-
-						<label className="field">
-							<span>Müəllimlər</span>
-							<select
-								multiple
-								value={exportFilters.teacherIds}
-								onChange={(event) =>
-									updateExportFilter(
-										"teacherIds",
-										Array.from(event.target.selectedOptions).map((option) => option.value),
-									)
-								}
-							>
-								{teacherRows.map((row) => (
-									<option key={row.teacherId} value={row.teacherId}>
-										{row.name}
-									</option>
-								))}
-							</select>
-						</label>
-
+						<section className="grid gap-3 rounded-xl border border-border bg-card p-4">
+							<div>
+								<h3 className="text-base font-semibold">Data filterləri</h3>
+								<p className="text-sm text-muted-foreground">
+									Campus, kafedra, fənn və müəllim siyahıları search-li dropdown daxilində göstərilir.
+								</p>
+							</div>
 						<div className="grid gap-3 md:grid-cols-2">
-							<div className="card grid gap-2">
-								<strong>Filterlər</strong>
-								<div className="grid gap-2 sm:grid-cols-2">
-									{[
-										["with-biq", "BİQ/KİQ nəticəsi olan", "models"],
-										["without-biq", "BİQ/KİQ nəticəsi olmayan", "models"],
-										["70", "70 bal üzərindən", "denominators"],
-										["100", "100 bal üzərindən", "denominators"],
-										["entered", "İmtahan balı daxil edilib", "examStatuses"],
-										["missing", "İmtahan balı yoxdur", "examStatuses"],
-										["exempt", "İmtahandan azad", "examStatuses"],
-										["entered", "BİQ daxil edilib", "biqStatuses"],
-										["missing", "BİQ yoxdur", "biqStatuses"],
-										["entered", "Şagird sorğusu var", "studentSurveyStatuses"],
-										["missing", "Şagird sorğusu yoxdur", "studentSurveyStatuses"],
-										["entered", "Özünüqiymətləndirmə var", "selfStatuses"],
-										["missing", "Özünüqiymətləndirmə yoxdur", "selfStatuses"],
-										["completed", "Rəhbərlik tamamlanıb", "leadershipStatuses"],
-										["partial", "Rəhbərlik qismən", "leadershipStatuses"],
-										["missing", "Rəhbərlik yoxdur", "leadershipStatuses"],
-										["entered", "Portfolio var", "portfolioStatuses"],
-										["missing", "Portfolio yoxdur", "portfolioStatuses"],
-										["has", "Rəy var", "finalReviewStatuses"],
-										["missing", "Rəy yoxdur", "finalReviewStatuses"],
-										["has", "Tövsiyə var", "recommendationStatuses"],
-										["missing", "Tövsiyə yoxdur", "recommendationStatuses"],
-									].map(([value, label, key]) => (
-										<label key={`${key}-${value}-${label}`} className="flex items-center gap-2 text-sm">
-											<input
-												type="checkbox"
-												checked={(exportFilters[key as keyof ExportFilters] as string[]).includes(value)}
-												onChange={() => toggleExportFilterValue(key as keyof ExportFilters, value)}
-											/>
-											<span>{label}</span>
-										</label>
-									))}
-								</div>
-								<div className="grid gap-2 sm:grid-cols-2">
-									{exportStatusOptions.map((status) => (
-										<label key={status.value} className="flex items-center gap-2 text-sm">
-											<input
-												type="checkbox"
-												checked={exportFilters.statuses.includes(status.value)}
-												onChange={() => toggleExportFilterValue("statuses", status.value)}
-											/>
-											<span>{status.label}</span>
-										</label>
-									))}
-								</div>
-							</div>
-
-							<div className="card grid gap-2">
-								<strong>Aralıqlar</strong>
-								<div className="grid gap-2 sm:grid-cols-2">
-									<label className="field">
-										<span>Minimum yekun bal</span>
-										<input value={exportFilters.minScore} onChange={(event) => updateExportFilter("minScore", event.target.value)} />
-									</label>
-									<label className="field">
-										<span>Maksimum yekun bal</span>
-										<input value={exportFilters.maxScore} onChange={(event) => updateExportFilter("maxScore", event.target.value)} />
-									</label>
-									<label className="field">
-										<span>Minimum şagird cavabı</span>
-										<input value={exportFilters.minSurveyCount} onChange={(event) => updateExportFilter("minSurveyCount", event.target.value)} />
-									</label>
-									<label className="field">
-										<span>Maksimum şagird cavabı</span>
-										<input value={exportFilters.maxSurveyCount} onChange={(event) => updateExportFilter("maxSurveyCount", event.target.value)} />
-									</label>
-									<label className="field">
-										<span>Minimum portfolio</span>
-										<input value={exportFilters.minPortfolio} onChange={(event) => updateExportFilter("minPortfolio", event.target.value)} />
-									</label>
-									<label className="field">
-										<span>Maksimum portfolio</span>
-										<input value={exportFilters.maxPortfolio} onChange={(event) => updateExportFilter("maxPortfolio", event.target.value)} />
-									</label>
-								</div>
-								<label className="field">
-									<span>Sıralama istiqaməti</span>
-									<select
-										value={exportSortDirection}
-										onChange={(event) => setExportSortDirection(event.target.value as "asc" | "desc")}
-									>
-										<option value="asc">Artan</option>
-										<option value="desc">Azalan</option>
-									</select>
-								</label>
-							</div>
+							<ExportMultiSelect
+								label="Campus"
+								placeholder="Campus seçin"
+								options={branchExportOptions}
+								value={exportFilters.branchIds}
+								onChange={(nextValue) => updateExportFilter("branchIds", nextValue)}
+								countLabel="campus"
+							/>
+							<ExportMultiSelect
+								label="Kafedra"
+								placeholder="Kafedra seçin"
+								options={departmentExportOptions}
+								value={exportFilters.departmentIds}
+								onChange={(nextValue) => updateExportFilter("departmentIds", nextValue)}
+								countLabel="kafedra"
+							/>
+							<ExportMultiSelect
+								label="Fənn / ixtisas"
+								placeholder="Fənn seçin"
+								options={subjectExportOptions}
+								value={exportFilters.subjectIds}
+								onChange={(nextValue) => updateExportFilter("subjectIds", nextValue)}
+								countLabel="fənn"
+							/>
 						</div>
 
-						<div className="card grid gap-2">
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<strong>Kolonlar</strong>
-								<div className="flex gap-2">
-									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(summaryExportColumns)}>
-										Xülasə
-									</button>
-									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(fullExportColumns)}>
-										Hamısı
-									</button>
-								</div>
+						<div className="md:col-span-2">
+							<ExportMultiSelect
+								label="Müəllimlər"
+								placeholder="Müəllim seçin"
+								options={teacherExportOptions}
+								value={exportFilters.teacherIds}
+								onChange={(nextValue) => updateExportFilter("teacherIds", nextValue)}
+								countLabel="müəllim"
+							/>
+						</div>
+
+						</section>
+
+						<section className="grid gap-3 rounded-xl border border-border bg-card p-4">
+							<div>
+								<h3 className="text-base font-semibold">Əlavə filterlər</h3>
+								<p className="text-sm text-muted-foreground">
+									Model, status və çatışmayan məlumat kriteriyaları.
+								</p>
 							</div>
 							<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-								{exportColumnDefinitions.map((column) => (
-									<label key={column.key} className="flex items-center gap-2 text-sm">
+								{[
+									["with-biq", "BİQ/KİQ nəticəsi olan", "models"],
+									["without-biq", "BİQ/KİQ nəticəsi olmayan", "models"],
+									["70", "70 bal üzərindən", "denominators"],
+									["100", "100 bal üzərindən", "denominators"],
+									["entered", "İmtahan balı daxil edilib", "examStatuses"],
+									["missing", "İmtahan balı yoxdur", "examStatuses"],
+									["exempt", "İmtahandan azad", "examStatuses"],
+									["entered", "BİQ daxil edilib", "biqStatuses"],
+									["missing", "BİQ yoxdur", "biqStatuses"],
+									["entered", "Şagird sorğusu var", "studentSurveyStatuses"],
+									["missing", "Şagird sorğusu yoxdur", "studentSurveyStatuses"],
+									["entered", "Özünüqiymətləndirmə var", "selfStatuses"],
+									["missing", "Özünüqiymətləndirmə yoxdur", "selfStatuses"],
+									["completed", "Rəhbərlik tamamlanıb", "leadershipStatuses"],
+									["partial", "Rəhbərlik qismən", "leadershipStatuses"],
+									["missing", "Rəhbərlik yoxdur", "leadershipStatuses"],
+									["entered", "Portfolio var", "portfolioStatuses"],
+									["missing", "Portfolio yoxdur", "portfolioStatuses"],
+									["has", "Rəy var", "finalReviewStatuses"],
+									["missing", "Rəy yoxdur", "finalReviewStatuses"],
+									["has", "Tövsiyə var", "recommendationStatuses"],
+									["missing", "Tövsiyə yoxdur", "recommendationStatuses"],
+								].map(([value, label, key]) => (
+									<label key={`${key}-${value}-${label}`} className="flex min-w-0 items-center gap-2 text-sm">
 										<input
 											type="checkbox"
-											checked={exportColumnKeys.includes(column.key)}
-											onChange={() => setExportColumnKeys((previous) => toggleArrayValue(previous, column.key))}
+											checked={(exportFilters[key as keyof ExportFilters] as string[]).includes(value)}
+											onChange={() => toggleExportFilterValue(key as keyof ExportFilters, value)}
 										/>
-										<span>{column.label}</span>
+										<span className="truncate" title={label}>{label}</span>
+									</label>
+								))}
+								{exportStatusOptions.map((status) => (
+									<label key={status.value} className="flex min-w-0 items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											checked={exportFilters.statuses.includes(status.value)}
+											onChange={() => toggleExportFilterValue("statuses", status.value)}
+										/>
+										<span className="truncate" title={status.label}>{status.label}</span>
 									</label>
 								))}
 							</div>
-						</div>
+						</section>
+
+						<section className="grid gap-3 rounded-xl border border-border bg-card p-4">
+							<div>
+								<h3 className="text-base font-semibold">Aralıqlar</h3>
+								<p className="text-sm text-muted-foreground">
+									Minimum və maksimum dəyərlər yan-yana tənzimlənir.
+								</p>
+							</div>
+							<div className="grid gap-3 lg:grid-cols-3">
+								<fieldset className="grid gap-2 rounded-lg border border-border p-3">
+									<legend className="px-1 text-sm font-semibold">Yekun bal</legend>
+									<div className="grid gap-2 sm:grid-cols-2">
+										<label className="field"><span>Minimum yekun bal</span><input value={exportFilters.minScore} onChange={(event) => updateExportFilter("minScore", event.target.value)} /></label>
+										<label className="field"><span>Maksimum yekun bal</span><input value={exportFilters.maxScore} onChange={(event) => updateExportFilter("maxScore", event.target.value)} /></label>
+									</div>
+								</fieldset>
+								<fieldset className="grid gap-2 rounded-lg border border-border p-3">
+									<legend className="px-1 text-sm font-semibold">Şagird cavabı</legend>
+									<div className="grid gap-2 sm:grid-cols-2">
+										<label className="field"><span>Minimum şagird cavabı</span><input value={exportFilters.minSurveyCount} onChange={(event) => updateExportFilter("minSurveyCount", event.target.value)} /></label>
+										<label className="field"><span>Maksimum şagird cavabı</span><input value={exportFilters.maxSurveyCount} onChange={(event) => updateExportFilter("maxSurveyCount", event.target.value)} /></label>
+									</div>
+								</fieldset>
+								<fieldset className="grid gap-2 rounded-lg border border-border p-3">
+									<legend className="px-1 text-sm font-semibold">Portfolio</legend>
+									<div className="grid gap-2 sm:grid-cols-2">
+										<label className="field"><span>Minimum portfolio</span><input value={exportFilters.minPortfolio} onChange={(event) => updateExportFilter("minPortfolio", event.target.value)} /></label>
+										<label className="field"><span>Maksimum portfolio</span><input value={exportFilters.maxPortfolio} onChange={(event) => updateExportFilter("maxPortfolio", event.target.value)} /></label>
+									</div>
+								</fieldset>
+							</div>
+						</section>
+
+						<section className="grid gap-3 rounded-xl border border-border bg-card p-4">
+							<div className="flex flex-wrap items-start justify-between gap-3">
+								<div>
+									<h3 className="text-base font-semibold">Kolonlar</h3>
+									<p className="text-sm text-muted-foreground">
+										{exportColumnKeys.length === fullExportColumns.length ? "Bütün kolonlar seçilib" : `${exportColumnKeys.length} kolon seçilib`}
+									</p>
+								</div>
+								<div className="flex gap-2">
+									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(summaryExportColumns)}>Xülasə</button>
+									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(fullExportColumns)}>Hamısı</button>
+								</div>
+							</div>
+							<Accordion type="multiple" defaultValue={["main", "scores"]}>
+								{exportColumnGroups.map((group) => (
+									<AccordionItem key={group.id} value={group.id}>
+										<AccordionTrigger>{group.title}</AccordionTrigger>
+										<AccordionContent>
+											<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+												{group.keys.map((key) => exportColumnMap[key]).filter(Boolean).map((column) => (
+													<label key={column.key} className="flex min-w-0 items-center gap-2 text-sm">
+														<input type="checkbox" checked={exportColumnKeys.includes(column.key)} onChange={() => setExportColumnKeys((previous) => toggleArrayValue(previous, column.key))} />
+														<span className="truncate" title={column.label}>{column.label}</span>
+													</label>
+												))}
+											</div>
+										</AccordionContent>
+									</AccordionItem>
+								))}
+							</Accordion>
+						</section>
 					</div>
 
 					{exportStatus && <div className="notice warning">{exportStatus}</div>}
 
-					<DialogFooter>
-						<button className="btn ghost" type="button" onClick={() => setExportDialogOpen(false)}>
-							Bağla
-						</button>
+					<DialogFooter className="sticky bottom-0 -mx-6 -mb-6 mt-4 border-t border-border bg-card px-6 py-4">
 						<button
 							className="btn ghost"
 							type="button"
@@ -4579,14 +4764,19 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 						>
 							Sıfırla
 						</button>
-						<button
-							className="btn primary"
-							type="button"
-							onClick={() => void handleConfiguredExportWorkbook()}
-							disabled={exportRunning}
-						>
-							{exportRunning ? "Export hazırlanır..." : "Export"}
-						</button>
+						<div className="ml-auto flex gap-2">
+							<button className="btn ghost" type="button" onClick={() => setExportDialogOpen(false)}>
+								Bağla
+							</button>
+							<button
+								className="btn primary"
+								type="button"
+								onClick={() => void handleConfiguredExportWorkbook()}
+								disabled={exportRunning}
+							>
+								{exportRunning ? "Export hazırlanır..." : "Export"}
+							</button>
+						</div>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
