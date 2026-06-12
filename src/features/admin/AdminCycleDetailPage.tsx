@@ -214,6 +214,173 @@ type BulkFinalReviewSaveResult = {
 	error_message?: string | null;
 };
 
+type ExportScope =
+	| "current-filtered"
+	| "current-page"
+	| "selected-teachers"
+	| "all-matching"
+	| "all-teachers";
+
+type ExportSortKey =
+	| "current"
+	| "teacher"
+	| "branch"
+	| "department"
+	| "final-score"
+	| "portfolio"
+	| "student-count"
+	| "status"
+	| "updated-at";
+
+type ExportFilters = {
+	branchIds: string[];
+	departmentIds: string[];
+	subjectIds: string[];
+	teacherIds: string[];
+	models: string[];
+	statuses: string[];
+	denominators: string[];
+	examStatuses: string[];
+	biqStatuses: string[];
+	studentSurveyStatuses: string[];
+	selfStatuses: string[];
+	leadershipStatuses: string[];
+	portfolioStatuses: string[];
+	finalReviewStatuses: string[];
+	recommendationStatuses: string[];
+	minScore: string;
+	maxScore: string;
+	minSurveyCount: string;
+	maxSurveyCount: string;
+	minPortfolio: string;
+	maxPortfolio: string;
+};
+
+type ExportColumnDefinition = {
+	key: string;
+	label: string;
+	value: (row: TeacherRow) => string | number | boolean | null;
+};
+
+const emptyExportFilters = (): ExportFilters => ({
+	branchIds: [],
+	departmentIds: [],
+	subjectIds: [],
+	teacherIds: [],
+	models: [],
+	statuses: [],
+	denominators: [],
+	examStatuses: [],
+	biqStatuses: [],
+	studentSurveyStatuses: [],
+	selfStatuses: [],
+	leadershipStatuses: [],
+	portfolioStatuses: [],
+	finalReviewStatuses: [],
+	recommendationStatuses: [],
+	minScore: "",
+	maxScore: "",
+	minSurveyCount: "",
+	maxSurveyCount: "",
+	minPortfolio: "",
+	maxPortfolio: "",
+});
+
+const summaryExportColumns = [
+	"teacher",
+	"branch",
+	"department",
+	"subjects",
+	"model",
+	"status",
+	"finalScore",
+	"finalMaxScore",
+	"percentage",
+	"bonusScore",
+	"incentiveFinalScore",
+	"finalDecision",
+];
+
+const fullExportColumns = [
+	...summaryExportColumns,
+	"studentSurveyScore",
+	"studentSurveyCount",
+	"selfScore",
+	"selfDeclaredScore",
+	"leadershipScore",
+	"leadershipVotes",
+	"biqAverage",
+	"biqWeightedScore",
+	"examScore",
+	"examStatus",
+	"portfolioScore",
+	"portfolioEducation",
+	"portfolioAttendance",
+	"portfolioTraining",
+	"portfolioOlympiad",
+	"portfolioEvents",
+	"finalReview",
+	"recommendation",
+	"hrNote",
+	"lastUpdated",
+	"editedBy",
+];
+
+const exportStatusOptions = [
+	{ value: "completed", label: "Tamamlanıb" },
+	{ value: "in-progress", label: "Davam edir" },
+	{ value: "leadership-missing", label: "Rəhbərlik səsi gözləyir" },
+	{ value: "calculation-incomplete", label: "Hesablama tamamlanmayıb" },
+	{ value: "risk", label: "Risk qrupu" },
+	{ value: "portfolio-missing", label: "Portfolio gözləyir" },
+];
+
+const exportPresetOptions = [
+	{ value: "full", label: "Full PKPD report export" },
+	{ value: "summary", label: "Only summary columns" },
+	{ value: "missing", label: "Missing data report" },
+	{ value: "risk", label: "Risk group report" },
+	{ value: "portfolio", label: "Portfolio report" },
+	{ value: "exam-exempt", label: "Exam-exempt teachers" },
+	{ value: "leadership-missing", label: "Leadership vote missing report" },
+	{ value: "final-review-missing", label: "Final opinion missing report" },
+];
+
+const toggleArrayValue = (values: string[], value: string) =>
+	values.includes(value)
+		? values.filter((item) => item !== value)
+		: [...values, value];
+
+const parseOptionalNumber = (value: string) => {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const parsed = Number(trimmed.replace(",", "."));
+	return Number.isFinite(parsed) ? parsed : null;
+};
+
+const isInRange = (
+	value: number | null | undefined,
+	minText: string,
+	maxText: string,
+) => {
+	const min = parseOptionalNumber(minText);
+	const max = parseOptionalNumber(maxText);
+	if (min === null && max === null) return true;
+	if (value === null || value === undefined || Number.isNaN(value)) return false;
+	if (min !== null && value < min) return false;
+	if (max !== null && value > max) return false;
+	return true;
+};
+
+const toExportCell = (value: string | number | boolean | null | undefined) => {
+	if (value === null || value === undefined) return "Məlumat yoxdur";
+	if (typeof value === "number") {
+		return Number.isNaN(value) ? "Məlumat yoxdur" : Number(value.toFixed(2));
+	}
+	if (typeof value === "string") return value.trim() || "Məlumat yoxdur";
+	return value ? "Bəli" : "Xeyr";
+};
+
 const emptyFlowAggregate = (): TeacherFlowAggregate => ({
 	management: { sum: 0, count: 0 },
 	self: { sum: 0, count: 0 },
@@ -942,6 +1109,19 @@ export const AdminCycleDetailPage = () => {
 	const [bulkZipRunning, setBulkZipRunning] = useState(false);
 	const [bulkActionStatus, setBulkActionStatus] = useFeedbackState();
 	const [bulkActionFailures, setBulkActionFailures] = useState<string[]>([]);
+	const [exportDialogOpen, setExportDialogOpen] = useState(false);
+	const [exportRunning, setExportRunning] = useState(false);
+	const [exportStatus, setExportStatus] = useFeedbackState();
+	const [exportScope, setExportScope] =
+		useState<ExportScope>("current-filtered");
+	const [exportFilters, setExportFilters] = useState<ExportFilters>(() =>
+		emptyExportFilters(),
+	);
+	const [exportColumnKeys, setExportColumnKeys] =
+		useState<string[]>(fullExportColumns);
+	const [exportSortKey, setExportSortKey] = useState<ExportSortKey>("current");
+	const [exportSortDirection, setExportSortDirection] =
+		useState<"asc" | "desc">("asc");
 
 	const [teacherPage, setTeacherPage] = useState(1);
 	const [teacherPageSize, setTeacherPageSize] = useState(15);
@@ -2703,6 +2883,212 @@ export const AdminCycleDetailPage = () => {
 		return comments.slice(start, start + commentPageSize);
 	}, [commentPage, commentPageSize, comments]);
 
+	const exportColumnDefinitions = useMemo<ExportColumnDefinition[]>(
+		() => [
+			{ key: "teacher", label: "Müəllim", value: (row) => row.name },
+			{ key: "branch", label: "Campus", value: (row) => row.branchName },
+			{ key: "department", label: "Kafedra", value: (row) => row.departmentName },
+			{
+				key: "subjects",
+				label: "Fənn / ixtisas",
+				value: (row) =>
+					teacherSubjectNamesByTeacher[row.teacherId]?.join(", ") ||
+					"Məlumat yoxdur",
+			},
+			{ key: "model", label: "Qiymətləndirmə modeli", value: (row) => evaluationTypeLabel(row.isBiqTeacher) },
+			{ key: "status", label: "Status", value: (row) => getTeacherStatusInfo(row).label },
+			{ key: "finalScore", label: "PKPD yekun balı", value: (row) => toExportScore(row.finalScore) },
+			{ key: "finalMaxScore", label: "Maksimum bal", value: (row) => row.finalMaxScore },
+			{ key: "percentage", label: "Faiz", value: (row) => toExportPercentage(row.finalPercentage) },
+			{ key: "bonusScore", label: "Əlavə bal", value: (row) => toExportScore(row.bonusScore) },
+			{ key: "incentiveFinalScore", label: "Stimullaşdırıcı yekun", value: (row) => toExportScore(row.finalScoreWithExtra) },
+			{ key: "finalDecision", label: "Yekun qərar", value: (row) => formatPkpdDecision(row) },
+			{ key: "studentSurveyScore", label: "Şagird sorğusu balı", value: (row) => toExportScore(row.studentWeightedScore) },
+			{ key: "studentSurveyCount", label: "Şagird cavab sayı", value: (row) => row.studentCount },
+			{ key: "selfScore", label: "Özünüqiymətləndirmə balı", value: (row) => toExportScore(row.selfWeightedScore) },
+			{ key: "selfDeclaredScore", label: "Müəllimin verdiyi bal", value: (row) => toExportScore(row.selfDeclaredScore) },
+			{ key: "leadershipScore", label: "Rəhbərlik qiymətləndirməsi", value: (row) => toExportScore(row.managementWeightedScore) },
+			{
+				key: "leadershipVotes",
+				label: "Rəhbərlik səs statusu",
+				value: (row) => {
+					const status = getLeadershipVoteRoleStatus(row);
+					return `${row.leadershipSubmittedCount} / ${row.leadershipEligibleCount}; ${status.submittedText}${status.pendingText ? `; ${status.pendingText}` : ""}`;
+				},
+			},
+			{ key: "biqAverage", label: "BİQ/KİQ orta", value: (row) => toExportScore(row.biqAvg) },
+			{ key: "biqWeightedScore", label: "Fənn mənimsəmə balı", value: (row) => toExportScore(row.biqWeightedScore) },
+			{
+				key: "examScore",
+				label: "Attestasiya imtahanı",
+				value: (row) => row.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : toExportScore(row.examScore),
+			},
+			{
+				key: "examStatus",
+				label: "İmtahan statusu",
+				value: (row) => row.isExamExempt ? PKPD_EXAM_EXEMPT_LABEL : isMissingScore(row.examScore) ? "Daxil edilməyib" : "Daxil edilib",
+			},
+			{ key: "portfolioScore", label: "Portfolio cəmi", value: (row) => toExportScore(row.portfolioScore) },
+			{ key: "portfolioEducation", label: "Təhsil/kvalifikasiya", value: (row) => toExportScore(portfolioMap[row.teacherId]?.educationScore) },
+			{ key: "portfolioAttendance", label: "Davamiyyət", value: (row) => toExportScore(portfolioMap[row.teacherId]?.attendanceScore) },
+			{ key: "portfolioTraining", label: "Sertifikat/təlim/məqalə", value: (row) => toExportScore(portfolioMap[row.teacherId]?.trainingScore) },
+			{ key: "portfolioOlympiad", label: "Müsabiqə/festival/yarış", value: (row) => toExportScore(portfolioMap[row.teacherId]?.olympiadScore) },
+			{ key: "portfolioEvents", label: "Layihə/tədbir/təltif", value: (row) => toExportScore(portfolioMap[row.teacherId]?.eventsScore) },
+			{ key: "finalReview", label: "Yekun rəy", value: (row) => finalReviewMap[row.teacherId]?.reviewText || "Rəy hazırlanmayıb" },
+			{ key: "recommendation", label: "Tövsiyə", value: (row) => finalReviewMap[row.teacherId]?.recommendationText || "Tövsiyə hazırlanmayıb" },
+			{ key: "hrNote", label: "HR qeydi", value: (row) => selfReviewMap[row.teacherId]?.note ?? "Məlumat yoxdur" },
+			{
+				key: "lastUpdated",
+				label: "Son yenilənmə",
+				value: (row) => typeof row.refreshedAt === "string" ? new Date(row.refreshedAt).toLocaleString("az-AZ") : "Məlumat yoxdur",
+			},
+			{ key: "editedBy", label: "Redaktə edən", value: (row) => finalReviewMap[row.teacherId]?.updatedBy ?? "Məlumat yoxdur" },
+		],
+		[finalReviewMap, portfolioMap, selfReviewMap, teacherSubjectNamesByTeacher],
+	);
+
+	const exportColumnMap = useMemo(
+		() => Object.fromEntries(exportColumnDefinitions.map((column) => [column.key, column])),
+		[exportColumnDefinitions],
+	);
+
+	const applyExportPreset = (preset: string) => {
+		const nextFilters = emptyExportFilters();
+		let nextColumns = fullExportColumns;
+		if (preset === "summary") nextColumns = summaryExportColumns;
+		if (preset === "missing") {
+			nextFilters.statuses = ["leadership-missing", "calculation-incomplete", "portfolio-missing"];
+			nextColumns = ["teacher", "branch", "department", "subjects", "model", "status", "studentSurveyScore", "selfScore", "leadershipVotes", "biqAverage", "examStatus", "portfolioScore", "finalReview", "recommendation"];
+		}
+		if (preset === "risk") {
+			nextFilters.statuses = ["risk"];
+			nextColumns = summaryExportColumns;
+		}
+		if (preset === "portfolio") nextColumns = ["teacher", "branch", "department", "portfolioScore", "portfolioEducation", "portfolioAttendance", "portfolioTraining", "portfolioOlympiad", "portfolioEvents", "hrNote"];
+		if (preset === "exam-exempt") {
+			nextFilters.examStatuses = ["exempt"];
+			nextColumns = ["teacher", "branch", "department", "model", "status", "examScore", "examStatus", "finalScore", "finalMaxScore", "percentage"];
+		}
+		if (preset === "leadership-missing") {
+			nextFilters.leadershipStatuses = ["missing", "partial"];
+			nextColumns = ["teacher", "branch", "department", "status", "leadershipScore", "leadershipVotes", "finalScore"];
+		}
+		if (preset === "final-review-missing") {
+			nextFilters.finalReviewStatuses = ["missing"];
+			nextColumns = ["teacher", "branch", "department", "status", "finalScore", "finalReview", "recommendation"];
+		}
+		setExportFilters(nextFilters);
+		setExportColumnKeys(nextColumns);
+		setExportStatus(null);
+	};
+
+	const updateExportFilter = <K extends keyof ExportFilters>(key: K, value: ExportFilters[K]) => {
+		setExportFilters((previous) => ({ ...previous, [key]: value }));
+	};
+
+	const toggleExportFilterValue = (key: keyof ExportFilters, value: string) => {
+		setExportFilters((previous) => ({
+			...previous,
+			[key]: toggleArrayValue(previous[key] as string[], value),
+		}));
+	};
+
+	const filterRowsForExportCriteria = (rows: TeacherRow[]) =>
+		rows.filter((row) => {
+			const filters = exportFilters;
+			const statusInfo = getTeacherStatusInfo(row).label;
+			const comparableScore = getComparablePkpdScore(row);
+			const finalReview = finalReviewMap[row.teacherId];
+			if (filters.branchIds.length && !filters.branchIds.includes(row.branchId ?? "")) return false;
+			if (filters.departmentIds.length && !filters.departmentIds.includes(row.departmentId ?? "")) return false;
+			if (filters.subjectIds.length && !filters.subjectIds.some((subjectId) => teacherSubjectIdsByTeacher[row.teacherId]?.has(subjectId))) return false;
+			if (filters.teacherIds.length && !filters.teacherIds.includes(row.teacherId)) return false;
+			if ((filters.models.includes("with-biq") && !row.isBiqTeacher) || (filters.models.includes("without-biq") && row.isBiqTeacher)) return false;
+			if (filters.statuses.length) {
+				const matchesStatus =
+					(filters.statuses.includes("completed") && row.isComplete) ||
+					(filters.statuses.includes("in-progress") && !row.isComplete) ||
+					(filters.statuses.includes("leadership-missing") && !row.leadershipComplete) ||
+					(filters.statuses.includes("calculation-incomplete") && statusInfo === "Hesablama tamamlanmayıb") ||
+					(filters.statuses.includes("portfolio-missing") && isMissingScore(row.portfolioScore)) ||
+					(filters.statuses.includes("risk") && comparableScore !== null && comparableScore < 60);
+				if (!matchesStatus) return false;
+			}
+			if (filters.denominators.length && !filters.denominators.includes(String(row.finalMaxScore))) return false;
+			if (filters.examStatuses.length) {
+				const matchesExam =
+					(filters.examStatuses.includes("entered") && !row.isExamExempt && !isMissingScore(row.examScore)) ||
+					(filters.examStatuses.includes("missing") && !row.isExamExempt && isMissingScore(row.examScore)) ||
+					(filters.examStatuses.includes("exempt") && row.isExamExempt);
+				if (!matchesExam) return false;
+			}
+			if (filters.biqStatuses.length) {
+				const matchesBiq =
+					(filters.biqStatuses.includes("entered") && !isMissingScore(row.biqAvg)) ||
+					(filters.biqStatuses.includes("missing") && row.isBiqTeacher && isMissingScore(row.biqAvg));
+				if (!matchesBiq) return false;
+			}
+			if (filters.studentSurveyStatuses.length) {
+				const matchesStudent =
+					(filters.studentSurveyStatuses.includes("entered") && !isMissingScore(row.studentWeightedScore)) ||
+					(filters.studentSurveyStatuses.includes("missing") && isMissingScore(row.studentWeightedScore));
+				if (!matchesStudent) return false;
+			}
+			if (filters.selfStatuses.length) {
+				const matchesSelf =
+					(filters.selfStatuses.includes("entered") && !isMissingScore(row.selfWeightedScore)) ||
+					(filters.selfStatuses.includes("missing") && isMissingScore(row.selfWeightedScore));
+				if (!matchesSelf) return false;
+			}
+			if (filters.leadershipStatuses.length) {
+				const matchesLeadership =
+					(filters.leadershipStatuses.includes("completed") && row.leadershipComplete) ||
+					(filters.leadershipStatuses.includes("missing") && row.leadershipSubmittedCount === 0) ||
+					(filters.leadershipStatuses.includes("partial") && row.leadershipSubmittedCount > 0 && !row.leadershipComplete);
+				if (!matchesLeadership) return false;
+			}
+			if (filters.portfolioStatuses.length) {
+				const matchesPortfolio =
+					(filters.portfolioStatuses.includes("entered") && !isMissingScore(row.portfolioScore)) ||
+					(filters.portfolioStatuses.includes("missing") && isMissingScore(row.portfolioScore));
+				if (!matchesPortfolio) return false;
+			}
+			if (filters.finalReviewStatuses.length) {
+				const hasReview = Boolean(finalReview?.reviewText?.trim());
+				if ((filters.finalReviewStatuses.includes("has") && !hasReview) || (filters.finalReviewStatuses.includes("missing") && hasReview)) return false;
+			}
+			if (filters.recommendationStatuses.length) {
+				const hasRecommendation = Boolean(finalReview?.recommendationText?.trim());
+				if ((filters.recommendationStatuses.includes("has") && !hasRecommendation) || (filters.recommendationStatuses.includes("missing") && hasRecommendation)) return false;
+			}
+			if (!isInRange(comparableScore, filters.minScore, filters.maxScore)) return false;
+			if (!isInRange(row.studentCount, filters.minSurveyCount, filters.maxSurveyCount)) return false;
+			if (!isInRange(row.portfolioScore, filters.minPortfolio, filters.maxPortfolio)) return false;
+			return true;
+		});
+
+	const sortRowsForExport = (rows: TeacherRow[]) => {
+		if (exportSortKey === "current") return rows;
+		const direction = exportSortDirection === "asc" ? 1 : -1;
+		const sortValue = (row: TeacherRow): string | number => {
+			if (exportSortKey === "teacher") return row.name;
+			if (exportSortKey === "branch") return row.branchName;
+			if (exportSortKey === "department") return row.departmentName;
+			if (exportSortKey === "final-score") return getComparablePkpdScore(row) ?? -1;
+			if (exportSortKey === "portfolio") return row.portfolioScore ?? -1;
+			if (exportSortKey === "student-count") return row.studentCount;
+			if (exportSortKey === "status") return getTeacherStatusInfo(row).label;
+			if (exportSortKey === "updated-at") return typeof row.refreshedAt === "string" ? new Date(row.refreshedAt).getTime() : 0;
+			return row.name;
+		};
+		return rows.slice().sort((a, b) => {
+			const aValue = sortValue(a);
+			const bValue = sortValue(b);
+			if (typeof aValue === "number" && typeof bValue === "number") return (aValue - bValue) * direction;
+			return String(aValue).localeCompare(String(bValue), "az") * direction;
+		});
+	};
+
 	const handleExportWorkbook = async () => {
 		if (!cycleId) return;
 		const year = cycle?.year ?? "-";
@@ -2777,6 +3163,87 @@ export const AdminCycleDetailPage = () => {
 				rows,
 			},
 		]);
+	};
+
+	void handleExportWorkbook;
+
+	const handleConfiguredExportWorkbook = async () => {
+		if (!cycleId) return;
+		if (!["admin", "superadmin", "hr"].includes(userDoc?.role ?? "")) {
+			setExportStatus("Excel export üçün icazəniz yoxdur.");
+			return;
+		}
+		if (exportColumnKeys.length === 0) {
+			setExportStatus("Ən azı bir kolon seçin.");
+			return;
+		}
+		setExportRunning(true);
+		setExportStatus(null);
+		const year = cycle?.year ?? "-";
+		const baseRows =
+			exportScope === "current-page"
+				? paginatedTeacherRows
+				: exportScope === "current-filtered"
+					? sortedTeacherRows
+					: teacherRows;
+		const scopedRows =
+			exportScope === "selected-teachers" && exportFilters.teacherIds.length === 0
+				? []
+				: exportScope === "all-teachers"
+					? baseRows
+					: filterRowsForExportCriteria(baseRows);
+		const rows = sortRowsForExport(scopedRows);
+		if (rows.length === 0) {
+			setExportStatus("Seçilmiş kriteriyalara uyğun müəllim tapılmadı.");
+			setExportRunning(false);
+			return;
+		}
+		const selectedColumns = exportColumnKeys
+			.map((key) => exportColumnMap[key])
+			.filter(Boolean);
+		const filterSummary = [
+			`Scope: ${exportScope}`,
+			`Sətir sayı: ${rows.length}`,
+			exportFilters.branchIds.length
+				? `Campus: ${exportFilters.branchIds.map((id) => branchMap[id]?.name ?? id).join(", ")}`
+				: "",
+			exportFilters.departmentIds.length
+				? `Kafedra: ${exportFilters.departmentIds.map((id) => departmentMap[id]?.name ?? id).join(", ")}`
+				: "",
+			exportFilters.subjectIds.length
+				? `Fənn: ${exportFilters.subjectIds.map((id) => subjectMap[id]?.name ?? id).join(", ")}`
+				: "",
+			exportFilters.statuses.length
+				? `Status: ${exportFilters.statuses.join(", ")}`
+				: "",
+		]
+			.filter(Boolean)
+			.join(" | ");
+
+		try {
+			await downloadWorkbook(`cycle-${year}-pkpd-results.xlsx`, [
+				{
+					name: "PKPD nəticələri",
+					title: `PKPD nəticələri — ${year}`,
+					metaRows: [
+						["Export tarixi", new Date().toLocaleString("az-AZ")],
+						["Seçilmiş filterlər", filterSummary || "Filter seçilməyib"],
+					],
+					headers: selectedColumns.map((column) => column.label),
+					rows: rows.map((row) =>
+						selectedColumns.map((column) => toExportCell(column.value(row))),
+					),
+				},
+			]);
+			setExportStatus(`Excel export hazırlandı: ${rows.length} müəllim.`);
+			setExportDialogOpen(false);
+		} catch (error) {
+			setExportStatus(
+				`Excel export alınmadı: ${error instanceof Error ? error.message : "naməlum xəta"}`,
+			);
+		} finally {
+			setExportRunning(false);
+		}
 	};
 
 	const handleGenerateFinalReview = async () => {
@@ -3825,7 +4292,7 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					<button
 						className="btn primary"
 						type="button"
-						onClick={() => void handleExportWorkbook()}
+						onClick={() => setExportDialogOpen(true)}
 						disabled={!cycleId}
 					>
 						Excel export
@@ -3833,6 +4300,296 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					</>
 				}
 			/>
+
+			<Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+				<DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>PKPD Excel export</DialogTitle>
+						<DialogDescription>
+							Export olunacaq müəllimləri, kriteriyaları və Excel kolonlarını seçin.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="grid gap-4">
+						<div className="grid gap-3 md:grid-cols-3">
+							<label className="field">
+								<span>Preset</span>
+								<select
+									onChange={(event) => applyExportPreset(event.target.value)}
+									defaultValue=""
+								>
+									<option value="" disabled>
+										Preset seçin
+									</option>
+									{exportPresetOptions.map((preset) => (
+										<option key={preset.value} value={preset.value}>
+											{preset.label}
+										</option>
+									))}
+								</select>
+							</label>
+							<label className="field">
+								<span>Export scope</span>
+								<select
+									value={exportScope}
+									onChange={(event) => setExportScope(event.target.value as ExportScope)}
+								>
+									<option value="current-filtered">Cari filterlənmiş table</option>
+									<option value="current-page">Cari səhifə</option>
+									<option value="selected-teachers">Seçilmiş müəllimlər</option>
+									<option value="all-matching">Kriteriyaya uyğun hamısı</option>
+									<option value="all-teachers">Bütün müəllimlər</option>
+								</select>
+							</label>
+							<label className="field">
+								<span>Sıralama</span>
+								<select
+									value={exportSortKey}
+									onChange={(event) => setExportSortKey(event.target.value as ExportSortKey)}
+								>
+									<option value="current">Cari table sıralaması</option>
+									<option value="teacher">Müəllim adı</option>
+									<option value="branch">Campus</option>
+									<option value="department">Kafedra</option>
+									<option value="final-score">Yekun bal</option>
+									<option value="portfolio">Portfolio</option>
+									<option value="student-count">Şagird cavab sayı</option>
+									<option value="status">Status</option>
+									<option value="updated-at">Son yenilənmə</option>
+								</select>
+							</label>
+						</div>
+
+						<div className="grid gap-3 md:grid-cols-3">
+							<label className="field">
+								<span>Campus</span>
+								<select
+									multiple
+									value={exportFilters.branchIds}
+									onChange={(event) =>
+										updateExportFilter(
+											"branchIds",
+											Array.from(event.target.selectedOptions).map((option) => option.value),
+										)
+									}
+								>
+									{branches.map((branch) => (
+										<option key={branch.id} value={branch.id}>
+											{branch.data.name}
+										</option>
+									))}
+								</select>
+							</label>
+							<label className="field">
+								<span>Kafedra</span>
+								<select
+									multiple
+									value={exportFilters.departmentIds}
+									onChange={(event) =>
+										updateExportFilter(
+											"departmentIds",
+											Array.from(event.target.selectedOptions).map((option) => option.value),
+										)
+									}
+								>
+									{departments.map((department) => (
+										<option key={department.id} value={department.id}>
+											{department.data.name}
+										</option>
+									))}
+								</select>
+							</label>
+							<label className="field">
+								<span>Fənn / ixtisas</span>
+								<select
+									multiple
+									value={exportFilters.subjectIds}
+									onChange={(event) =>
+										updateExportFilter(
+											"subjectIds",
+											Array.from(event.target.selectedOptions).map((option) => option.value),
+										)
+									}
+								>
+									{subjects.map((subject) => (
+										<option key={subject.id} value={subject.id}>
+											{subject.data.name}
+										</option>
+									))}
+								</select>
+							</label>
+						</div>
+
+						<label className="field">
+							<span>Müəllimlər</span>
+							<select
+								multiple
+								value={exportFilters.teacherIds}
+								onChange={(event) =>
+									updateExportFilter(
+										"teacherIds",
+										Array.from(event.target.selectedOptions).map((option) => option.value),
+									)
+								}
+							>
+								{teacherRows.map((row) => (
+									<option key={row.teacherId} value={row.teacherId}>
+										{row.name}
+									</option>
+								))}
+							</select>
+						</label>
+
+						<div className="grid gap-3 md:grid-cols-2">
+							<div className="card grid gap-2">
+								<strong>Filterlər</strong>
+								<div className="grid gap-2 sm:grid-cols-2">
+									{[
+										["with-biq", "BİQ/KİQ nəticəsi olan", "models"],
+										["without-biq", "BİQ/KİQ nəticəsi olmayan", "models"],
+										["70", "70 bal üzərindən", "denominators"],
+										["100", "100 bal üzərindən", "denominators"],
+										["entered", "İmtahan balı daxil edilib", "examStatuses"],
+										["missing", "İmtahan balı yoxdur", "examStatuses"],
+										["exempt", "İmtahandan azad", "examStatuses"],
+										["entered", "BİQ daxil edilib", "biqStatuses"],
+										["missing", "BİQ yoxdur", "biqStatuses"],
+										["entered", "Şagird sorğusu var", "studentSurveyStatuses"],
+										["missing", "Şagird sorğusu yoxdur", "studentSurveyStatuses"],
+										["entered", "Özünüqiymətləndirmə var", "selfStatuses"],
+										["missing", "Özünüqiymətləndirmə yoxdur", "selfStatuses"],
+										["completed", "Rəhbərlik tamamlanıb", "leadershipStatuses"],
+										["partial", "Rəhbərlik qismən", "leadershipStatuses"],
+										["missing", "Rəhbərlik yoxdur", "leadershipStatuses"],
+										["entered", "Portfolio var", "portfolioStatuses"],
+										["missing", "Portfolio yoxdur", "portfolioStatuses"],
+										["has", "Rəy var", "finalReviewStatuses"],
+										["missing", "Rəy yoxdur", "finalReviewStatuses"],
+										["has", "Tövsiyə var", "recommendationStatuses"],
+										["missing", "Tövsiyə yoxdur", "recommendationStatuses"],
+									].map(([value, label, key]) => (
+										<label key={`${key}-${value}-${label}`} className="flex items-center gap-2 text-sm">
+											<input
+												type="checkbox"
+												checked={(exportFilters[key as keyof ExportFilters] as string[]).includes(value)}
+												onChange={() => toggleExportFilterValue(key as keyof ExportFilters, value)}
+											/>
+											<span>{label}</span>
+										</label>
+									))}
+								</div>
+								<div className="grid gap-2 sm:grid-cols-2">
+									{exportStatusOptions.map((status) => (
+										<label key={status.value} className="flex items-center gap-2 text-sm">
+											<input
+												type="checkbox"
+												checked={exportFilters.statuses.includes(status.value)}
+												onChange={() => toggleExportFilterValue("statuses", status.value)}
+											/>
+											<span>{status.label}</span>
+										</label>
+									))}
+								</div>
+							</div>
+
+							<div className="card grid gap-2">
+								<strong>Aralıqlar</strong>
+								<div className="grid gap-2 sm:grid-cols-2">
+									<label className="field">
+										<span>Minimum yekun bal</span>
+										<input value={exportFilters.minScore} onChange={(event) => updateExportFilter("minScore", event.target.value)} />
+									</label>
+									<label className="field">
+										<span>Maksimum yekun bal</span>
+										<input value={exportFilters.maxScore} onChange={(event) => updateExportFilter("maxScore", event.target.value)} />
+									</label>
+									<label className="field">
+										<span>Minimum şagird cavabı</span>
+										<input value={exportFilters.minSurveyCount} onChange={(event) => updateExportFilter("minSurveyCount", event.target.value)} />
+									</label>
+									<label className="field">
+										<span>Maksimum şagird cavabı</span>
+										<input value={exportFilters.maxSurveyCount} onChange={(event) => updateExportFilter("maxSurveyCount", event.target.value)} />
+									</label>
+									<label className="field">
+										<span>Minimum portfolio</span>
+										<input value={exportFilters.minPortfolio} onChange={(event) => updateExportFilter("minPortfolio", event.target.value)} />
+									</label>
+									<label className="field">
+										<span>Maksimum portfolio</span>
+										<input value={exportFilters.maxPortfolio} onChange={(event) => updateExportFilter("maxPortfolio", event.target.value)} />
+									</label>
+								</div>
+								<label className="field">
+									<span>Sıralama istiqaməti</span>
+									<select
+										value={exportSortDirection}
+										onChange={(event) => setExportSortDirection(event.target.value as "asc" | "desc")}
+									>
+										<option value="asc">Artan</option>
+										<option value="desc">Azalan</option>
+									</select>
+								</label>
+							</div>
+						</div>
+
+						<div className="card grid gap-2">
+							<div className="flex flex-wrap items-center justify-between gap-2">
+								<strong>Kolonlar</strong>
+								<div className="flex gap-2">
+									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(summaryExportColumns)}>
+										Xülasə
+									</button>
+									<button className="btn ghost" type="button" onClick={() => setExportColumnKeys(fullExportColumns)}>
+										Hamısı
+									</button>
+								</div>
+							</div>
+							<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+								{exportColumnDefinitions.map((column) => (
+									<label key={column.key} className="flex items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											checked={exportColumnKeys.includes(column.key)}
+											onChange={() => setExportColumnKeys((previous) => toggleArrayValue(previous, column.key))}
+										/>
+										<span>{column.label}</span>
+									</label>
+								))}
+							</div>
+						</div>
+					</div>
+
+					{exportStatus && <div className="notice warning">{exportStatus}</div>}
+
+					<DialogFooter>
+						<button className="btn ghost" type="button" onClick={() => setExportDialogOpen(false)}>
+							Bağla
+						</button>
+						<button
+							className="btn ghost"
+							type="button"
+							onClick={() => {
+								setExportFilters(emptyExportFilters());
+								setExportColumnKeys(fullExportColumns);
+								setExportSortKey("current");
+								setExportSortDirection("asc");
+								setExportStatus(null);
+							}}
+						>
+							Sıfırla
+						</button>
+						<button
+							className="btn primary"
+							type="button"
+							onClick={() => void handleConfiguredExportWorkbook()}
+							disabled={exportRunning}
+						>
+							{exportRunning ? "Export hazırlanır..." : "Export"}
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{(summaryCacheLoading || cycleDataLoading) && (
 				<div className="card grid gap-3">

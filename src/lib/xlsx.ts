@@ -4,6 +4,8 @@ export type WorkbookSheet = {
 	name: string;
 	headers: string[];
 	rows: WorkbookCell[][];
+	title?: string;
+	metaRows?: WorkbookCell[][];
 };
 
 const INVALID_SHEET_NAME_CHARS = /[\\/*?:[\]]/g;
@@ -39,11 +41,41 @@ export const downloadWorkbook = async (
 	const usedNames = new Set<string>();
 
 	sheets.forEach((sheet) => {
-		const worksheet = XLSX.utils.aoa_to_sheet([sheet.headers, ...sheet.rows]);
+		const leadingRows = [
+			...(sheet.title ? [[sheet.title]] : []),
+			...(sheet.metaRows ?? []),
+		];
+		const headerRowIndex = leadingRows.length;
+		const worksheet = XLSX.utils.aoa_to_sheet([
+			...leadingRows,
+			sheet.headers,
+			...sheet.rows,
+		]);
+		worksheet["!freeze"] = {
+			xSplit: 0,
+			ySplit: headerRowIndex + 1,
+			topLeftCell: `A${headerRowIndex + 2}`,
+			activePane: "bottomLeft",
+			state: "frozen",
+		};
+		worksheet["!cols"] = sheet.headers.map((header, columnIndex) => {
+			const values = [
+				header,
+				...sheet.rows.map((row) => row[columnIndex]),
+				...leadingRows.map((row) => row[columnIndex]),
+			];
+			const width = Math.min(
+				60,
+				Math.max(
+					12,
+					...values.map((value) => String(value ?? "").length + 2),
+				),
+			);
+			return { wch: width };
+		});
 		const sheetName = toUniqueSheetName(sheet.name, usedNames);
 		XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 	});
 
 	XLSX.writeFile(workbook, filename);
 };
-
