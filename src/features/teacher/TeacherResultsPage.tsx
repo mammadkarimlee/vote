@@ -1,42 +1,58 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	EmptyState,
 	PageHeader,
-	ScoreBreakdownTable,
 	SectionCard,
 	StatCard,
 	StatusBadge,
-	type ScoreBreakdownRow,
 } from "../../components/dashboard";
-import {
-	PKPD_EXAM_EXEMPT_NOTE,
-	pkpdBucket,
-	pkpdDecision,
-} from "../../lib/pkpdScoring";
-import {
-	buildPkpdReportHtml,
-	getPkpdReportComparableScore,
-	getPkpdReportScoreRows,
-	openPkpdReportPrintWindow,
-} from "../../lib/pkpdReportHtml";
 import { supabase } from "../../lib/supabase";
-import {
-	mapPkpdFinalReviewRow,
-	mapPkpdTeacherSummaryRow,
-} from "../../lib/supabaseMappers";
-import type {
-	PkpdFinalReviewDoc,
-	PkpdTeacherSummaryDoc,
-} from "../../lib/types";
+
+type TeacherResultSummary = {
+	finalScore?: number | null;
+	final_score?: number | null;
+	finalScoreWithExtra?: number | null;
+	final_score_with_extra?: number | null;
+	finalMaxScore?: number | null;
+	final_max_score?: number | null;
+	finalPercentage?: number | null;
+	final_percentage?: number | null;
+	status?: "completed" | "calculating" | "incomplete" | string | null;
+	academicYear?: number | null;
+	academic_year?: number | null;
+	is_complete?: boolean | null;
+	isBiqTeacher?: boolean | null;
+	is_biq_teacher?: boolean | null;
+	isExamExempt?: boolean | null;
+	is_exam_exempt?: boolean | null;
+};
+
+type TeacherResultFeedback = {
+	reviewText?: string | null;
+	review_text?: string | null;
+	recommendationText?: string | null;
+	recommendation_text?: string | null;
+};
 
 type TeacherResultRpcRow = {
 	visibility_enabled?: boolean;
 	disabled_reason?: string | null;
 	cycle_id?: string | null;
 	cycle_year?: number | null;
-	summary?: Record<string, unknown> | null;
-	final_review?: Record<string, unknown> | null;
-	subjects?: unknown;
+	summary?: TeacherResultSummary | null;
+	final_review?: TeacherResultFeedback | null;
+};
+
+type ReadyState = {
+	status: "ready";
+	academicYear: number | null;
+	finalScore: number | null;
+	finalMaxScore: number | null;
+	finalPercentage: number | null;
+	isBiqTeacher: boolean | null;
+	isExamExempt: boolean | null;
+	resultStatus: string;
+	feedback: TeacherResultFeedback | null;
 };
 
 type TeacherResultState =
@@ -44,69 +60,138 @@ type TeacherResultState =
 	| { status: "disabled"; message: string }
 	| { status: "empty"; message: string }
 	| { status: "error"; message: string }
-	| {
-			status: "ready";
-			cycleYear: number | null;
-			summary: PkpdTeacherSummaryDoc;
-			finalReview: PkpdFinalReviewDoc | null;
-			subjectNames: string[];
-	  };
+	| ReadyState;
 
-const formatScore = (value: number | null | undefined) =>
-	value === null || value === undefined || Number.isNaN(value)
-		? "—"
-		: value.toFixed(2);
+const formatScore = (value: number | null) =>
+	value === null || Number.isNaN(value) ? "-" : value.toFixed(2);
 
-const formatPercent = (value: number | null | undefined) =>
-	value === null || value === undefined || Number.isNaN(value)
-		? "—"
-		: `${value.toFixed(2)}%`;
+const formatPercent = (value: number | null) =>
+	value === null || Number.isNaN(value) ? "-" : `${value.toFixed(2)}%`;
 
-const evaluationTypeLabel = (summary: PkpdTeacherSummaryDoc) =>
-	summary.isBiqTeacher
-		? "BİQ/KİQ nəticəsi olan müəllim"
-		: "BİQ/KİQ nəticəsi olmayan müəllim";
-
-const getStatusBadge = (summary: PkpdTeacherSummaryDoc) => {
-	if (!summary.isComplete) {
-		return { label: "Hesablama tamamlanmayıb", tone: "warning" as const };
+const toNullableNumber = (value: unknown) => {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string" && value.trim() !== "") {
+		const parsed = Number(value.replace(",", "."));
+		return Number.isFinite(parsed) ? parsed : null;
 	}
-	const comparableScore = getPkpdReportComparableScore(summary);
-	if ((comparableScore ?? 0) < 60) {
-		return { label: "Risk qrupu", tone: "danger" as const };
-	}
-	return { label: "Tamamlanıb", tone: "success" as const };
+	return null;
 };
 
-const normalizeSubjects = (value: unknown) =>
-	Array.isArray(value)
-		? value
-				.map((item) => (typeof item === "string" ? item.trim() : ""))
-				.filter(Boolean)
-		: [];
+const resolveFinalScore = (summary: TeacherResultSummary) =>
+	toNullableNumber(summary.finalScore) ?? toNullableNumber(summary.final_score);
 
-const buildScoreRows = (summary: PkpdTeacherSummaryDoc): ScoreBreakdownRow[] =>
-	getPkpdReportScoreRows(summary).map((row) => ({
-		key: row.key,
-		label: row.label,
-		value:
-			typeof row.value === "string"
-				? row.value
-				: row.value === null || row.value === undefined || Number.isNaN(row.value)
-					? "Daxil edilməyib"
-					: row.value.toFixed(2),
-		max: row.max,
-		meta:
-			row.key === "examScore" && summary.isExamExempt
-				? PKPD_EXAM_EXEMPT_NOTE
-				: undefined,
-		tone:
-			row.value === null || row.value === undefined || Number.isNaN(row.value)
-				? summary.isExamExempt && row.key === "examScore"
-					? "success"
-					: "warning"
-				: "success",
-	}));
+const resolveFinalScoreWithExtra = (summary: TeacherResultSummary) =>
+	toNullableNumber(summary.finalScoreWithExtra) ??
+	toNullableNumber(summary.final_score_with_extra);
+
+const shouldUseScoreWithExtra = (
+	finalScore: number | null,
+	finalScoreWithExtra: number | null,
+) =>
+	finalScore !== null &&
+	finalScoreWithExtra !== null &&
+	finalScoreWithExtra > finalScore;
+
+const resolveFinalMaxScore = (
+	summary: TeacherResultSummary,
+	usesScoreWithExtra: boolean,
+) => {
+	const baseMaxScore =
+		toNullableNumber(summary.finalMaxScore) ??
+		toNullableNumber(summary.final_max_score) ??
+		(summary.isExamExempt === true || summary.is_exam_exempt === true ? 70 : 100);
+
+	return usesScoreWithExtra ? baseMaxScore + 10 : baseMaxScore;
+};
+
+const resolveFinalPercentage = (
+	summary: TeacherResultSummary,
+	finalScore: number | null,
+	finalMaxScore: number | null,
+) =>
+	toNullableNumber(summary.finalPercentage) ??
+	toNullableNumber(summary.final_percentage) ??
+	(finalScore !== null && finalMaxScore !== null && finalMaxScore > 0
+		? (finalScore / finalMaxScore) * 100
+		: null);
+
+const resolveBoolean = (
+	camelValue: boolean | null | undefined,
+	snakeValue: boolean | null | undefined,
+) => (typeof camelValue === "boolean" ? camelValue : snakeValue ?? null);
+
+const resolveResultStatus = (
+	summary: TeacherResultSummary,
+	finalScore: number | null,
+) => {
+	if (finalScore !== null) return "completed";
+	return summary.status ?? (summary.is_complete ? "incomplete" : "calculating");
+};
+
+const getCalculationBasisText = (state: ReadyState) => {
+	const basisParts = [
+		state.isExamExempt ? "imtahandan azad olunmuş" : null,
+		state.isBiqTeacher === false
+			? "BİQ/KİQ nəticələri nəzərə alınmayan"
+			: state.isBiqTeacher === true
+				? "BİQ/KİQ nəticələri nəzərə alınan"
+				: null,
+	].filter(Boolean);
+
+	const teacherType =
+		basisParts.length > 0
+			? `${basisParts.join(", ")} müəllim`
+			: "müvafiq qiymətləndirmə qrupu üzrə müəllim";
+
+	if (state.finalMaxScore === null) {
+		return `Siz ${teacherType} kimi qiymətləndirilmisiniz. Yekun nəticə faizi mövcud maksimum bala əsasən hesablanır.`;
+	}
+
+	if (state.finalScore === null || state.finalPercentage === null) {
+		return `Siz ${teacherType} kimi ${formatScore(
+			state.finalMaxScore,
+		)} bal üzərindən qiymətləndirilirsiniz. Yekun nəticə tamamlandıqdan sonra faiz göstəricisi formalaşacaq.`;
+	}
+
+	return `Siz ${teacherType} kimi ${formatScore(
+		state.finalMaxScore,
+	)} bal üzərindən qiymətləndirilmisiniz. Yekun nəticəniz ${formatScore(
+		state.finalScore,
+	)} / ${formatScore(state.finalMaxScore)} baldır və bu ${formatPercent(
+		state.finalPercentage,
+	)} təşkil edir.`;
+};
+
+const getResultMessage = (state: ReadyState) => {
+	if (state.resultStatus !== "completed" || state.finalScore === null) {
+		return "Yekun nəticəniz hazırda hesablanma mərhələsindədir.";
+	}
+
+	const yearText = state.academicYear
+		? `${state.academicYear}-cı tədris ili üzrə`
+		: "Cari tədris ili üzrə";
+
+	const scoreText =
+		state.finalMaxScore === null
+			? `${formatScore(state.finalScore)} bal`
+			: `${formatScore(state.finalScore)} / ${formatScore(
+					state.finalMaxScore,
+				)} bal`;
+
+	return `${yearText} Pedaqoji Kadrların Performans Dəyərləndirilməsi nəticəsinə əsasən yekun nəticəniz ${scoreText}, yəni ${formatPercent(
+		state.finalPercentage,
+	)} olaraq müəyyən edilmişdir.`;
+};
+
+const getFeedbackText = (
+	feedback: TeacherResultFeedback | null,
+	field: "review" | "recommendation",
+) => {
+	if (!feedback) return "";
+	return field === "review"
+		? (feedback.reviewText ?? feedback.review_text ?? "").trim()
+		: (feedback.recommendationText ?? feedback.recommendation_text ?? "").trim();
+};
 
 export const TeacherResultsPage = () => {
 	const [state, setState] = useState<TeacherResultState>({ status: "loading" });
@@ -141,19 +226,49 @@ export const TeacherResultsPage = () => {
 			if (!row.summary) {
 				setState({
 					status: "empty",
-					message: "Sizin üçün PKPD nəticəsi tapılmadı",
+					message: "Yekun nəticəniz hazırda hesablanma mərhələsindədir.",
 				});
 				return;
 			}
 
+			const baseFinalScore = resolveFinalScore(row.summary);
+			const finalScoreWithExtra = resolveFinalScoreWithExtra(row.summary);
+			const usesScoreWithExtra = shouldUseScoreWithExtra(
+				baseFinalScore,
+				finalScoreWithExtra,
+			);
+			const finalScore = usesScoreWithExtra
+				? finalScoreWithExtra
+				: baseFinalScore;
+			const finalMaxScore = resolveFinalMaxScore(
+				row.summary,
+				usesScoreWithExtra,
+			);
+			const finalPercentage = resolveFinalPercentage(
+				row.summary,
+				finalScore,
+				finalMaxScore,
+			);
 			setState({
 				status: "ready",
-				cycleYear: row.cycle_year ?? null,
-				summary: mapPkpdTeacherSummaryRow(row.summary),
-				finalReview: row.final_review
-					? mapPkpdFinalReviewRow(row.final_review)
-					: null,
-				subjectNames: normalizeSubjects(row.subjects),
+				academicYear:
+					row.summary.academicYear ??
+					row.summary.academic_year ??
+					row.cycle_year ??
+					null,
+				finalScore,
+				finalMaxScore,
+				finalPercentage,
+				isBiqTeacher: resolveBoolean(
+					row.summary.isBiqTeacher,
+					row.summary.is_biq_teacher,
+				),
+				isExamExempt: resolveBoolean(
+					row.summary.isExamExempt,
+					row.summary.is_exam_exempt,
+				),
+				resultStatus: resolveResultStatus(row.summary, finalScore),
+				feedback: row.final_review ?? null,
 			});
 		};
 
@@ -162,35 +277,6 @@ export const TeacherResultsPage = () => {
 			cancelled = true;
 		};
 	}, []);
-
-	const readyState = state.status === "ready" ? state : null;
-	const scoreRows = useMemo(
-		() => (readyState ? buildScoreRows(readyState.summary) : []),
-		[readyState],
-	);
-	const missingRows = useMemo(
-		() =>
-			scoreRows
-				.filter((row) => row.tone === "warning")
-				.map((row) => (typeof row.label === "string" ? row.label : row.key)),
-		[scoreRows],
-	);
-
-	const handleDownload = () => {
-		if (!readyState) return;
-		openPkpdReportPrintWindow(
-			buildPkpdReportHtml({
-				summary: readyState.summary,
-				finalReview: readyState.finalReview,
-				subjectNames: readyState.subjectNames,
-				titleSuffix: readyState.cycleYear
-					? `${readyState.summary.isComplete ? "PKPD Yekun Nəticə Hesabatı" : "PKPD Cari Qiymətləndirmə Hesabatı"} — ${readyState.cycleYear}`
-					: readyState.summary.isComplete
-						? "PKPD Yekun Nəticə Hesabatı"
-						: "PKPD Cari Qiymətləndirmə Hesabatı",
-			}),
-		);
-	};
 
 	if (state.status === "loading") {
 		return (
@@ -235,127 +321,71 @@ export const TeacherResultsPage = () => {
 		);
 	}
 
-	const comparableScore = getPkpdReportComparableScore(state.summary);
-	const statusInfo = getStatusBadge(state.summary);
-	const subjectText =
-		state.subjectNames.length > 0 ? state.subjectNames.join(", ") : "—";
+	const reviewText = getFeedbackText(state.feedback, "review");
+	const recommendationText = getFeedbackText(state.feedback, "recommendation");
+	const isCompleted = state.resultStatus === "completed" && state.finalScore !== null;
+	const calculationBasisText = getCalculationBasisText(state);
 
 	return (
 		<div className="panel">
 			<PageHeader
 				eyebrow="Müəllim paneli"
 				title="Nəticələrim"
-				description="PKPD cari və yekun nəticə məlumatlarınız."
+				description="PKPD yekun nəticə məlumatınız."
 				meta={
 					<>
-						{state.cycleYear && (
-							<StatusBadge tone="info">Dövr: {state.cycleYear}</StatusBadge>
+						{state.academicYear && (
+							<StatusBadge tone="info">Dövr: {state.academicYear}</StatusBadge>
 						)}
-						<StatusBadge tone={statusInfo.tone}>{statusInfo.label}</StatusBadge>
-						<StatusBadge tone="neutral">
-							{evaluationTypeLabel(state.summary)}
+						<StatusBadge tone={isCompleted ? "success" : "warning"}>
+							{isCompleted ? "Tamamlanıb" : "Hesablanır"}
 						</StatusBadge>
 					</>
 				}
-				actions={
-					<button className="btn primary" type="button" onClick={handleDownload}>
-						PDF yüklə
-					</button>
-				}
 			/>
 
-			<SectionCard title="Müəllim məlumatları">
-				<div className="grid two">
-					<StatCard label="Müəllim" value={state.summary.name} />
-					<StatCard label="Kampus" value={state.summary.branchName ?? "—"} />
-					<StatCard label="Kafedra" value={state.summary.departmentName ?? "—"} />
-					<StatCard label="Fənn / ixtisas" value={subjectText} />
-				</div>
-			</SectionCard>
-
 			<SectionCard title="Yekun nəticə">
-				<div className="grid three">
-					<StatCard
-						tone="info"
-						label={state.summary.isComplete ? "Yekun bal" : "Cari bal"}
-						value={state.summary.finalScoreLabel}
-						meta={
-							state.summary.isExamExempt
-								? "Yekun nəticə 70 bal üzərindən hesablanıb"
-								: undefined
-						}
-					/>
-					<StatCard
-						tone="accent"
-						label="Faiz"
-						value={formatPercent(state.summary.finalPercentage)}
-					/>
-					<StatCard
-						tone="neutral"
-						label="Qərar"
-						value={
-							comparableScore === null
-								? "Qərar verilməyib"
-								: pkpdDecision(comparableScore)
-						}
-						meta={
-							comparableScore === null
-								? undefined
-								: pkpdBucket(comparableScore)
-						}
-					/>
+				<div className="grid gap-4">
+					<div className="grid two">
+						<StatCard
+							tone={isCompleted ? "info" : "neutral"}
+							label="Yekun faiz"
+							value={isCompleted ? formatPercent(state.finalPercentage) : "-"}
+							meta="əsas müqayisə göstəricisi"
+						/>
+						<StatCard
+							tone="neutral"
+							label="Yekun bal"
+							value={
+								isCompleted
+									? state.finalMaxScore === null
+										? `${formatScore(state.finalScore)} bal`
+										: `${formatScore(state.finalScore)} / ${formatScore(
+												state.finalMaxScore,
+											)} bal`
+									: "-"
+							}
+						/>
+					</div>
+					<div className="notice info">{getResultMessage(state)}</div>
 				</div>
 			</SectionCard>
-
-			<SectionCard title="Bal bölgüsü">
-				<ScoreBreakdownTable rows={scoreRows} />
-			</SectionCard>
-
-			{missingRows.length > 0 && (
-				<SectionCard title="Çatışmayan sahələr">
-					<div className="notice warning">
-						<ul className="mt-2 list-disc pl-5">
-							{missingRows.map((item) => (
-								<li key={item}>{item}</li>
-							))}
-						</ul>
-					</div>
-				</SectionCard>
-			)}
 
 			<SectionCard title="Yekun rəy və tövsiyə">
 				<div className="grid gap-4">
+					<div className="notice info">{calculationBasisText}</div>
 					<div>
 						<div className="label">Rəy</div>
 						<p className="mt-1 text-sm">
-							{state.finalReview?.reviewText?.trim() ||
-								"Yekun rəy hələ hazırlanmayıb"}
+							{reviewText || "Yekun rəy hələ hazırlanmayıb"}
 						</p>
 					</div>
 					<div>
 						<div className="label">Tövsiyə</div>
 						<p className="mt-1 text-sm">
-							{state.finalReview?.recommendationText?.trim() ||
-								"Yekun tövsiyə hələ hazırlanmayıb"}
+							{recommendationText || "Yekun tövsiyə hələ hazırlanmayıb"}
 						</p>
 					</div>
-				</div>
-			</SectionCard>
-
-			<SectionCard title="Əlavə göstəricilər">
-				<div className="grid three">
-					<StatCard
-						label="Əlavə bal"
-						value={formatScore(state.summary.bonusScore)}
-					/>
-					<StatCard
-						label="Stimullaşdırıcı yekun"
-						value={formatScore(state.summary.finalScoreWithExtra)}
-					/>
-					<StatCard
-						label="Şagird cavab sayı"
-						value={state.summary.studentCount}
-					/>
 				</div>
 			</SectionCard>
 		</div>
