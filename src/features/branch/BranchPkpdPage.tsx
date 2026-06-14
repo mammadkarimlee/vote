@@ -58,7 +58,10 @@ import {
 	pkpdDecision,
 	pkpdBucket,
 } from "../../lib/pkpdScoring";
-import { isPkpdNonParticipant as matchPkpdNonParticipant } from "../../lib/pkpdNonParticipants";
+import {
+	isPkpdNonParticipant as matchPkpdNonParticipant,
+	isPkpdZeroExamParticipant as matchPkpdZeroExamParticipant,
+} from "../../lib/pkpdNonParticipants";
 import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import type {
 	AnswerDoc,
@@ -1223,14 +1226,20 @@ export const BranchPkpdPage = () => {
 					: computedBiqAvg !== null
 						? "computed"
 						: "none";
-			const examInputScore = clampExamScore(examMap[teacher.id]?.score);
+			const isListedPkpdZeroExamParticipant = matchPkpdZeroExamParticipant(
+				teacher.data.name,
+			);
+			const examInputScore = isListedPkpdZeroExamParticipant
+				? 0
+				: clampExamScore(examMap[teacher.id]?.score);
 			const isListedPkpdNonParticipant = matchPkpdNonParticipant(
 				branchName || branchId,
 				teacher.data.name,
 			);
 			const isExamExempt =
-				isListedPkpdNonParticipant ||
-				(isBiqTeacher && !isEnteredPkpdExamScore(examInputScore));
+				!isListedPkpdZeroExamParticipant &&
+				(isListedPkpdNonParticipant ||
+					(isBiqTeacher && !isEnteredPkpdExamScore(examInputScore)));
 			const isPkpdNonParticipant = isExamExempt;
 			const biqScore =
 				isBiqTeacher
@@ -1239,7 +1248,11 @@ export const BranchPkpdPage = () => {
 						: (biqAvg * weights.biq) / 100
 					: null;
 
-			const examScore = isExamExempt ? null : examInputScore;
+			const examScore = isListedPkpdZeroExamParticipant
+				? 0
+				: isExamExempt
+					? null
+					: examInputScore;
 			const portfolioScore = computePkpdPortfolioScore(
 				portfolioMap[teacher.id] ?? null,
 				category,
@@ -1267,9 +1280,14 @@ export const BranchPkpdPage = () => {
 			const extraScore = bonus;
 			const finalScoreWithExtra = baseTotalScore + extraScore;
 			const finalScore = baseTotalScore;
-			const finalMaxScore = completion.finalMaxScore;
-			const finalScoreLabel = completion.finalScoreLabel;
-			const finalPercentage = completion.percentage;
+			const finalMaxScore = isListedPkpdZeroExamParticipant
+				? 110
+				: completion.finalMaxScore;
+			const finalScoreLabel = getPkpdFinalScoreLabel(finalScore, finalMaxScore);
+			const finalPercentage =
+				finalScore !== null && finalMaxScore > 0
+					? (finalScore / finalMaxScore) * 100
+					: null;
 
 			return {
 				teacherId: teacher.id,

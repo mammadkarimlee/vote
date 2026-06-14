@@ -233,3 +233,46 @@ export const isPkpdNonParticipant = (branchName: string, fullName: string) => {
 			),
 	);
 };
+
+const PKPD_ZERO_EXAM_PARTICIPANT_NAMES = [
+	"GÜNEL CƏFƏROVA NİZAMİ QIZI",
+	"SEYRANƏ ƏLİYEVA İNTİQAM QIZI",
+	"CƏMİLƏ PİRMƏTOVA CAHANGİR QIZI",
+	"ÜLKƏR RÜSTƏMLİ NƏRİMAN QIZI",
+	"XUMAR MUSTAFAYEVA",
+	"AYDAN KƏRİMLİ",
+	"LALƏ BAYRAMOVA",
+	"NAİLƏ HƏSƏNOVA",
+	"TÜNZALƏ CƏNDİRLİ",
+	"ŞÜKÜFƏ HÜSEYNLİ",
+	"ƏŞRƏF MƏMMƏDOV",
+	"HƏMİDƏ SEYİDOVA",
+	"GÜLŞƏN ƏSƏDOVA",
+	"LARİSA HÜSEYNOVA",
+	"ZAMİLƏ MUSTAFAYEVA",
+	"GÖVHƏR MƏHƏRRƏMOVA",
+	"NƏRMİN ƏMİRLİ",
+] as const;
+
+const normalizeZeroExamName = (value: string) =>
+	normalizeName(value)
+		.replace(/ə/g, "e")
+		.replace(/ı/g, "i")
+		.replace(/ö/g, "o")
+		.replace(/ü/g, "u")
+		.replace(/ş/g, "s")
+		.replace(/ç/g, "c")
+		.replace(/ğ/g, "g");
+
+const zeroExamParticipantNames = PKPD_ZERO_EXAM_PARTICIPANT_NAMES.map(
+	normalizeZeroExamName,
+);
+
+export const isPkpdZeroExamParticipant = (fullName: string) => {
+	const normalizedFullName = normalizeZeroExamName(fullName);
+	if (!normalizedFullName) return false;
+
+	return zeroExamParticipantNames.some((candidateName) =>
+		isSamePersonName(candidateName, normalizedFullName),
+	);
+};
