@@ -2231,9 +2231,7 @@ export const AdminCycleDetailPage = () => {
 				const baseTotalScore = completion.baseTotalScore;
 				const finalScoreWithExtra = baseTotalScore + bonusScore;
 				const finalScore = baseTotalScore;
-				const finalMaxScore = isListedPkpdZeroExamParticipant
-					? 110
-					: completion.finalMaxScore;
+				const finalMaxScore = completion.finalMaxScore;
 				const finalScoreLabel = getPkpdFinalScoreLabel(finalScore, finalMaxScore);
 				const finalPercentage =
 					finalScore !== null && finalMaxScore > 0

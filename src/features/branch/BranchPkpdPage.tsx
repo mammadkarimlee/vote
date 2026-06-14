@@ -1280,9 +1280,7 @@ export const BranchPkpdPage = () => {
 			const extraScore = bonus;
 			const finalScoreWithExtra = baseTotalScore + extraScore;
 			const finalScore = baseTotalScore;
-			const finalMaxScore = isListedPkpdZeroExamParticipant
-				? 110
-				: completion.finalMaxScore;
+			const finalMaxScore = completion.finalMaxScore;
 			const finalScoreLabel = getPkpdFinalScoreLabel(finalScore, finalMaxScore);
 			const finalPercentage =
 				finalScore !== null && finalMaxScore > 0

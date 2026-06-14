@@ -179,30 +179,6 @@ begin
   v_final_max_score := case
     when v_is_exam_exempt then 70
     else 100
-  end + case
-    when v_teacher.id in (
-      'abseron-teacher-gunel-ceferova-nizami-qizi',
-      'abseron-teacher-seyrane-eliyeva-intiqam-qizi',
-      'abseron-teacher-cemile-pirmetova-cahangir-qizi',
-      'nesimi-teacher-xumar-mustafayeva-mahir-qizi',
-      'nesimi-teacher-aydan-kerimli-etibar-qizi',
-      'nesimi-teacher-lale-bayramova-elsad-qizi',
-      'nesimi-teacher-naile-hesenova-nadir-qizi',
-      'nesimi-teacher-tunzale-cendirli-ali-qizi',
-      'nesimi-teacher-sukufe-huseynli-arif-qizi',
-      'stars-teacher-esref-memmedov-zaur-oglu',
-      'stars-teacher-hemide-seyidova-asiman-qizi',
-      'stars-teacher-gulsen-esedova-gulaga-qizi',
-      'stars-teacher-larisa-huseynova-andreyevna',
-      'stars-teacher-zamile-mustafayeva-meherrem-qizi',
-      'stars-teacher-govher-meherremova-selahaddin-qizi',
-      'azadliq-teacher-nermin-emirova-eldar-qizi'
-    ) then 10
-    when v_summary.final_score_with_extra is not null
-      and v_summary.final_score is not null
-      and v_summary.final_score_with_extra > v_summary.final_score
-    then 10
-    else 0
   end;
   v_final_percentage := case
     when v_final_score is null or v_final_max_score <= 0 then null
