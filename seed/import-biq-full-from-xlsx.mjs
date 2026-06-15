@@ -46,6 +46,63 @@ const uniqueBy = (rows, keyFn) => {
 	return [...map.values()];
 };
 
+const averageTeacherBiqRows = (rows) => {
+	const totals = new Map();
+	for (const row of rows) {
+		const key = `${row.org_id}|${row.branch_id}|${row.cycle_id}|${row.teacher_id}`;
+		const current = totals.get(key) ?? {
+			org_id: row.org_id,
+			branch_id: row.branch_id,
+			cycle_id: row.cycle_id,
+			teacher_id: row.teacher_id,
+			sum: 0,
+			count: 0,
+		};
+		current.sum += row.score;
+		current.count += 1;
+		totals.set(key, current);
+	}
+
+	return [...totals.values()].map(({ sum, count, ...row }) => ({
+		...row,
+		score: count > 0 ? Number((sum / count).toFixed(4)) : 0,
+		note: `BIQ import average from ${count} scored row${count === 1 ? "" : "s"}`,
+	}));
+};
+
+const fetchStoredTeacherAverageRows = async (rows) => {
+	const scopeMap = new Map();
+	for (const row of rows) {
+		const key = `${row.branch_id}|${row.cycle_id}`;
+		const current = scopeMap.get(key) ?? {
+			branch_id: row.branch_id,
+			cycle_id: row.cycle_id,
+			teacherIds: new Set(),
+		};
+		current.teacherIds.add(row.teacher_id);
+		scopeMap.set(key, current);
+	}
+
+	const storedRows = [];
+	for (const scope of scopeMap.values()) {
+		const teacherIds = [...scope.teacherIds];
+		for (let index = 0; index < teacherIds.length; index += BATCH_SIZE) {
+			const chunk = teacherIds.slice(index, index + BATCH_SIZE);
+			const { data, error } = await supabase
+				.from("pkpd_teacher_biq_results")
+				.select("org_id,branch_id,cycle_id,teacher_id,score")
+				.eq("org_id", ORG_ID)
+				.eq("branch_id", scope.branch_id)
+				.eq("cycle_id", scope.cycle_id)
+				.in("teacher_id", chunk);
+			if (error) throw new Error(`Stored BIQ average lookup failed: ${error.message}`);
+			storedRows.push(...(data ?? []));
+		}
+	}
+
+	return averageTeacherBiqRows(storedRows);
+};
+
 const fetchExistingIds = async (table, column, ids) => {
 	const uniqueIds = [...new Set(ids.filter(Boolean))];
 	const existing = new Set();
@@ -76,11 +133,16 @@ const fetchCycleId = async (branchIds) => {
 	const branchIdSet = new Set(branchIds.filter(Boolean));
 	const matchingCycle = (data ?? []).find((cycle) => {
 		const cycleBranchIds = Array.isArray(cycle.branch_ids) ? cycle.branch_ids : [];
-		return cycle.year === 2026 && cycleBranchIds.some((id) => branchIdSet.has(id));
+		return cycleBranchIds.some((id) => branchIdSet.has(id));
 	});
-	const fallbackCycle = (data ?? []).find((cycle) => cycle.year === 2026) ?? data?.[0];
-	if (!matchingCycle && !fallbackCycle?.id) throw new Error("No survey cycle found.");
-	return matchingCycle?.id ?? fallbackCycle.id;
+	const globalCycle = (data ?? []).find((cycle) => {
+		const cycleBranchIds = Array.isArray(cycle.branch_ids) ? cycle.branch_ids : [];
+		return cycleBranchIds.length === 0;
+	});
+
+	if (matchingCycle?.id) return matchingCycle.id;
+	if (globalCycle?.id) return globalCycle.id;
+	throw new Error("No survey cycle found for the workbook branch. Pass --cycle=<id>.");
 };
 
 const readSheet = (workbook, name) => {
@@ -166,6 +228,7 @@ const validClassRows = classRows.filter(
 		groupIds.has(row.group_id) &&
 		subjectIds.has(row.subject_id),
 );
+const teacherAverageRows = averageTeacherBiqRows(validTeacherRows);
 
 const report = {
 	file: inputFile,
@@ -178,6 +241,7 @@ const report = {
 		uniqueRows: teacherRows.length,
 		validRows: validTeacherRows.length,
 		skippedRows: teacherRows.length - validTeacherRows.length,
+		averageRows: teacherAverageRows.length,
 	},
 	classBiq: {
 		inputRows: classRowsInput.length,
@@ -193,6 +257,11 @@ if (apply) {
 		"pkpd_teacher_biq_results",
 		validTeacherRows,
 		"org_id,branch_id,cycle_id,teacher_id,group_id,subject_id",
+	);
+	await upsertChunks(
+		"pkpd_teacher_biq_averages",
+		await fetchStoredTeacherAverageRows(validTeacherRows),
+		"org_id,cycle_id,teacher_id",
 	);
 	await upsertChunks(
 		"biq_class_results",
