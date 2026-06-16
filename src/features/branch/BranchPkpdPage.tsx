@@ -61,6 +61,7 @@ import {
 import {
 	isPkpdNonParticipant as matchPkpdNonParticipant,
 	isPkpdZeroExamParticipant as matchPkpdZeroExamParticipant,
+	isPkpdZeroExamParticipantById as matchPkpdZeroExamParticipantById,
 } from "../../lib/pkpdNonParticipants";
 import type { PkpdEvaluationType } from "../../lib/pkpdScoring";
 import type {
@@ -1228,7 +1229,7 @@ export const BranchPkpdPage = () => {
 						: "none";
 			const isListedPkpdZeroExamParticipant = matchPkpdZeroExamParticipant(
 				teacher.data.name,
-			);
+			) || matchPkpdZeroExamParticipantById(teacher.id);
 			const examInputScore = isListedPkpdZeroExamParticipant
 				? 0
 				: clampExamScore(examMap[teacher.id]?.score);

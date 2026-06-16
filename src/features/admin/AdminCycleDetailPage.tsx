@@ -57,6 +57,7 @@ import {
 import {
 	isPkpdNonParticipant as matchPkpdNonParticipant,
 	isPkpdZeroExamParticipant as matchPkpdZeroExamParticipant,
+	isPkpdZeroExamParticipantById as matchPkpdZeroExamParticipantById,
 } from "../../lib/pkpdNonParticipants";
 import {
 	buildPkpdReportFileName,
@@ -2184,7 +2185,7 @@ export const AdminCycleDetailPage = () => {
 						: (selfDeclaredScore * weights.self) / 10;
 				const isListedPkpdZeroExamParticipant = matchPkpdZeroExamParticipant(
 					resolvedName,
-				);
+				) || matchPkpdZeroExamParticipantById(teacher.id);
 				const examInputScore = isListedPkpdZeroExamParticipant
 					? 0
 					: clampExamScore(examMap[teacher.id]?.score);

@@ -268,6 +268,10 @@ const zeroExamParticipantNames = PKPD_ZERO_EXAM_PARTICIPANT_NAMES.map(
 	normalizeZeroExamName,
 );
 
+const PKPD_ZERO_EXAM_PARTICIPANT_IDS = [
+	"azadliq-teacher-irade-memmedova-mayil-qizi",
+] as const;
+
 export const isPkpdZeroExamParticipant = (fullName: string) => {
 	const normalizedFullName = normalizeZeroExamName(fullName);
 	if (!normalizedFullName) return false;
@@ -276,3 +280,8 @@ export const isPkpdZeroExamParticipant = (fullName: string) => {
 		isSamePersonName(candidateName, normalizedFullName),
 	);
 };
+
+export const isPkpdZeroExamParticipantById = (teacherId: string) =>
+	PKPD_ZERO_EXAM_PARTICIPANT_IDS.includes(
+		teacherId as (typeof PKPD_ZERO_EXAM_PARTICIPANT_IDS)[number],
+	);
