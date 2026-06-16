@@ -1,6 +1,181 @@
 -- Teacher-facing PKPD results are still self-only, but the owner should see
 -- the full score breakdown instead of only the final score and final review.
 
+create table if not exists public.pkpd_teacher_result_settings (
+  id text primary key default gen_random_uuid()::text,
+  org_id text not null references public.orgs(id) on delete cascade,
+  branch_id text not null references public.branches(id) on delete cascade,
+  cycle_id text not null references public.survey_cycles(id) on delete cascade,
+  teacher_id text not null references public.teachers(id) on delete cascade,
+  final_max_score integer not null check (final_max_score in (70, 100)),
+  updated_by text references public.users(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  unique (org_id, cycle_id, teacher_id)
+);
+
+create index if not exists pkpd_teacher_result_settings_cycle_idx
+  on public.pkpd_teacher_result_settings (org_id, cycle_id, branch_id);
+create index if not exists pkpd_teacher_result_settings_teacher_idx
+  on public.pkpd_teacher_result_settings (teacher_id);
+
+alter table public.pkpd_teacher_result_settings enable row level security;
+revoke all on table public.pkpd_teacher_result_settings from anon, authenticated;
+
+drop policy if exists pkpd_teacher_result_settings_select
+  on public.pkpd_teacher_result_settings;
+create policy pkpd_teacher_result_settings_select
+  on public.pkpd_teacher_result_settings
+  for select
+  using (
+    public.current_org_id() = org_id
+    and (
+      public.is_superadmin()
+      or public.is_hr()
+      or public.can_write_pkpd_final_review(branch_id)
+      or exists (
+        select 1
+        from public.teachers teacher_row
+        where teacher_row.id = pkpd_teacher_result_settings.teacher_id
+          and teacher_row.org_id = pkpd_teacher_result_settings.org_id
+          and teacher_row.user_id = auth.uid()::text
+          and teacher_row.deleted_at is null
+      )
+    )
+  );
+
+drop policy if exists pkpd_teacher_result_settings_insert
+  on public.pkpd_teacher_result_settings;
+create policy pkpd_teacher_result_settings_insert
+  on public.pkpd_teacher_result_settings
+  for insert
+  with check (
+    public.current_org_id() = org_id
+    and public.can_write_pkpd_final_review(branch_id)
+  );
+
+drop policy if exists pkpd_teacher_result_settings_update
+  on public.pkpd_teacher_result_settings;
+create policy pkpd_teacher_result_settings_update
+  on public.pkpd_teacher_result_settings
+  for update
+  using (
+    public.current_org_id() = org_id
+    and public.can_write_pkpd_final_review(branch_id)
+  )
+  with check (
+    public.current_org_id() = org_id
+    and public.can_write_pkpd_final_review(branch_id)
+  );
+
+create or replace function public.get_pkpd_teacher_final_max_scores(
+  p_cycle_id text,
+  p_campus_id text default null
+)
+returns table (
+  teacher_id text,
+  final_max_score integer
+)
+language plpgsql
+security definer
+stable
+set search_path = public, auth
+as $$
+begin
+  if not public.pkpd_summary_access_allowed(p_campus_id) then
+    raise exception 'PKPD yekun maksimum bal ayarlarını oxumaq üçün icazəniz yoxdur';
+  end if;
+
+  return query
+  select setting_row.teacher_id, setting_row.final_max_score
+  from public.pkpd_teacher_result_settings setting_row
+  where setting_row.org_id = public.current_org_id()
+    and setting_row.cycle_id = p_cycle_id
+    and (p_campus_id is null or setting_row.branch_id = p_campus_id);
+end;
+$$;
+
+create or replace function public.set_pkpd_teacher_final_max_score(
+  p_cycle_id text,
+  p_teacher_id text,
+  p_final_max_score integer
+)
+returns table (
+  teacher_id text,
+  final_max_score integer
+)
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_teacher public.teachers%rowtype;
+begin
+  if p_final_max_score not in (70, 100) then
+    raise exception 'Yekun maksimum bal yalnız 70 və ya 100 ola bilər';
+  end if;
+
+  select teacher_row.*
+    into v_teacher
+    from public.teachers teacher_row
+   where teacher_row.id = p_teacher_id
+     and teacher_row.org_id = public.current_org_id()
+     and teacher_row.deleted_at is null
+   limit 1;
+
+  if not found or v_teacher.branch_id is null then
+    raise exception 'Müəllim tapılmadı';
+  end if;
+
+  if not public.can_write_pkpd_final_review(v_teacher.branch_id) then
+    raise exception 'PKPD yekun maksimum balını dəyişmək üçün icazəniz yoxdur';
+  end if;
+
+  if not exists (
+    select 1
+    from public.survey_cycles cycle_row
+    where cycle_row.id = p_cycle_id
+      and cycle_row.org_id = v_teacher.org_id
+      and (
+        cycle_row.branch_ids is null
+        or cardinality(cycle_row.branch_ids) = 0
+        or v_teacher.branch_id = any(cycle_row.branch_ids)
+      )
+  ) then
+    raise exception 'Sorğu və müəllim eyni PKPD dövrünə aid deyil';
+  end if;
+
+  insert into public.pkpd_teacher_result_settings (
+    org_id,
+    branch_id,
+    cycle_id,
+    teacher_id,
+    final_max_score,
+    updated_by,
+    updated_at
+  )
+  values (
+    v_teacher.org_id,
+    v_teacher.branch_id,
+    p_cycle_id,
+    p_teacher_id,
+    p_final_max_score,
+    auth.uid()::text,
+    now()
+  )
+  on conflict (org_id, cycle_id, teacher_id)
+  do update set
+    branch_id = excluded.branch_id,
+    final_max_score = excluded.final_max_score,
+    updated_by = excluded.updated_by,
+    updated_at = now();
+
+  teacher_id := p_teacher_id;
+  final_max_score := p_final_max_score;
+  return next;
+end;
+$$;
+
 create or replace function public.get_my_latest_pkpd_result()
 returns table (
   visibility_enabled boolean,
@@ -30,6 +205,7 @@ declare
   v_final_score numeric;
   v_final_score_with_extra numeric;
   v_final_max_score numeric;
+  v_final_max_score_override integer;
   v_final_percentage numeric;
   v_status text := 'calculating';
 begin
@@ -191,6 +367,14 @@ begin
      and exam_result.teacher_id = v_teacher.id
    limit 1;
 
+  select setting_row.final_max_score
+    into v_final_max_score_override
+    from public.pkpd_teacher_result_settings setting_row
+   where setting_row.org_id = v_teacher.org_id
+     and setting_row.cycle_id = v_cycle.id
+     and setting_row.teacher_id = v_teacher.id
+   limit 1;
+
   v_is_exam_exempt :=
     coalesce(v_summary.is_biq_teacher, true) is true
     and coalesce(v_exam_score, 0) <= 0
@@ -225,10 +409,13 @@ begin
     then v_final_score_with_extra
     else v_base_score
   end;
-  v_final_max_score := case
-    when v_is_exam_exempt then 70
-    else 100
-  end;
+  v_final_max_score := coalesce(
+    v_final_max_score_override,
+    case
+      when v_is_exam_exempt then 70
+      else 100
+    end
+  );
   v_final_percentage := case
     when v_final_score is null or v_final_max_score <= 0 then null
     else v_final_score / v_final_max_score * 100
@@ -253,6 +440,8 @@ begin
         'finalScoreWithExtra', v_final_score_with_extra,
         'finalMaxScore', v_final_max_score,
         'final_max_score', v_final_max_score,
+        'finalMaxScoreOverride', v_final_max_score_override,
+        'final_max_score_override', v_final_max_score_override,
         'finalPercentage', v_final_percentage,
         'final_percentage', v_final_percentage,
         'status', v_status,
@@ -279,5 +468,9 @@ end;
 $$;
 
 grant execute on function public.get_my_latest_pkpd_result() to authenticated;
+grant select, insert, update on table public.pkpd_teacher_result_settings to authenticated;
+grant execute on function public.get_pkpd_teacher_final_max_scores(text, text) to authenticated;
+grant execute on function public.set_pkpd_teacher_final_max_score(text, text, integer)
+  to authenticated;
 
 notify pgrst, 'reload schema';

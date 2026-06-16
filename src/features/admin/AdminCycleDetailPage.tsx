@@ -130,6 +130,8 @@ type TeacherClassScore = {
 	submissionCount: number;
 };
 
+type FinalMaxScoreOverride = 70 | 100;
+
 type TeacherFlowAggregate = {
 	management: FlowAggregate;
 	self: FlowAggregate;
@@ -182,6 +184,7 @@ type TeacherRow = {
 	finalScoreWithExtra: number | null;
 	finalScore: number | null;
 	finalMaxScore: number;
+	finalMaxScoreOverride: FinalMaxScoreOverride | null;
 	finalScoreLabel: string;
 	finalPercentage: number | null;
 	isPkpdNonParticipant: boolean;
@@ -787,6 +790,31 @@ const mapCachedTeacherRow = (summary: PkpdTeacherSummaryDoc): TeacherRow => {
 		branchName: summary.branchName ?? "-",
 		evaluationType: getPkpdEvaluationTypeFromBiq(isBiqTeacher),
 		assessmentResultLabel: assessmentResultLabel(isBiqTeacher),
+		finalMaxScoreOverride: null,
+	};
+};
+
+const applyFinalMaxScoreOverride = (
+	row: TeacherRow,
+	override: FinalMaxScoreOverride | null | undefined,
+): TeacherRow => {
+	if (!override) {
+		return { ...row, finalMaxScoreOverride: null };
+	}
+
+	const scoreForPercentage =
+		row.finalScore ?? row.baseTotalScore ?? row.currentEnteredScore;
+	const finalPercentage =
+		scoreForPercentage !== null && override > 0
+			? (scoreForPercentage / override) * 100
+			: null;
+
+	return {
+		...row,
+		finalMaxScore: override,
+		finalMaxScoreOverride: override,
+		finalScoreLabel: getPkpdFinalScoreLabel(scoreForPercentage, override),
+		finalPercentage,
 	};
 };
 
@@ -1247,6 +1275,13 @@ export const AdminCycleDetailPage = () => {
 	>({});
 	const [cachedTeacherRows, setCachedTeacherRows] = useState<TeacherRow[]>([]);
 	const [summaryCacheLoading, setSummaryCacheLoading] = useState(true);
+	const [finalMaxScoreOverrides, setFinalMaxScoreOverrides] = useState<
+		Record<string, FinalMaxScoreOverride>
+	>({});
+	const [savingFinalMaxScoreTeacherId, setSavingFinalMaxScoreTeacherId] =
+		useState<string | null>(null);
+	const [finalMaxScoreOverrideStatus, setFinalMaxScoreOverrideStatus] =
+		useFeedbackState();
 	const [cycleDataLoading, setCycleDataLoading] = useState(true);
 	const [cycleDataError, setCycleDataError] = useState<string | null>(null);
 	const [teacherResultsVisible, setTeacherResultsVisible] = useState(false);
@@ -1368,6 +1403,45 @@ export const AdminCycleDetailPage = () => {
 			cancelled = true;
 		};
 	}, [applySummaryRows, cycleId, refreshSummaryCache, scopedBranchId]);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		const loadFinalMaxScoreOverrides = async () => {
+			if (!cycleId) {
+				setFinalMaxScoreOverrides({});
+				return;
+			}
+			const { data, error } = await supabase.rpc(
+				"get_pkpd_teacher_final_max_scores",
+				{
+					p_cycle_id: cycleId,
+					p_campus_id: scopedBranchId || null,
+				},
+			);
+			if (cancelled) return;
+			if (error) {
+				console.warn("PKPD final max score settings load failed", error);
+				setFinalMaxScoreOverrides({});
+				return;
+			}
+
+			const next: Record<string, FinalMaxScoreOverride> = {};
+			((data ?? []) as Array<Record<string, unknown>>).forEach((row) => {
+				const teacherId = String(row.teacher_id ?? "");
+				const finalMaxScore = Number(row.final_max_score);
+				if (teacherId && (finalMaxScore === 70 || finalMaxScore === 100)) {
+					next[teacherId] = finalMaxScore;
+				}
+			});
+			setFinalMaxScoreOverrides(next);
+		};
+
+		void loadFinalMaxScoreOverrides();
+		return () => {
+			cancelled = true;
+		};
+	}, [cycleId, scopedBranchId]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -2286,6 +2360,7 @@ export const AdminCycleDetailPage = () => {
 					finalScoreWithExtra,
 					finalScore,
 					finalMaxScore,
+					finalMaxScoreOverride: null,
 					finalScoreLabel,
 					finalPercentage,
 					isPkpdNonParticipant,
@@ -2318,8 +2393,15 @@ export const AdminCycleDetailPage = () => {
 		teacherBiqScoresByTeacher,
 		teachers,
 	]);
-	const teacherRows =
+	const baseTeacherRows =
 		calculatedTeacherRows.length > 0 ? calculatedTeacherRows : cachedTeacherRows;
+	const teacherRows = useMemo(
+		() =>
+			baseTeacherRows.map((row) =>
+				applyFinalMaxScoreOverride(row, finalMaxScoreOverrides[row.teacherId]),
+			),
+		[baseTeacherRows, finalMaxScoreOverrides],
+	);
 
 	const selectedTeacher = useMemo(
 		() =>
@@ -2596,6 +2678,64 @@ export const AdminCycleDetailPage = () => {
 	const bulkSkippedExistingReviewCount =
 		bulkFinalReviewCandidates.length - bulkFinalReviewTargets.length;
 
+	const handleFinalMaxScoreChange = useCallback(
+		async (teacherId: string, finalMaxScore: FinalMaxScoreOverride) => {
+			if (!cycleId) return;
+			const previousValue = finalMaxScoreOverrides[teacherId] ?? null;
+			setSavingFinalMaxScoreTeacherId(teacherId);
+			setFinalMaxScoreOverrideStatus(null);
+			setFinalMaxScoreOverrides((current) => ({
+				...current,
+				[teacherId]: finalMaxScore,
+			}));
+
+			const { data, error } = await supabase.rpc(
+				"set_pkpd_teacher_final_max_score",
+				{
+					p_cycle_id: cycleId,
+					p_teacher_id: teacherId,
+					p_final_max_score: finalMaxScore,
+				},
+			);
+
+			if (error) {
+				setFinalMaxScoreOverrides((current) => {
+					const next = { ...current };
+					if (previousValue) {
+						next[teacherId] = previousValue;
+					} else {
+						delete next[teacherId];
+					}
+					return next;
+				});
+				setFinalMaxScoreOverrideStatus(
+					`Yekun hesablama bazası saxlanmadı: ${error.message}`,
+				);
+				setSavingFinalMaxScoreTeacherId(null);
+				return;
+			}
+
+			const row = Array.isArray(data) ? data[0] : data;
+			const savedValue = Number(
+				(row as { final_max_score?: number } | null)?.final_max_score ??
+					finalMaxScore,
+			);
+			setFinalMaxScoreOverrides((current) => ({
+				...current,
+				[teacherId]: savedValue === 70 ? 70 : 100,
+			}));
+			setFinalMaxScoreOverrideStatus(
+				`Yekun hesablama bazası ${savedValue === 70 ? 70 : 100} bal olaraq saxlanıldı.`,
+			);
+			setSavingFinalMaxScoreTeacherId(null);
+		},
+		[
+			cycleId,
+			finalMaxScoreOverrides,
+			setFinalMaxScoreOverrideStatus,
+		],
+	);
+
 	const teacherTableColumns = useMemo<Array<DataTableColumn<TeacherRow>>>(
 		() => [
 			{
@@ -2675,6 +2815,27 @@ export const AdminCycleDetailPage = () => {
 					),
 			},
 			{
+				key: "final-max-score",
+				header: "Baza",
+				sortValue: (row) => row.finalMaxScore,
+				render: (row) => (
+					<div className="actions">
+						{([70, 100] as const).map((value) => (
+							<button
+								className={row.finalMaxScore === value ? "btn primary" : "btn"}
+								disabled={savingFinalMaxScoreTeacherId === row.teacherId}
+								key={value}
+								onClick={() => void handleFinalMaxScoreChange(row.teacherId, value)}
+								type="button"
+							>
+								{row.finalMaxScore === value ? "✓ " : ""}
+								{value}
+							</button>
+						))}
+					</div>
+				),
+			},
+			{
 				key: "bonus",
 				header: "Əlavə bal",
 				sortValue: (row) => row.bonusScore,
@@ -2707,7 +2868,7 @@ export const AdminCycleDetailPage = () => {
 				render: (row) => row.surveySubmissionCount,
 			},
 		],
-		[selfReviewMap],
+		[handleFinalMaxScoreChange, savingFinalMaxScoreTeacherId, selfReviewMap],
 	);
 	const sortedTeacherRows = useMemo(
 		() => sortData(visibleTeacherRows, teacherTableColumns, teacherSort),
@@ -5034,6 +5195,9 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 					{teacherResultsVisibilityStatus && (
 						<div className="notice info mt-4">{teacherResultsVisibilityStatus}</div>
 					)}
+					{finalMaxScoreOverrideStatus && (
+						<div className="notice info mt-4">{finalMaxScoreOverrideStatus}</div>
+					)}
 					{bulkActionStatus && (
 						<div className="notice info mt-4">{bulkActionStatus}</div>
 					)}
@@ -5289,6 +5453,35 @@ const handleTeacherDetailOpenChange = (open: boolean) => {
 									eyebrow="Müəllim detalı"
 									title="Xülasə"
 									description="Cari daxil edilən bal, yekun nəticə və qərar göstəriciləri."
+									actions={
+										<div className="actions">
+											<StatusBadge tone="neutral">Baza</StatusBadge>
+											{([70, 100] as const).map((value) => (
+												<button
+													className={
+														selectedTeacher.finalMaxScore === value
+															? "btn primary"
+															: "btn"
+													}
+													disabled={
+														savingFinalMaxScoreTeacherId ===
+														selectedTeacher.teacherId
+													}
+													key={value}
+													onClick={() =>
+														void handleFinalMaxScoreChange(
+															selectedTeacher.teacherId,
+															value,
+														)
+													}
+													type="button"
+												>
+													{selectedTeacher.finalMaxScore === value ? "✓ " : ""}
+													{value}
+												</button>
+											))}
+										</div>
+									}
 								>
 									<div className="grid three">
 										<StatCard
